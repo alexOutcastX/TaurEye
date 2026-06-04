@@ -1,8 +1,15 @@
 name: Deploy to VM
 
-# Edit locally -> push to main -> this builds the web app on GitHub's runner and
-# ships it (plus the backend code) to the VM, then restarts the API. Users get
-# the update automatically. The VM's SQLite data is preserved (rsync excludes it).
+# STATIC hosting model (chosen design):
+#   edit locally -> push to main -> GitHub builds the web app in LOCAL data mode
+#   (VITE_DATA_SOURCE=local) -> ships the built SPA to the VM's nginx web root.
+# nginx serves the SPA + the precomputed JSON bundle; the screener/charts run
+# client-side, so there is NO live backend to restart. The nightly cron on the
+# VM (refresh.sh) regenerates the JSON bundle under the web root's data/ dir,
+# which this deploy NEVER touches (rsync excludes data/).
+#
+# Backend code is still shipped to /opt/taureye/backend so the nightly exporter
+# stays in sync with the source, but no service is restarted.
 
 on:
   push:
@@ -31,10 +38,11 @@ jobs:
 
       - run: npm ci
 
-      - name: Build web app (served same-origin; API proxied by Caddy at /api)
+      - name: Build web app (LOCAL data mode -> reads /data JSON bundle, no /api)
         run: npm run build
         env:
-          VITE_API_BASE: "" # relative /api -> Caddy -> backend on the same host
+          VITE_DATA_SOURCE: "local" # screener/charts read the static JSON bundle
+          VITE_DATA_BASE: "" # empty -> same-origin /data (nginx serves the nightly export)
           VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -46,22 +54,21 @@ jobs:
           chmod 600 ~/.ssh/id_deploy
           ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Upload web build + backend code
+      - name: Publish SPA to nginx + sync exporter code
         env:
           U: ${{ secrets.VM_USER }}
           H: ${{ secrets.VM_HOST }}
+          WEBROOT: /usr/share/nginx/html
         run: |
-          ssh -i ~/.ssh/id_deploy "$U@$H" 'mkdir -p ~/taureye/dist ~/taureye/backend'
-          # web build -> served by Caddy
-          rsync -az --delete -e "ssh -i ~/.ssh/id_deploy" dist/ "$U@$H:taureye/dist/"
-          # backend code -> NEVER delete the live data/ or saved screens on the VM
+          ssh -i ~/.ssh/id_deploy "$U@$H" 'mkdir -p /opt/taureye/backend'
+          # SPA -> nginx web root. EXCLUDE data/ so the nightly JSON export (and
+          # any in-flight refresh) is never deleted or overwritten by the build.
+          rsync -az --delete --exclude 'data' \
+            -e "ssh -i ~/.ssh/id_deploy" dist/ "$U@$H:$WEBROOT/"
+          # exporter/backend code -> keep in sync for the nightly refresh; never
+          # delete the live data/ or saved screens on the VM.
           rsync -az --delete --exclude 'data' --exclude 'saved_screens.json' \
-            -e "ssh -i ~/.ssh/id_deploy" backend/ "$U@$H:taureye/backend/"
-
-      - name: Install backend deps & restart API
-        env:
-          U: ${{ secrets.VM_USER }}
-          H: ${{ secrets.VM_HOST }}
-        run: |
+            -e "ssh -i ~/.ssh/id_deploy" backend/ "$U@$H:/opt/taureye/backend/"
+          # fix SELinux context on the freshly-uploaded SPA files, then reload nginx.
           ssh -i ~/.ssh/id_deploy "$U@$H" \
-            'cd ~/taureye && .venv/bin/pip install -q -r backend/requirements.txt && sudo systemctl restart taureye-api'
+            'sudo restorecon -R '"$WEBROOT"' 2>/dev/null || true; sudo systemctl reload nginx'
