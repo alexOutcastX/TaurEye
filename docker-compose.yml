@@ -1,0 +1,23 @@
+# TaurEye backend on a cloud host.
+#   docker compose up -d --build
+# The SQLite spine lives in ./data on the host (mounted read/write) so it
+# survives rebuilds and the nightly refresh writes into it.
+services:
+  api:
+    build: .
+    image: taureye-api
+    container_name: taureye-api
+    restart: always
+    environment:
+      TAUREYE_PROVIDER: db
+      # Set in a .env file next to this compose file: TAUREYE_API_KEY=<secret>
+      TAUREYE_API_KEY: ${TAUREYE_API_KEY:-}
+    volumes:
+      - ./data:/app/backend/data
+    ports:
+      - "8010:8010"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8010/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5

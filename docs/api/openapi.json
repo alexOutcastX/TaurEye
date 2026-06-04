@@ -1,0 +1,1343 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TaurEye API",
+    "description": "**TaurEye API** serves the Indian-equity screener, charts, and reference data\nthat power the TaurEye web and mobile apps.\n\nAll data is **factual market information only** \u2014 prices, technical indicators,\nand market caps computed from end-of-day (EOD) data. Nothing here is investment\nadvice, and TaurEye is not a SEBI-registered Investment Adviser or Research\nAnalyst.\n\n### Data freshness\nEndpoints back onto an EOD price spine. The most recent trading date is reported\nby `GET /api/indices` (`data_date`) and the universe size by `GET /api/health`.\n\n### Trying it out\nUse the **Try it out** button on any endpoint below. Request bodies (e.g.\n`POST /api/screen`) come pre-filled with a working example you can edit and run.\n\n### Authentication\nAuth is **optional** and off by default for local/LAN use. If the server sets\nthe `TAUREYE_API_KEY` environment variable (e.g. on a public host), every\n`/api/*` call except `/api/health` must present the key via the `X-API-Key`\nheader or a `?key=` query parameter. See the **ApiKeyHeader** scheme below.",
+    "termsOfService": "https://taureye.app/terms",
+    "contact": {
+      "name": "TaurEye",
+      "url": "https://taureye.app/"
+    },
+    "license": {
+      "name": "Proprietary"
+    },
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8010",
+      "description": "Local dev (via this machine)"
+    },
+    {
+      "url": "http://{lan_ip}:8010",
+      "description": "LAN \u2014 replace {lan_ip} with your PC's IP for device testing",
+      "variables": {
+        "lan_ip": {
+          "default": "192.168.1.20"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Service banner",
+        "description": "Friendly JSON banner shown when the API port is opened directly. Points to the docs.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Root  Get"
+                },
+                "example": {
+                  "service": "TaurEye API",
+                  "status": "ok",
+                  "hint": "This is the backend API. Open the app at http://localhost:5174",
+                  "docs": "/docs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health check",
+        "description": "Liveness probe. Reports the loaded universe size and the active data provider (`db` = real EOD data, `synthetic` = generated demo data). Always reachable, even when an API key is set.",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Api Health Get"
+                },
+                "example": {
+                  "status": "ok",
+                  "universe": 5833,
+                  "provider": "db"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fields": {
+      "get": {
+        "tags": [
+          "Market Data"
+        ],
+        "summary": "Screenable fields",
+        "description": "The catalog of numeric metrics that can be filtered/sorted in the screener, with display labels, units, groups, and descriptions. Use a field's `key` in `Filter.field` and `sort_by`.",
+        "operationId": "fields_api_fields_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FieldDef"
+                  },
+                  "type": "array",
+                  "title": "Response Fields Api Fields Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/indices": {
+      "get": {
+        "tags": [
+          "Market Data"
+        ],
+        "summary": "Market indices + data date",
+        "description": "Live index ticker (NIFTY, BANK NIFTY, SENSEX, INDIA VIX, USD/INR) plus the EOD `data_date` the prices belong to. Factual levels only \u2014 informational, not advice.",
+        "operationId": "indices_api_indices_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Indices Api Indices Get"
+                },
+                "example": {
+                  "indices": [
+                    {
+                      "key": "NIFTY",
+                      "label": "NIFTY",
+                      "value": 23414.6,
+                      "change_pct": 0.04
+                    },
+                    {
+                      "key": "BANKNIFTY",
+                      "label": "BANK NIFTY",
+                      "value": 54229.7,
+                      "change_pct": 0.08
+                    },
+                    {
+                      "key": "INDIAVIX",
+                      "label": "INDIA VIX",
+                      "value": 16.06,
+                      "change_pct": -1.36
+                    },
+                    {
+                      "key": "USDINR",
+                      "label": "USD/INR",
+                      "value": 95.79
+                    }
+                  ],
+                  "as_of": "2026-06-04T08:33:25.670268+00:00",
+                  "data_date": "2026-05-29"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/segments": {
+      "get": {
+        "tags": [
+          "Market Data"
+        ],
+        "summary": "Instrument segments",
+        "description": "Available instrument segments with live counts (EQ/ETF/SME), for the screener's include/exclude control. Computed from the current snapshot.",
+        "operationId": "segments_api_segments_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Segments Api Segments Get"
+                },
+                "example": [
+                  {
+                    "key": "EQ",
+                    "label": "Equity",
+                    "count": 5200
+                  },
+                  {
+                    "key": "ETF",
+                    "label": "ETF",
+                    "count": 410
+                  },
+                  {
+                    "key": "SME",
+                    "label": "SME",
+                    "count": 223
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/securities": {
+      "get": {
+        "tags": [
+          "Securities"
+        ],
+        "summary": "Search securities",
+        "description": "Search the universe by symbol or company name. Powers the scrip search box. Case-insensitive substring match; optionally restrict by exchange.",
+        "operationId": "securities_api_securities_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search text matched against symbol and name.",
+              "examples": [
+                "reliance"
+              ],
+              "title": "Q"
+            },
+            "description": "Search text matched against symbol and name."
+          },
+          {
+            "name": "exchange",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Restrict to one exchange: NSE or BSE.",
+              "examples": [
+                "NSE"
+              ],
+              "title": "Exchange"
+            },
+            "description": "Restrict to one exchange: NSE or BSE."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "description": "Maximum rows to return.",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum rows to return."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Security"
+                  },
+                  "title": "Response Securities Api Securities Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screen": {
+      "post": {
+        "tags": [
+          "Screener"
+        ],
+        "summary": "Run a screen",
+        "description": "Run a filter/sort query across the entire universe and return the matching rows (capped at `limit`), the match `count`, and the `total_universe` scanned. Rows with a missing value for the sort field always sink to the bottom.",
+        "operationId": "screen_api_screen_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/analysis/{symbol}": {
+      "get": {
+        "tags": [
+          "AI"
+        ],
+        "summary": "AI analysis (educational)",
+        "description": "Educational AI summary of a scrip's factual indicators. Returns `configured=false` when no LLM key is set on the server. Always includes a disclaimer; never advice.",
+        "operationId": "ai_analysis_api_ai_analysis__symbol__get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Ticker symbol, e.g. RELIANCE.",
+              "examples": [
+                "RELIANCE"
+              ],
+              "title": "Symbol"
+            },
+            "description": "Ticker symbol, e.g. RELIANCE."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Ai Analysis Api Ai Analysis  Symbol  Get"
+                },
+                "example": {
+                  "configured": false,
+                  "error": "AI analysis needs an online connection.",
+                  "disclaimer": "Educational only \u2014 not investment advice. TaurEye is not a SEBI-registered Investment Adviser or Research Analyst."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown symbol"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metrics/{symbol}": {
+      "get": {
+        "tags": [
+          "Securities"
+        ],
+        "summary": "Latest metrics for one scrip",
+        "description": "Latest factual snapshot for one scrip \u2014 powers the stock info panel. Objective market data only (price, technical indicators, market cap, signal flags); no advice.",
+        "operationId": "metrics_one_api_metrics__symbol__get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Ticker symbol, e.g. RELIANCE.",
+              "examples": [
+                "RELIANCE"
+              ],
+              "title": "Symbol"
+            },
+            "description": "Ticker symbol, e.g. RELIANCE."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Metrics"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown symbol"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/candles/{symbol}": {
+      "get": {
+        "tags": [
+          "Securities"
+        ],
+        "summary": "Price history (OHLCV)",
+        "description": "Daily OHLCV candles for one scrip, oldest\u2192newest, returning the last `limit` rows. Powers the chart. Prices are split/bonus-adjusted.",
+        "operationId": "candles_api_candles__symbol__get",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Ticker symbol, e.g. RELIANCE.",
+              "examples": [
+                "RELIANCE"
+              ],
+              "title": "Symbol"
+            },
+            "description": "Ticker symbol, e.g. RELIANCE."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 1,
+              "description": "How many most-recent daily candles to return.",
+              "default": 260,
+              "title": "Limit"
+            },
+            "description": "How many most-recent daily candles to return."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Candle"
+                  },
+                  "title": "Response Candles Api Candles  Symbol  Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown symbol"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screens": {
+      "get": {
+        "tags": [
+          "Saved Screens"
+        ],
+        "summary": "List saved screens",
+        "description": "Return all saved screen definitions on the server, newest first.",
+        "operationId": "list_screens_api_screens_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SavedScreen"
+                  },
+                  "type": "array",
+                  "title": "Response List Screens Api Screens Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Saved Screens"
+        ],
+        "summary": "Save a screen",
+        "description": "Persist a named screen definition and return it with a server-assigned id and timestamp.",
+        "operationId": "create_screen_api_screens_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveScreenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedScreen"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screens/{screen_id}": {
+      "delete": {
+        "tags": [
+          "Saved Screens"
+        ],
+        "summary": "Delete a saved screen",
+        "description": "Delete a saved screen by id. Returns the deleted id, or 404 if it does not exist.",
+        "operationId": "delete_screen_api_screens__screen_id__delete",
+        "parameters": [
+          {
+            "name": "screen_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Id returned when the screen was saved.",
+              "title": "Screen Id"
+            },
+            "description": "Id returned when the screen was saved."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete Screen Api Screens  Screen Id  Delete"
+                },
+                "example": {
+                  "deleted": "scr_a1b2c3"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Screen not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Candle": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "open": {
+            "type": "number",
+            "title": "Open"
+          },
+          "high": {
+            "type": "number",
+            "title": "High"
+          },
+          "low": {
+            "type": "number",
+            "title": "Low"
+          },
+          "close": {
+            "type": "number",
+            "title": "Close"
+          },
+          "volume": {
+            "type": "integer",
+            "title": "Volume"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "open",
+          "high",
+          "low",
+          "close",
+          "volume"
+        ],
+        "title": "Candle"
+      },
+      "FieldDef": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "group": {
+            "type": "string",
+            "title": "Group"
+          },
+          "type": {
+            "type": "string",
+            "const": "number",
+            "title": "Type",
+            "default": "number"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "desc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Desc"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "group"
+        ],
+        "title": "FieldDef"
+      },
+      "Filter": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field",
+            "description": "Metric key to filter on (see GET /api/fields), e.g. 'rsi_14'."
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "gt",
+              "gte",
+              "lt",
+              "lte",
+              "eq",
+              "between"
+            ],
+            "title": "Op",
+            "description": "Comparison operator. 'between' uses value..value2."
+          },
+          "value": {
+            "type": "number",
+            "title": "Value",
+            "description": "Threshold value (lower bound for 'between').",
+            "default": 0
+          },
+          "value2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value2",
+            "description": "Upper bound, only for op='between'."
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "op"
+        ],
+        "title": "Filter",
+        "examples": [
+          {
+            "field": "rsi_14",
+            "op": "lt",
+            "value": 30
+          }
+        ]
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Metrics": {
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "title": "Symbol"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "exchange": {
+            "type": "string",
+            "enum": [
+              "NSE",
+              "BSE"
+            ],
+            "title": "Exchange"
+          },
+          "sector": {
+            "type": "string",
+            "title": "Sector"
+          },
+          "close": {
+            "type": "number",
+            "title": "Close"
+          },
+          "change_pct": {
+            "type": "number",
+            "title": "Change Pct"
+          },
+          "change_abs": {
+            "type": "number",
+            "title": "Change Abs"
+          },
+          "volume": {
+            "type": "integer",
+            "title": "Volume"
+          },
+          "rel_volume": {
+            "type": "number",
+            "title": "Rel Volume"
+          },
+          "rsi_14": {
+            "type": "number",
+            "title": "Rsi 14"
+          },
+          "macd_hist": {
+            "type": "number",
+            "title": "Macd Hist"
+          },
+          "sma_20": {
+            "type": "number",
+            "title": "Sma 20"
+          },
+          "sma_50": {
+            "type": "number",
+            "title": "Sma 50"
+          },
+          "sma_200": {
+            "type": "number",
+            "title": "Sma 200"
+          },
+          "pct_above_sma20": {
+            "type": "number",
+            "title": "Pct Above Sma20"
+          },
+          "pct_above_sma50": {
+            "type": "number",
+            "title": "Pct Above Sma50"
+          },
+          "pct_above_sma200": {
+            "type": "number",
+            "title": "Pct Above Sma200"
+          },
+          "dist_52w_high_pct": {
+            "type": "number",
+            "title": "Dist 52W High Pct"
+          },
+          "dist_52w_low_pct": {
+            "type": "number",
+            "title": "Dist 52W Low Pct"
+          },
+          "atr_pct": {
+            "type": "number",
+            "title": "Atr Pct"
+          },
+          "market_cap_cr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Cap Cr"
+          },
+          "segment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment"
+          },
+          "golden_cross": {
+            "type": "integer",
+            "title": "Golden Cross",
+            "default": 0
+          },
+          "death_cross": {
+            "type": "integer",
+            "title": "Death Cross",
+            "default": 0
+          },
+          "cross_20_50_up": {
+            "type": "integer",
+            "title": "Cross 20 50 Up",
+            "default": 0
+          },
+          "cross_20_50_down": {
+            "type": "integer",
+            "title": "Cross 20 50 Down",
+            "default": 0
+          },
+          "new_high_52w": {
+            "type": "integer",
+            "title": "New High 52W",
+            "default": 0
+          },
+          "new_low_52w": {
+            "type": "integer",
+            "title": "New Low 52W",
+            "default": 0
+          },
+          "macd_bull_cross": {
+            "type": "integer",
+            "title": "Macd Bull Cross",
+            "default": 0
+          },
+          "macd_bear_cross": {
+            "type": "integer",
+            "title": "Macd Bear Cross",
+            "default": 0
+          },
+          "gap_up": {
+            "type": "integer",
+            "title": "Gap Up",
+            "default": 0
+          },
+          "gap_down": {
+            "type": "integer",
+            "title": "Gap Down",
+            "default": 0
+          },
+          "volume_spike": {
+            "type": "integer",
+            "title": "Volume Spike",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "symbol",
+          "name",
+          "exchange",
+          "sector",
+          "close",
+          "change_pct",
+          "change_abs",
+          "volume",
+          "rel_volume",
+          "rsi_14",
+          "macd_hist",
+          "sma_20",
+          "sma_50",
+          "sma_200",
+          "pct_above_sma20",
+          "pct_above_sma50",
+          "pct_above_sma200",
+          "dist_52w_high_pct",
+          "dist_52w_low_pct",
+          "atr_pct"
+        ],
+        "title": "Metrics",
+        "description": "Latest computed snapshot for one security."
+      },
+      "SaveScreenRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Human-friendly name for the saved screen."
+          },
+          "request": {
+            "$ref": "#/components/schemas/ScreenRequest",
+            "description": "The screen definition to persist."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "request"
+        ],
+        "title": "SaveScreenRequest",
+        "examples": [
+          {
+            "name": "Oversold large caps",
+            "request": {
+              "exchange": "NSE",
+              "filters": [
+                {
+                  "field": "rsi_14",
+                  "op": "lt",
+                  "value": 30
+                }
+              ],
+              "limit": 50,
+              "logic": "AND",
+              "segments": [
+                "EQ"
+              ],
+              "sort_by": "market_cap_cr",
+              "sort_dir": "desc"
+            }
+          }
+        ]
+      },
+      "SavedScreen": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ScreenRequest"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "request",
+          "created_at"
+        ],
+        "title": "SavedScreen"
+      },
+      "ScreenRequest": {
+        "properties": {
+          "filters": {
+            "items": {
+              "$ref": "#/components/schemas/Filter"
+            },
+            "type": "array",
+            "title": "Filters",
+            "description": "Numeric conditions to apply."
+          },
+          "logic": {
+            "type": "string",
+            "enum": [
+              "AND",
+              "OR"
+            ],
+            "title": "Logic",
+            "description": "Combine filters with AND (all) or OR (any).",
+            "default": "AND"
+          },
+          "exchange": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "NSE",
+                  "BSE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exchange",
+            "description": "Restrict to NSE or BSE."
+          },
+          "segments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segments",
+            "description": "Keep only these segments, e.g. ['EQ']. Null = all."
+          },
+          "query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query",
+            "description": "Free-text match on symbol/name."
+          },
+          "sort_by": {
+            "type": "string",
+            "title": "Sort By",
+            "description": "Metric key to sort by.",
+            "default": "market_cap_cr"
+          },
+          "sort_dir": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "title": "Sort Dir",
+            "description": "Sort direction.",
+            "default": "desc"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "description": "Max rows to return.",
+            "default": 200
+          }
+        },
+        "type": "object",
+        "title": "ScreenRequest",
+        "examples": [
+          {
+            "exchange": "NSE",
+            "filters": [
+              {
+                "field": "rsi_14",
+                "op": "lt",
+                "value": 30
+              },
+              {
+                "field": "close",
+                "op": "gte",
+                "value": 100
+              }
+            ],
+            "limit": 50,
+            "logic": "AND",
+            "segments": [
+              "EQ"
+            ],
+            "sort_by": "market_cap_cr",
+            "sort_dir": "desc"
+          }
+        ]
+      },
+      "ScreenResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "total_universe": {
+            "type": "integer",
+            "title": "Total Universe"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/Metrics"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "total_universe",
+          "results"
+        ],
+        "title": "ScreenResponse"
+      },
+      "Security": {
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "title": "Symbol"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "exchange": {
+            "type": "string",
+            "enum": [
+              "NSE",
+              "BSE"
+            ],
+            "title": "Exchange"
+          },
+          "sector": {
+            "type": "string",
+            "title": "Sector"
+          },
+          "isin": {
+            "type": "string",
+            "title": "Isin"
+          },
+          "shares_outstanding": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares Outstanding"
+          },
+          "segment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "symbol",
+          "name",
+          "exchange",
+          "sector",
+          "isin"
+        ],
+        "title": "Security"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "ApiKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Required only when the server sets TAUREYE_API_KEY. Off for local/LAN use."
+      },
+      "ApiKeyQuery": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "key",
+        "description": "Alternative to the X-API-Key header (e.g. ?key=...)."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "System",
+      "description": "Service status and liveness checks."
+    },
+    {
+      "name": "Market Data",
+      "description": "Index levels and screener reference data (fields, segments)."
+    },
+    {
+      "name": "Securities",
+      "description": "Per-scrip lookup: search, latest metrics, and price history."
+    },
+    {
+      "name": "Screener",
+      "description": "Run filter/sort queries across the whole universe."
+    },
+    {
+      "name": "Saved Screens",
+      "description": "Persist, list, and delete named screen definitions."
+    },
+    {
+      "name": "AI",
+      "description": "Educational, factual AI summaries (when an LLM key is configured)."
+    }
+  ]
+}

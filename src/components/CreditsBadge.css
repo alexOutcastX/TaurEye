@@ -1,0 +1,17 @@
+.credits-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #23262d);
+  background: var(--surface-2, #161a22);
+  color: var(--text, #e7eaef);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.credits-badge:hover { border-color: var(--accent, #18c98c); }
+.credits-coin { color: var(--accent, #18c98c); font-size: 12px; }
+.credits-val { font-variant-numeric: tabular-nums; }

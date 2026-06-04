@@ -1,0 +1,63 @@
+.scrip-search {
+  position: relative;
+}
+
+.scrip-dd {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface, #11141a);
+  border: 1px solid var(--border, #23262d);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.scrip-dd-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.scrip-dd-row.active {
+  background: var(--surface-2, #161a22);
+}
+.scrip-dd-sym {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text, #e7eaef);
+}
+.scrip-dd-name {
+  font-size: 12px;
+  color: var(--text-muted, #9aa4b2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scrip-dd-exch {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--border, #23262d);
+  color: var(--text-faint, #5e6776);
+}
+.scrip-dd-exch.nse { color: var(--accent, #18c98c); border-color: var(--accent-dim, #128f63); }
+.scrip-dd-exch.bse { color: #6ea8fe; border-color: #3a5a9a; }
+
+.scrip-dd-empty {
+  padding: 10px;
+  font-size: 13px;
+  color: var(--text-faint, #5e6776);
+  text-align: center;
+}

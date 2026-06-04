@@ -1,0 +1,9 @@
+node_modules
+dist
+android
+.venv
+.git
+backend/data
+*.apk
+*.mp4
+src

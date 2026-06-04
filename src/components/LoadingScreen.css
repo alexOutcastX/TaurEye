@@ -1,0 +1,132 @@
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(120% 90% at 50% 18%, rgba(24, 201, 140, 0.10), transparent 60%),
+    var(--bg, #0a0c0f);
+}
+
+.boot-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+  text-align: center;
+}
+
+.boot-video {
+  width: min(680px, 88vw);
+  height: auto;
+  display: block;
+  border-radius: 12px;
+  filter: drop-shadow(0 10px 40px rgba(0, 0, 0, 0.6));
+}
+
+.boot-tagline {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-muted, #9aa4b2);
+}
+.boot-tagline i { color: var(--text-faint, #5e6776); margin: 0 8px; font-style: normal; }
+.boot-tagline b { color: var(--accent, #18c98c); font-weight: 700; }
+
+.boot-logo {
+  filter: drop-shadow(0 8px 30px rgba(0, 0, 0, 0.55));
+}
+.boot-logo img,
+.boot-logo svg {
+  display: block;
+}
+
+/* gentle breathing pulse on the whole mark */
+.boot-logo.pulsing {
+  animation: boot-pulse 2.2s ease-in-out infinite;
+}
+@keyframes boot-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+/* the green diamond twinkles a touch faster than the body breathes */
+.bull-diamond {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: boot-diamond 1.4s ease-in-out infinite;
+}
+@keyframes boot-diamond {
+  0%, 100% { opacity: 0.75; transform: scale(0.9) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.12) rotate(0deg); }
+}
+
+.boot-wordmark {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text, #e7eaef);
+}
+.boot-wordmark span {
+  color: var(--accent, #18c98c);
+}
+
+/* indeterminate progress bar */
+.boot-bar {
+  position: relative;
+  width: 240px;
+  max-width: 70vw;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-2, #161a22);
+  overflow: hidden;
+}
+.boot-bar span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--accent, #18c98c), transparent);
+  animation: boot-slide 1.3s ease-in-out infinite;
+}
+@keyframes boot-slide {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+
+.boot-msg {
+  font-size: 13px;
+  color: var(--text-muted, #9aa4b2);
+  min-height: 18px;
+  animation: boot-fade 0.5s ease;
+}
+@keyframes boot-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.boot-error { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.boot-error p { margin: 0; color: var(--text, #e7eaef); font-size: 14px; }
+.boot-error-detail { color: var(--down, #f0506e) !important; font-size: 12px; max-width: 320px; }
+.boot-retry {
+  margin-top: 6px;
+  background: var(--accent, #18c98c);
+  color: #06231a;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.boot-retry:hover { filter: brightness(1.08); }
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-logo.pulsing, .bull-diamond, .boot-bar span { animation: none; }
+}

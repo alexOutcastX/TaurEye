@@ -1,0 +1,49 @@
+.ph { max-width: 1100px; }
+
+.ph-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.ph-head h1 { font-size: 22px; }
+
+.ph-badge {
+  font-size: 11px;
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-weight: 600;
+}
+
+.ph-sub {
+  color: var(--text-muted);
+  margin: var(--sp-2) 0 var(--sp-5);
+  max-width: 60ch;
+}
+
+.ph-canvas {
+  position: relative;
+  height: 360px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.ph-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.25;
+  mask-image: radial-gradient(circle at center, black, transparent 78%);
+}
+.ph-note {
+  position: relative;
+  color: var(--text-faint);
+  font-size: 13px;
+}

@@ -1,0 +1,207 @@
+// Reads the precomputed JSON bundle published by `taureye export` and serves the
+// app's read endpoints from it — no backend needed. The big EOD spine never
+// ships to the device; the screener runs off metrics.json (~0.5 MB gz) and
+// charts lazy-load per-symbol candle files on demand.
+//
+// Used only when LOCAL_DATA is on (see api/client.ts). Files are fetched from
+// DATA_BASE (a CDN/host, or the app's own public/data/). Each file is cached for
+// the session after first load.
+
+import type {
+  Candle,
+  FieldDef,
+  IndicesResponse,
+  Metrics,
+  ScreenRequest,
+  ScreenResponse,
+  Security,
+  SegmentInfo,
+} from "../api/types";
+import { bundledUrl, candleUrl, dataUrl } from "./source";
+import { runScreen } from "../lib/screenLocal";
+
+// ---- bundle file shapes (as written by backend/app/dataengine/export.py) ----
+
+interface MetricsBundle {
+  meta: { generated_at: string; count: number };
+  fields: FieldDef[];
+  segments: SegmentInfo[];
+  metrics: Metrics[];
+}
+
+interface FundamentalRow {
+  s: string; // symbol
+  n: string; // name
+  x: "NSE" | "BSE"; // primary exchange
+  sec: string; // sector
+  g: string | null; // segment
+  fv: number | null; // face value
+  so: number | null; // shares outstanding
+  isin: string;
+}
+
+interface FundamentalsBundle {
+  meta: { generated_at: string; count: number };
+  securities: FundamentalRow[];
+}
+
+interface CandleFile {
+  s: string;
+  adjusted: boolean;
+  cols: string[]; // ["date","o","h","l","c","v"]
+  candles: Array<[string, number, number, number, number, number]>;
+}
+
+// ---- session caches (one fetch per file) -----------------------------------
+
+let metricsCache: Promise<MetricsBundle> | null = null;
+let fundamentalsCache: Promise<FundamentalsBundle> | null = null;
+const candleCache = new Map<string, Promise<Candle[]>>();
+
+async function tryFetch<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url, { cache: "no-cache" });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchJSON<T>(
+  url: string,
+  label: string,
+  hint: string,
+  fallbackUrl?: string,
+): Promise<T> {
+  // Try the (possibly remote) source first so the app auto-updates from the host.
+  const primary = await tryFetch<T>(url);
+  if (primary !== null) return primary;
+  // Then the in-app bundled copy, so a missing/unreachable host degrades to the
+  // last shipped snapshot rather than failing outright.
+  if (fallbackUrl && fallbackUrl !== url) {
+    const fallback = await tryFetch<T>(fallbackUrl);
+    if (fallback !== null) return fallback;
+  }
+  throw new Error(`Could not load ${label}. ${hint}`);
+}
+
+// Bundle files: fetch fresh from the host, fall back to the in-app copy offline.
+async function getJSON<T>(name: string, hint: string): Promise<T> {
+  return fetchJSON<T>(dataUrl(name), name, hint, bundledUrl(name));
+}
+
+function loadMetrics(): Promise<MetricsBundle> {
+  if (!metricsCache) {
+    metricsCache = getJSON<MetricsBundle>(
+      "metrics.json",
+      "Run `taureye export` and (re)deploy the data bundle.",
+    );
+  }
+  return metricsCache;
+}
+
+function loadFundamentals(): Promise<FundamentalsBundle> {
+  if (!fundamentalsCache) {
+    fundamentalsCache = getJSON<FundamentalsBundle>(
+      "fundamentals.json",
+      "Run `taureye export` and (re)deploy the data bundle.",
+    );
+  }
+  return fundamentalsCache;
+}
+
+// ---- api-compatible local implementations ----------------------------------
+
+export async function localHealth(): Promise<{
+  status: string;
+  universe: number;
+  provider: string;
+}> {
+  const s = await loadMetrics();
+  return { status: "ok", universe: s.metrics.length, provider: "local" };
+}
+
+export async function localFields(): Promise<FieldDef[]> {
+  return (await loadMetrics()).fields;
+}
+
+export async function localSegments(): Promise<SegmentInfo[]> {
+  return (await loadMetrics()).segments;
+}
+
+export async function localScreen(req: ScreenRequest): Promise<ScreenResponse> {
+  const s = await loadMetrics();
+  return runScreen(s.metrics, s.fields, req);
+}
+
+export async function localMetrics(symbol: string): Promise<Metrics> {
+  const s = await loadMetrics();
+  const m = s.metrics.find((x) => x.symbol === symbol);
+  if (!m) throw new Error("Unknown symbol");
+  return m;
+}
+
+export async function localSearch(q: string, limit = 8): Promise<Security[]> {
+  const query = q.trim().toUpperCase();
+  if (!query) return [];
+  const { securities } = await loadFundamentals();
+  const hits: { sec: Security; rank: number }[] = [];
+  for (const r of securities) {
+    const sym = r.s.toUpperCase();
+    const name = (r.n || "").toUpperCase();
+    // rank 0 = symbol prefix, 1 = symbol contains, 2 = name contains
+    let rank = -1;
+    if (sym.startsWith(query)) rank = 0;
+    else if (sym.includes(query)) rank = 1;
+    else if (name.includes(query)) rank = 2;
+    if (rank < 0) continue;
+    hits.push({
+      rank,
+      sec: {
+        symbol: r.s,
+        name: r.n || r.s,
+        exchange: r.x,
+        sector: r.sec || "Unknown",
+        isin: r.isin,
+        shares_outstanding: r.so,
+        segment: r.g,
+      },
+    });
+  }
+  hits.sort((a, b) => a.rank - b.rank || a.sec.symbol.localeCompare(b.sec.symbol));
+  return hits.slice(0, Math.max(1, limit)).map((h) => h.sec);
+}
+
+export async function localCandles(symbol: string, limit = 260): Promise<Candle[]> {
+  let p = candleCache.get(symbol);
+  if (!p) {
+    p = fetchJSON<CandleFile>(
+      candleUrl(symbol),
+      `candles/${symbol}.json`,
+      "Charts stream per-symbol candle files from the data host — set VITE_CANDLE_BASE and publish them with `taureye export all`.",
+    ).then((file) =>
+      file.candles.map(([date, o, h, l, c, v]) => ({
+        date,
+        open: o,
+        high: h,
+        low: l,
+        close: c,
+        volume: v,
+      })),
+    );
+    candleCache.set(symbol, p);
+  }
+  const all = await p;
+  return limit > 0 && all.length > limit ? all.slice(all.length - limit) : all;
+}
+
+export async function localIndices(): Promise<IndicesResponse> {
+  // Snapshot taken at export time; online builds refresh from the live feed.
+  // Fail soft to an empty strip so a missing file never breaks the app.
+  try {
+    return await getJSON<IndicesResponse>("indices.json", "");
+  } catch {
+    return { indices: [], as_of: new Date().toISOString(), data_date: null };
+  }
+}

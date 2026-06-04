@@ -1,0 +1,373 @@
+"""Publish the market data as compact JSON for on-device consumption.
+
+The mobile/web clients don't talk to a live DB. Instead this module renders the
+EOD spine into small static files the client caches and computes against:
+
+  * fundamentals.json — one row per security (name, sector, segment, share
+    count, face value). Tiny (~0.1 MB gz); rarely changes.
+  * ohlc.json         — a recent corporate-action-ADJUSTED OHLC window for the
+    WHOLE universe, packed columnar with a shared date axis. ~13 MB gz for a
+    260-day window. This is the "compute indicators on the phone" tier: 260
+    trading days is the minimum that reproduces every indicator the screener
+    uses today (the 52-week high/low window is candles[-252:], and the
+    golden/death-cross check needs one extra day back), so the client can
+    recompute the full metric set offline and match the server exactly.
+  * candles/<SYMBOL>.json — (opt-in) full per-symbol history for charts,
+    fetched on demand.
+
+PARITY: prices are adjusted exactly like providers/db.py — open/high/low are
+raw * adj_factor (rounded 4dp), close is adj_close, volume is raw — so indicators
+computed on-device match the backend's compute_metrics byte-for-byte.
+"""
+from __future__ import annotations
+
+import gzip
+import json
+from collections import defaultdict
+from datetime import datetime, timezone
+from pathlib import Path
+
+from .config import DATA_DIR
+from .db import connect
+
+# Default OHLC window. 252 (52-week) + a small buffer for the 1-day-back values
+# the cross-detection signals read. 260 keeps every current indicator exact.
+DEFAULT_WINDOW = 260
+
+# Where published files land. Sits under the web app's public/ so a normal Vite
+# build copies them into dist/, and they can equally be uploaded to a static
+# bucket / CDN / nginx. Overridable via --out.
+REPO_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_OUT = REPO_ROOT / "public" / "data"
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+
+
+def _write(path: Path, obj: object, *, gz: bool) -> tuple[int, int]:
+    """Write `obj` as compact JSON to `path`; optionally also gzip alongside.
+    Returns (raw_bytes, gz_bytes) — gz_bytes is the on-the-wire size whether or
+    not a .gz file was written (so the caller can always report transfer cost)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(obj, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    path.write_bytes(text)
+    gz_bytes = len(gzip.compress(text, 6))
+    if gz:
+        path.with_suffix(path.suffix + ".gz").write_bytes(gzip.compress(text, 9))
+    return len(text), gz_bytes
+
+
+def _symbol(row) -> str:
+    return row["nse_symbol"] or row["bse_symbol"] or ""
+
+
+def export_fundamentals(out: Path, *, gz: bool) -> dict:
+    """One compact row per active security with a price history."""
+    with connect() as conn:
+        rows = conn.execute(
+            """SELECT s.isin, s.name, s.nse_symbol, s.bse_symbol, s.sector,
+                      s.segment, s.face_value, s.shares_outstanding
+               FROM securities s
+               WHERE s.active = 1
+                 AND EXISTS (SELECT 1 FROM prices p WHERE p.isin = s.isin)
+               ORDER BY s.shares_outstanding IS NULL, s.shares_outstanding DESC"""
+        ).fetchall()
+
+    securities = []
+    for r in rows:
+        sym = _symbol(r)
+        if not sym:
+            continue
+        securities.append(
+            {
+                "s": sym,
+                "n": r["name"] or sym,
+                "x": "NSE" if r["nse_symbol"] else "BSE",
+                "sec": r["sector"] or "Unknown",
+                "g": r["segment"],
+                "fv": r["face_value"],
+                "so": r["shares_outstanding"],
+                "isin": r["isin"],
+            }
+        )
+
+    payload = {
+        "meta": {"generated_at": _now(), "count": len(securities)},
+        "securities": securities,
+    }
+    path = out / "fundamentals.json"
+    raw, gzb = _write(path, payload, gz=gz)
+    print(f"[export] fundamentals: {len(securities)} rows -> {path}"
+          f"  ({raw/1e6:.2f} MB raw, {gzb/1e6:.2f} MB gz)")
+    return {"file": str(path), "count": len(securities), "raw": raw, "gz": gzb}
+
+
+def export_metrics(out: Path, *, gz: bool) -> dict:
+    """The SCREENER dataset: one precomputed Metrics row per security, plus the
+    screener's field definitions and segment counts.
+
+    This is everything the on-device screener filters/sorts on — run_screen reads
+    only Metrics attributes, never raw OHLC — so the client screens the whole
+    universe instantly and offline against this single small file (~0.5 MB gz).
+    Indicators are computed here, server-side, exactly once per nightly run.
+    """
+    import os
+    os.environ.setdefault("TAUREYE_PROVIDER", "db")
+    from collections import Counter
+    from ..indicators import compute_metrics
+    from ..providers.db import DBProvider
+    from ..screener import FIELDS
+
+    prov = DBProvider()
+    rows = []
+    for sec in prov.securities():
+        candles = list(prov.history(sec.symbol))
+        if candles:
+            rows.append(compute_metrics(sec, candles).model_dump())
+
+    _LABELS = {"EQ": "Equity", "ETF": "ETF", "SME": "SME"}
+    counts = Counter((m.get("segment") or "EQ") for m in rows)
+    segments = [{"key": k, "label": _LABELS.get(k, k), "count": counts[k]}
+                for k in sorted(counts, key=lambda k: -counts[k])]
+
+    payload = {
+        "meta": {"generated_at": _now(), "count": len(rows)},
+        "fields": [f.model_dump() for f in FIELDS],
+        "segments": segments,
+        "metrics": rows,
+    }
+    path = out / "metrics.json"
+    raw, gzb = _write(path, payload, gz=gz)
+    print(f"[export] metrics (screener data): {len(rows)} rows -> {path}"
+          f"  ({raw/1e6:.2f} MB raw, {gzb/1e6:.2f} MB gz)")
+    return {"file": str(path), "count": len(rows), "raw": raw, "gz": gzb}
+
+
+def export_ohlc(out: Path, *, window: int, gz: bool) -> dict:
+    """Recent ADJUSTED OHLC for the whole universe, packed columnar.
+
+    Layout:
+        {
+          "meta": {generated_at, window_days, count, adjusted: true},
+          "dates": ["YYYY-MM-DD", ...],          # global axis, ascending
+          "series": [
+            {"s": SYMBOL, "d": [date_idx...],     # indices into "dates"
+             "o":[...], "h":[...], "l":[...], "c":[...], "v":[...]},
+            ...
+          ]
+        }
+    Per-symbol `d` indexes the shared `dates` axis so symbols that didn't trade
+    every day stay aligned without repeating date strings 5,500 times.
+    """
+    with connect() as conn:
+        # The recent global trading-date axis (oldest..newest).
+        date_rows = conn.execute(
+            "SELECT DISTINCT date FROM prices ORDER BY date DESC LIMIT ?", (window,)
+        ).fetchall()
+        dates = sorted(r["date"] for r in date_rows)
+        if not dates:
+            raise SystemExit("No prices in the spine — run `backfill`/`nightly` first.")
+        didx = {d: i for i, d in enumerate(dates)}
+        start = dates[0]
+
+        sym_of = {}
+        for r in conn.execute(
+            "SELECT isin, nse_symbol, bse_symbol FROM securities WHERE active=1"
+        ).fetchall():
+            sym = _symbol(r)
+            if sym:
+                sym_of[r["isin"]] = sym
+
+        rows = conn.execute(
+            """SELECT isin, date, open, high, low, close, volume, adj_factor, adj_close
+               FROM prices WHERE date >= ? ORDER BY isin, date""",
+            (start,),
+        ).fetchall()
+
+    by_isin: dict[str, list] = defaultdict(list)
+    for r in rows:
+        if r["date"] in didx:
+            by_isin[r["isin"]].append(r)
+
+    series = []
+    for isin, rs in by_isin.items():
+        sym = sym_of.get(isin)
+        if not sym:
+            continue
+        d, o, h, l, c, v = [], [], [], [], [], []
+        for r in rs:
+            f = r["adj_factor"] or 1.0
+            d.append(didx[r["date"]])
+            o.append(round(r["open"] * f, 4))
+            h.append(round(r["high"] * f, 4))
+            l.append(round(r["low"] * f, 4))
+            c.append(round(r["adj_close"], 4))
+            v.append(int(r["volume"]))
+        series.append({"s": sym, "d": d, "o": o, "h": h, "l": l, "c": c, "v": v})
+
+    series.sort(key=lambda s: s["s"])
+    payload = {
+        "meta": {
+            "generated_at": _now(),
+            "window_days": len(dates),
+            "count": len(series),
+            "adjusted": True,
+        },
+        "dates": dates,
+        "series": series,
+    }
+    path = out / "ohlc.json"
+    raw, gzb = _write(path, payload, gz=gz)
+    print(f"[export] ohlc: {len(series)} symbols x {len(dates)}d -> {path}"
+          f"  ({raw/1e6:.2f} MB raw, {gzb/1e6:.2f} MB gz)")
+    return {"file": str(path), "symbols": len(series), "days": len(dates),
+            "raw": raw, "gz": gzb}
+
+
+def export_candles(out: Path, *, gz: bool) -> dict:
+    """Full per-symbol ADJUSTED history, one file each, for on-demand charts."""
+    cdir = out / "candles"
+    cdir.mkdir(parents=True, exist_ok=True)
+    with connect() as conn:
+        secs = conn.execute(
+            """SELECT isin, nse_symbol, bse_symbol FROM securities s
+               WHERE active=1 AND EXISTS (SELECT 1 FROM prices p WHERE p.isin=s.isin)"""
+        ).fetchall()
+        written = 0
+        total_raw = 0
+        for s in secs:
+            sym = _symbol(s)
+            if not sym:
+                continue
+            rs = conn.execute(
+                """SELECT date, open, high, low, close, volume, adj_factor, adj_close
+                   FROM prices WHERE isin=? ORDER BY date""",
+                (s["isin"],),
+            ).fetchall()
+            candles = []
+            for r in rs:
+                f = r["adj_factor"] or 1.0
+                candles.append([
+                    r["date"], round(r["open"] * f, 4), round(r["high"] * f, 4),
+                    round(r["low"] * f, 4), round(r["adj_close"], 4), int(r["volume"]),
+                ])
+            payload = {"s": sym, "adjusted": True,
+                       "cols": ["date", "o", "h", "l", "c", "v"], "candles": candles}
+            raw, _ = _write(cdir / f"{sym}.json", payload, gz=gz)
+            total_raw += raw
+            written += 1
+    print(f"[export] candles: {written} per-symbol files -> {cdir}"
+          f"  ({total_raw/1e6:.1f} MB raw total)")
+    return {"dir": str(cdir), "files": written, "raw": total_raw}
+
+
+def export_indices(out: Path, *, gz: bool) -> dict:
+    """Snapshot the live index ticker (NIFTY / BANK NIFTY / SENSEX / INDIA VIX /
+    USD-INR) to a static file.
+
+    The ticker is normally a LIVE feed (NSE/BSE/er-api), so it can't be derived
+    from the EOD spine. This writes the last-known values as a small JSON so the
+    top bar still shows something useful offline; online clients keep refreshing
+    from the live endpoint and fall back to this snapshot when unreachable. Fails
+    soft: if every upstream is blocked, an empty `indices` list is still written
+    so the client gets a valid (if stale) file rather than a 404."""
+    from ..indices import get_indices
+
+    try:
+        data = get_indices(force=True)
+    except Exception as e:  # never let a flaky upstream abort the whole export
+        data = {"indices": [], "as_of": _now(), "error": f"{type(e).__name__}: {e}"}
+
+    # Match /api/indices exactly: it appends the EOD spine date as `data_date`
+    # (the "prices as of" stamp the ticker shows). Read the latest price date.
+    try:
+        with connect() as conn:
+            row = conn.execute("SELECT MAX(date) d FROM prices").fetchone()
+        data["data_date"] = row["d"] if row else None
+    except Exception:
+        data["data_date"] = None
+
+    # Stamp WHEN this bundle was published, so the offline app can show "prices
+    # last updated on <date> at <time>" (distinct from `as_of`, which in a live
+    # client is the moment the ticker was fetched).
+    data["generated_at"] = _now()
+
+    path = out / "indices.json"
+    raw, gzb = _write(path, data, gz=gz)
+    n = len(data.get("indices", []))
+    print(f"[export] indices: {n} live values -> {path}"
+          f"  ({raw} B raw, {gzb} B gz)")
+    return {"file": str(path), "count": n, "raw": raw, "gz": gzb}
+
+
+def write_manifest(out: Path, files: dict, *, window: int, gz: bool) -> dict:
+    """Write manifest.json describing the published bundle.
+
+    The client fetches this first (from its configured data base URL) to learn
+    what's available, the OHLC window length, and when the bundle was generated —
+    so it can cache-bust and degrade gracefully when an optional file is absent.
+
+    Paths are stored RELATIVE to the bundle root (just the filename / subdir), so
+    the manifest is portable across hosts and never leaks a local build path.
+    """
+    def _rel(entry: dict) -> dict:
+        e = dict(entry)
+        for k in ("file", "dir"):
+            if k in e:
+                try:
+                    e[k] = Path(e[k]).relative_to(out).as_posix()
+                except ValueError:
+                    e[k] = Path(e[k]).name
+        return e
+
+    payload = {
+        "generated_at": _now(),
+        "window_days": window,
+        "gzip": gz,
+        "files": {k: _rel(v) for k, v in files.items()},
+    }
+    path = out / "manifest.json"
+    raw, gzb = _write(path, payload, gz=gz)
+    print(f"[export] manifest: {len(files)} artifact(s) -> {path}")
+    return {"file": str(path), "raw": raw, "gz": gzb}
+
+
+def cmd_export(out: str | None, *, window: int, gz: bool,
+               fundamentals: bool, metrics: bool, ohlc: bool, candles: bool,
+               indices: bool = False, everything: bool = False) -> None:
+    """Dispatch. With no specific flag, export the lightweight client bundle —
+    fundamentals + metrics + indices (the screener data + ticker snapshot, ~0.7
+    MB gz total). The big universe-wide ohlc.json and the per-symbol candles/
+    fan-out are opt-in, since charts fetch candles on demand and screening needs
+    only metrics.
+
+    `--all` publishes the COMPLETE cloud bundle the mobile app runs on:
+    fundamentals + metrics + indices + per-symbol candles (charts fetch these on
+    demand, so no single huge file). The monolithic ohlc.json stays separate —
+    it's only for clients that want the whole-universe window in one request.
+
+    A manifest.json is always written, listing every artifact produced so the
+    client can discover the bundle from one fetch."""
+    out_dir = Path(out) if out else DEFAULT_OUT
+    if everything:
+        fundamentals = metrics = indices = candles = True
+    if not (fundamentals or metrics or ohlc or candles or indices):
+        # default = the on-device screener bundle + ticker snapshot
+        fundamentals = metrics = indices = True
+
+    t0 = datetime.now()
+    files: dict = {}
+    if fundamentals:
+        files["fundamentals"] = export_fundamentals(out_dir, gz=gz)
+    if metrics:
+        files["metrics"] = export_metrics(out_dir, gz=gz)
+    if indices:
+        files["indices"] = export_indices(out_dir, gz=gz)
+    if ohlc:
+        files["ohlc"] = export_ohlc(out_dir, window=window, gz=gz)
+    if candles:
+        files["candles"] = export_candles(out_dir, gz=gz)
+    write_manifest(out_dir, files, window=window, gz=gz)
+    dt = (datetime.now() - t0).total_seconds()
+    print(f"[export] done in {dt:.1f}s -> {out_dir}")

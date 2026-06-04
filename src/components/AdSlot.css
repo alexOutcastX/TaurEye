@@ -1,0 +1,27 @@
+.ad-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px dashed var(--border-strong, #2c313c);
+  border-radius: var(--r-md, 10px);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--surface, #11141a),
+    var(--surface, #11141a) 12px,
+    var(--surface-2, #161a22) 12px,
+    var(--surface-2, #161a22) 24px
+  );
+  color: var(--text-faint, #5e6776);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.ad-slot-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted, #9aa4b2);
+  border: 1px solid var(--border, #23262d);
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: var(--bg, #0a0c0f);
+}

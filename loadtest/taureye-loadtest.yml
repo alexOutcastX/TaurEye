@@ -1,0 +1,102 @@
+# ============================================================================
+#  TaurEye API load test  (Artillery)
+# ----------------------------------------------------------------------------
+#  Runs from ANY machine on the LAN against the TaurEye backend (port 8010).
+#
+#  1) Install Node.js on the test machine, then:  npm i -g artillery
+#  2) Point `target` below at the server running the API (its LAN IP).
+#     The server you are testing is currently:  http://172.16.34.34:8010
+#     (verify with `ipconfig` on that box — the IP can change on reconnect.)
+#  3) Run:        artillery run taureye-loadtest.yml
+#     Override target without editing the file:
+#                 artillery run --target http://<server-ip>:8010 taureye-loadtest.yml
+#     Save an HTML report:
+#                 artillery run -o report.json taureye-loadtest.yml
+#                 artillery report report.json
+#
+#  NOTE: the backend binds 0.0.0.0:8010 already, but Windows Firewall must allow
+#  inbound 8010 on the server. On the server run:  taureye firewall
+# ============================================================================
+config:
+  target: "http://172.16.34.34:8010"
+  http:
+    timeout: 15            # seconds; fail a request that hangs longer
+    pool: 50               # reuse keep-alive sockets
+  plugins:
+    expect: {}             # enables the `expect:` assertions used below
+  phases:
+    - name: Warm up
+      duration: 30
+      arrivalRate: 5       # 5 new virtual users / second
+    - name: Ramp up
+      duration: 60
+      arrivalRate: 5
+      rampTo: 50           # climb 5 -> 50 users/sec over the minute
+    - name: Sustained load
+      duration: 120
+      arrivalRate: 50
+    - name: Cool down
+      duration: 20
+      arrivalRate: 5
+  # If the server has TAUREYE_API_KEY set (public-host mode), uncomment and pass
+  # the key:  API_KEY=yourkey artillery run taureye-loadtest.yml
+  # defaults:
+  #   headers:
+  #     X-API-Key: "{{ $processEnvironment.API_KEY }}"
+  payload: []
+  variables:
+    # Free-text search seeds — the test picks one, searches, then uses the first
+    # returned symbol for the per-scrip calls. This keeps the test valid on BOTH
+    # the synthetic and the real-EOD datasets (no hard-coded tickers needed).
+    q:
+      - "a"
+      - "re"
+      - "in"
+      - "ta"
+      - "ba"
+      - "s"
+
+scenarios:
+  # ~70% of traffic: the normal "browse + drill into a scrip" flow a user does.
+  - name: Browse and inspect a scrip
+    weight: 7
+    flow:
+      - get:
+          url: "/api/health"
+      - get:
+          url: "/api/indices"
+      - get:
+          url: "/api/fields"
+      - get:
+          url: "/api/segments"
+      - get:
+          url: "/api/securities?q={{ q }}&limit=8"
+          capture:
+            - json: "$[0].symbol"
+              as: "sym"
+      # Only drill in if the search actually returned a symbol.
+      - get:
+          url: "/api/metrics/{{ sym }}"
+          ifTrue: "sym"
+      - get:
+          url: "/api/candles/{{ sym }}?limit=260"
+          ifTrue: "sym"
+
+  # ~30% of traffic: the screener POST, which is the heaviest endpoint (scans
+  # the whole universe). This is what stresses the box.
+  - name: Run a screen
+    weight: 3
+    flow:
+      - post:
+          url: "/api/screen"
+          json:
+            filters:
+              - field: "rsi_14"
+                op: "lt"
+                value: 70
+            logic: "AND"
+            sort_by: "market_cap_cr"
+            sort_dir: "desc"
+            limit: 50
+          expect:
+            - statusCode: 200
