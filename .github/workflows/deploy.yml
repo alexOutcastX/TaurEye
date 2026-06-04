@@ -1,0 +1,67 @@
+name: Deploy to VM
+
+# Edit locally -> push to main -> this builds the web app on GitHub's runner and
+# ships it (plus the backend code) to the VM, then restarts the API. Users get
+# the update automatically. The VM's SQLite data is preserved (rsync excludes it).
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "android/**"
+      - "docs/**"
+      - "**/*.md"
+      - "loadtest/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-vm
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Build web app (served same-origin; API proxied by Caddy at /api)
+        run: npm run build
+        env:
+          VITE_API_BASE: "" # relative /api -> Caddy -> backend on the same host
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Upload web build + backend code
+        env:
+          U: ${{ secrets.VM_USER }}
+          H: ${{ secrets.VM_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_deploy "$U@$H" 'mkdir -p ~/taureye/dist ~/taureye/backend'
+          # web build -> served by Caddy
+          rsync -az --delete -e "ssh -i ~/.ssh/id_deploy" dist/ "$U@$H:taureye/dist/"
+          # backend code -> NEVER delete the live data/ or saved screens on the VM
+          rsync -az --delete --exclude 'data' --exclude 'saved_screens.json' \
+            -e "ssh -i ~/.ssh/id_deploy" backend/ "$U@$H:taureye/backend/"
+
+      - name: Install backend deps & restart API
+        env:
+          U: ${{ secrets.VM_USER }}
+          H: ${{ secrets.VM_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_deploy "$U@$H" \
+            'cd ~/taureye && .venv/bin/pip install -q -r backend/requirements.txt && sudo systemctl restart taureye-api'

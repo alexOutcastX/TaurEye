@@ -1,0 +1,21 @@
+# TaurEye web + API on the VM.
+# - Serves the built site from ~/taureye/dist
+# - Proxies /api/* to the backend (uvicorn on 127.0.0.1:8010)
+# - SPA fallback to index.html
+#
+# HTTP on the bare IP. For real HTTPS, replace ":80" with your domain
+# (e.g. "taureye.example.com") and Caddy auto-provisions a Let's Encrypt cert.
+
+:80 {
+	encode gzip
+	root * /home/USER/taureye/dist
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8010
+	}
+
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}
