@@ -6,11 +6,10 @@ name: Build Android APK
 # Run it: push to main, or trigger manually from the Actions tab. The APK is
 # uploaded as a build artifact you can download and sideload onto a phone.
 #
-# IMPORTANT: set the backend the app talks to via the VITE_API_BASE repo
-# variable (Settings → Secrets and variables → Actions → Variables). Example:
-#   VITE_API_BASE = https://api.taureye.example
-# A LAN IP (http://192.168.x.x:8010) only works while your phone is on the same
-# network as the machine running the backend.
+# The app is built in LOCAL data mode (the production model): it reads the
+# precomputed JSON bundle from the VM by absolute URL (VITE_DATA_BASE /
+# VITE_CANDLE_BASE below) — there is NO live /api backend. Keep these in sync
+# with mobile-ota.yml so the sideloaded APK and the OTA bundles behave the same.
 
 on:
   push:
@@ -26,7 +25,8 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Capacitor 8's CLI requires Node >=22 (cap sync fails on 20).
+          node-version: "22"
           cache: "npm"
 
       - name: Set up JDK 17
@@ -42,8 +42,16 @@ jobs:
         run: npm ci
 
       - name: Build web + sync Capacitor
+        # Build in LOCAL data mode (the production model): the app reads the
+        # precomputed JSON bundle from the VM by absolute URL — there is no live
+        # /api backend. Mirrors mobile-ota.yml so the APK and OTA bundles match.
         env:
-          VITE_API_BASE: ${{ vars.VITE_API_BASE }}
+          VITE_DATA_SOURCE: "local"
+          VITE_DATA_BASE: "http://161.118.174.177"
+          VITE_CANDLE_BASE: "http://161.118.174.177"
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
           npm run build
           npx cap sync android
