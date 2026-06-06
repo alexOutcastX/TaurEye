@@ -61,7 +61,7 @@ in production:
 - `npm run dev` — local dev server (port 5174).
 - `npm run build` — typecheck + Vite build → `dist/`.
 - `npm run lint` — ESLint.
-- Production-style build: `VITE_DATA_SOURCE=local VITE_DATA_BASE=http://161.118.174.177 VITE_CANDLE_BASE=http://161.118.174.177 npm run build`.
+- Production-style build: `VITE_DATA_SOURCE=local VITE_DATA_BASE=http://161.118.174.177/data VITE_CANDLE_BASE=http://161.118.174.177/data npm run build` (nginx serves the bundle under `/data`, so the base URLs must include it).
 - APK (debug): `npm run apk:debug` (build → `cap sync` → `gradlew assembleDebug`).
 
 ## Frontend layout

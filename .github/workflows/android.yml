@@ -49,8 +49,9 @@ jobs:
         # /api backend. Mirrors mobile-ota.yml so the APK and OTA bundles match.
         env:
           VITE_DATA_SOURCE: "local"
-          VITE_DATA_BASE: "http://161.118.174.177"
-          VITE_CANDLE_BASE: "http://161.118.174.177"
+          # nginx serves the bundle under /data, so the base must include it.
+          VITE_DATA_BASE: "http://161.118.174.177/data"
+          VITE_CANDLE_BASE: "http://161.118.174.177/data"
           VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
