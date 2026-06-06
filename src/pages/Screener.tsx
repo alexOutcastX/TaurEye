@@ -29,6 +29,22 @@ const OPS: { value: Operator; label: string }[] = [
   { value: "between", label: "between" },
 ];
 
+// Columns offered by the always-visible Sort control (mirrors the table columns).
+// On mobile the results table scrolls horizontally and sits far down the page, so
+// tapping the right-side header cells to sort is awkward — this makes sorting by
+// any column reliable with a single tap, no scrolling required.
+const SORT_COLS: { key: string; label: string }[] = [
+  { key: "market_cap_cr", label: "Market Cap" },
+  { key: "close", label: "LTP" },
+  { key: "change_pct", label: "% Change" },
+  { key: "volume", label: "Volume" },
+  { key: "rel_volume", label: "Rel Volume" },
+  { key: "rsi_14", label: "RSI" },
+  { key: "pct_above_sma50", label: "% vs 50 DMA" },
+  { key: "dist_52w_high_pct", label: "From 52w High" },
+  { key: "symbol", label: "Symbol" },
+];
+
 const DEFAULT_REQ: ScreenRequest = {
   filters: [{ field: "change_pct", op: "gt", value: 2 }],
   logic: "AND",
@@ -169,7 +185,11 @@ export default function Screener() {
 
   const sortBy = (key: string) => {
     const dir = req.sort_by === key && req.sort_dir === "desc" ? "asc" : "desc";
-    const next = { ...req, sort_by: key, sort_dir: dir as "asc" | "desc" };
+    applySort(key, dir);
+  };
+  // Sort by an explicit column + direction (used by the Sort control and headers).
+  const applySort = (key: string, dir: "asc" | "desc") => {
+    const next = { ...req, sort_by: key, sort_dir: dir };
     setReq(next);
     run(next);
   };
@@ -255,6 +275,28 @@ export default function Screener() {
               ))}
             </select>
           </label>
+          <label className="ctl">
+            <span>Sort by</span>
+            <select
+              value={req.sort_by}
+              onChange={(e) => applySort(e.target.value, req.sort_dir)}
+            >
+              {SORT_COLS.map((c) => (
+                <option key={c.key} value={c.key}>{c.label}</option>
+              ))}
+            </select>
+          </label>
+          <div className="ctl">
+            <span>Order</span>
+            <button
+              type="button"
+              className="sort-dir"
+              onClick={() => applySort(req.sort_by, req.sort_dir === "desc" ? "asc" : "desc")}
+              title="Toggle sort direction"
+            >
+              {req.sort_dir === "desc" ? "High → Low ▾" : "Low → High ▴"}
+            </button>
+          </div>
           {segs.length > 1 && (
             <div className="ctl seg-ctl">
               <span>Segments</span>
