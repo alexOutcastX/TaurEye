@@ -98,6 +98,19 @@ select,
 select:focus,
 .panel input:focus { border-color: var(--accent-dim); }
 
+/* sort direction toggle (sits next to the Sort-by select) */
+.sort-dir {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--r-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.sort-dir:hover { border-color: var(--border-strong); }
+
 .filters { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4) 0; }
 .filter-block { display: flex; flex-direction: column; gap: 4px; }
 .filter-row { display: flex; align-items: center; gap: var(--sp-2); }
