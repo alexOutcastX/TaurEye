@@ -12,7 +12,11 @@ import Wallet from "./pages/Wallet";
 import Refer from "./pages/Refer";
 
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { isAuthed } = useAuth();
+  const { isAuthed, loading } = useAuth();
+  // Wait for the (cloud) session to hydrate before deciding — otherwise a
+  // signed-in user is bounced to /login on every refresh while the async
+  // Supabase session is still resolving.
+  if (loading) return null;
   return isAuthed ? <>{children}</> : <Navigate to="/login" replace />;
 }
 

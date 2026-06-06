@@ -93,10 +93,16 @@ async function getJSON<T>(name: string, hint: string): Promise<T> {
 
 function loadMetrics(): Promise<MetricsBundle> {
   if (!metricsCache) {
+    // Cache the promise so each file is fetched once per session — but if it
+    // rejects, drop the cache so a later retry (e.g. the loading screen's Retry
+    // button) can fetch again instead of replaying the failed promise forever.
     metricsCache = getJSON<MetricsBundle>(
       "metrics.json",
       "Run `taureye export` and (re)deploy the data bundle.",
-    );
+    ).catch((e) => {
+      metricsCache = null;
+      throw e;
+    });
   }
   return metricsCache;
 }
@@ -106,7 +112,10 @@ function loadFundamentals(): Promise<FundamentalsBundle> {
     fundamentalsCache = getJSON<FundamentalsBundle>(
       "fundamentals.json",
       "Run `taureye export` and (re)deploy the data bundle.",
-    );
+    ).catch((e) => {
+      fundamentalsCache = null;
+      throw e;
+    });
   }
   return fundamentalsCache;
 }
@@ -180,16 +189,22 @@ export async function localCandles(symbol: string, limit = 260): Promise<Candle[
       candleUrl(symbol),
       `candles/${symbol}.json`,
       "Charts stream per-symbol candle files from the data host — set VITE_CANDLE_BASE and publish them with `taureye export all`.",
-    ).then((file) =>
-      file.candles.map(([date, o, h, l, c, v]) => ({
-        date,
-        open: o,
-        high: h,
-        low: l,
-        close: c,
-        volume: v,
-      })),
-    );
+    )
+      .then((file) =>
+        file.candles.map(([date, o, h, l, c, v]) => ({
+          date,
+          open: o,
+          high: h,
+          low: l,
+          close: c,
+          volume: v,
+        })),
+      )
+      .catch((e) => {
+        // Don't cache a failed fetch — let the next chart open retry it.
+        candleCache.delete(symbol);
+        throw e;
+      });
     candleCache.set(symbol, p);
   }
   const all = await p;
