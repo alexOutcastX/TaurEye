@@ -83,8 +83,24 @@ in production:
 - `android/local.properties` is machine-specific (SDK path) and not committed.
 - Debug APKs are signed per-machine; installing a new-machine build over an
   old-machine install fails with a signature mismatch (uninstall first).
-- Web changes deploy instantly; **mobile apps need a manual rebuild** to pick up
-  code changes.
+- Web changes deploy instantly; a **fresh APK rebuild** is only needed for
+  **native** changes (new Capacitor plugins, `capacitor.config.ts`, permissions,
+  Capacitor version). Web/code-only changes now ship over the air — see below.
+
+### Over-the-air (OTA) updates — Capgo
+- `@capgo/capacitor-updater` (configured in `capacitor.config.ts`, `autoUpdate`
+  on, `defaultChannel: production`) lets installed apps pull new **web bundles**
+  in the background and apply them on next launch — no Play Store / APK rebuild.
+- `src/main.tsx` calls `CapacitorUpdater.notifyAppReady()` on native (no-op on
+  web); skipping it makes Capgo roll back to the last good bundle.
+- CI: `.github/workflows/mobile-ota.yml` builds the SPA in **mobile mode**
+  (LOCAL data + VM absolute URLs, *not* same-origin `/data` like `deploy.yml`)
+  and uploads to the `production` channel on every push to `main`.
+- **One-time setup** before OTA works: create a Capgo account, run
+  `npx @capgo/cli app add app.taureye.mobile`, add the API key as the GitHub
+  secret `CAPGO_TOKEN`, set the repo variable `CAPGO_ENABLED=true`, then rebuild
+  + reinstall the APK **once** so the native plugin is included.
+- **OTA only updates the web layer.** Native changes still require a rebuild.
 
 ## Working style for cloud (web/phone) sessions
 

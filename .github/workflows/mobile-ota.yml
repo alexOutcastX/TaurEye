@@ -1,0 +1,70 @@
+name: Mobile OTA (Capgo)
+
+# Ships web/code changes to INSTALLED mobile apps over the air, with no APK
+# rebuild or Play Store round-trip. On every push to main we build the SPA the
+# same way the APK is built (LOCAL data mode, pointing data + candles at the VM
+# by absolute URL — the app has no same-origin /data) and upload the bundle to
+# Capgo's "production" channel. Phones with autoUpdate on (capacitor.config.ts)
+# pull it on next launch.
+#
+# IMPORTANT: only the WEB layer updates this way. Native changes (new Capacitor
+# plugins, capacitor.config.ts, permissions, the Capacitor version) still need a
+# full APK rebuild + reinstall.
+#
+# One-time setup (see CLAUDE.md → Mobile):
+#   1. Create a Capgo account, run `npx @capgo/cli app add app.taureye.mobile`.
+#   2. Add the API key as the GitHub secret CAPGO_TOKEN.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "android/**"
+      - "ios/**"
+      - "docs/**"
+      - "**/*.md"
+      - "loadtest/**"
+      - "backend/**"
+      - "deploy/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: mobile-ota
+  cancel-in-progress: true
+
+jobs:
+  ota:
+    runs-on: ubuntu-latest
+    # Skip if the Capgo token hasn't been configured yet, so the job doesn't
+    # fail noisily before the one-time setup is done.
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.CAPGO_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Build SPA for mobile (LOCAL data mode, VM absolute URLs)
+        run: npm run build
+        env:
+          VITE_DATA_SOURCE: "local" # screener/charts read the static JSON bundle
+          # The APK has no same-origin /data, so point data + candles at the VM.
+          VITE_DATA_BASE: "http://161.118.174.177"
+          VITE_CANDLE_BASE: "http://161.118.174.177"
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Upload bundle to Capgo (production channel)
+        env:
+          CAPGO_TOKEN: ${{ secrets.CAPGO_TOKEN }}
+        run: |
+          npx -y @capgo/cli@8 bundle upload \
+            --apikey "$CAPGO_TOKEN" \
+            --channel production \
+            --path dist \
+            --bundle "1.0.${{ github.run_number }}"
