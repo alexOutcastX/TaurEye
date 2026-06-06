@@ -145,8 +145,9 @@
   .search { width: 100%; }
 }
 @media (max-width: 480px) {
-  .nav-item { padding: 8px 10px; gap: 6px; }
+  .nav-item { padding: 6px 9px; gap: 6px; }
   .nav-item span { font-size: 13px; }
+  .topnav { gap: 2px; }
   .user-pill span:last-child { display: none; }
   .content { padding: var(--sp-3); }
 }

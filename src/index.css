@@ -40,6 +40,30 @@
   color-scheme: dark;
 }
 
+/* ---- Light theme (minimalist) — flips the palette via [data-theme="light"] ---- */
+:root[data-theme="light"] {
+  --bg: #fbfcfd;
+  --surface: #ffffff;
+  --surface-2: #f3f5f8;
+  --elevated: #eaeef2;
+  --border: #e8ebef;
+  --border-strong: #d6dbe2;
+
+  --text: #0f1419;
+  --text-muted: #58616d;
+  --text-faint: #98a1ad;
+
+  --accent: #0f9d63;
+  --accent-dim: #0c8553;
+  --up: #0f9d63;
+  --down: #e0455f;
+  --warn: #c2870f;
+
+  --shadow: 0 1px 3px rgba(16, 20, 26, 0.08);
+
+  color-scheme: light;
+}
+
 * {
   box-sizing: border-box;
 }
