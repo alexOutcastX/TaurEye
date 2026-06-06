@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import BullMark from "./BullMark";
+import { getOtaStatus, onOtaChange, otaMessage, type OtaStatus } from "../lib/ota";
 import "./LoadingScreen.css";
 
 const MESSAGES = [
@@ -20,7 +21,11 @@ type Props = { error?: string | null; onRetry?: () => void };
 export default function LoadingScreen({ error, onRetry }: Props) {
   const [videoFailed, setVideoFailed] = useState(false);
   const [msg, setMsg] = useState(0);
+  const [ota, setOta] = useState<OtaStatus>(getOtaStatus());
   const showVideo = !error && !videoFailed;
+
+  // Surface Capgo OTA progress (native only; stays "idle" on web).
+  useEffect(() => onOtaChange(setOta), []);
 
   // Advance the status line while the snapshot warms (keeps the wait informative).
   useEffect(() => {
@@ -31,6 +36,10 @@ export default function LoadingScreen({ error, onRetry }: Props) {
     );
     return () => clearInterval(id);
   }, [error]);
+
+  // An in-flight update takes over the status line and drives the bar.
+  const otaLine = otaMessage(ota);
+  const downloading = ota.state === "downloading";
 
   return (
     <div className="boot" role="status" aria-live="polite">
@@ -69,10 +78,10 @@ export default function LoadingScreen({ error, onRetry }: Props) {
           </div>
         ) : (
           <>
-            <div className="boot-bar">
-              <span />
+            <div className={`boot-bar${downloading ? " det" : ""}`}>
+              <span style={downloading ? { width: `${ota.percent}%` } : undefined} />
             </div>
-            <p className="boot-msg">{MESSAGES[msg]}</p>
+            <p className="boot-msg">{otaLine ?? MESSAGES[msg]}</p>
           </>
         )}
       </div>
