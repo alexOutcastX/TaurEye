@@ -59,21 +59,21 @@
 }
 
 .field input {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
   color: var(--text);
-  padding: 11px 12px;
+  padding: 11px 2px;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s;
 }
 
 .field input::placeholder { color: var(--text-faint); }
 
 .field input:focus {
-  border-color: var(--accent-dim);
-  box-shadow: 0 0 0 3px rgba(24, 201, 140, 0.12);
+  border-bottom-color: var(--accent);
 }
 
 .btn-primary {

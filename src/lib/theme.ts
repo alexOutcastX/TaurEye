@@ -8,7 +8,13 @@ const KEY = "taureye.theme";
 export function getTheme(): Theme {
   try {
     const t = localStorage.getItem(KEY);
-    if (t === "light" || t === "dark") return t;
+    if (t === "light" || t === "dark") return t; // explicit user choice wins
+  } catch {
+    /* ignore */
+  }
+  // No stored choice → follow the device's light/dark setting.
+  try {
+    if (window.matchMedia?.("(prefers-color-scheme: light)").matches) return "light";
   } catch {
     /* ignore */
   }
