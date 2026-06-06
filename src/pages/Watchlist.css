@@ -17,7 +17,15 @@
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   overflow: auto;
+  -webkit-overflow-scrolling: touch;   /* momentum scroll on iOS */
+  scrollbar-width: thin;
   background: var(--surface);
+}
+/* a thin, always-visible scrollbar so it's obvious the table slides */
+.wl .table-wrap::-webkit-scrollbar { height: 8px; }
+.wl .table-wrap::-webkit-scrollbar-thumb {
+  background: var(--border-strong, #2c313c);
+  border-radius: 8px;
 }
 table.wl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .wl-table thead th {
@@ -43,3 +51,14 @@ table.wl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 }
 .wl-actions .mini:hover { color: var(--text); border-color: var(--border-strong); }
 .wl-actions .mini.danger:hover { color: var(--down); border-color: var(--down); }
+
+/* ---- mobile: compact, slidable table (matches the Screener) ---- */
+@media (max-width: 640px) {
+  .wl { max-width: 100%; }
+  table.wl-table { font-size: 12px; }
+  .wl-table thead th { padding: 8px 10px; font-size: 11px; }
+  .wl-table tbody td { padding: 8px 10px; }
+  .wl-table .name { max-width: 120px; }
+  .wl-head h1 { font-size: 19px; }
+  .wl-actions .mini { padding: 4px 8px; font-size: 11px; }
+}

@@ -125,14 +125,15 @@
     padding-right: max(var(--sp-4), env(safe-area-inset-right, 0px));
   }
   .topbar-brand { border-right: none; padding-right: 0; }
-  /* nav sits next to the brand and scrolls if it runs long */
+  /* Nav takes its own full-width row and WRAPS, so every destination stays
+     visible and tappable. (Previously it was a hidden-scrollbar horizontal
+     strip, which left Saved/Wallet/Refer off-screen and undiscoverable.) */
   .topnav {
     order: 2;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 4px;
   }
-  .topnav::-webkit-scrollbar { display: none; }
   /* search + account drop to their own full-width row (search stays usable) */
   .topbar-right {
     order: 3;
