@@ -63,7 +63,7 @@ jobs:
         env:
           CAPGO_TOKEN: ${{ secrets.CAPGO_TOKEN }}
         run: |
-          npx -y @capgo/cli@8 bundle upload \
+          npx -y @capgo/cli@latest bundle upload \
             --apikey "$CAPGO_TOKEN" \
             --channel production \
             --path dist \
