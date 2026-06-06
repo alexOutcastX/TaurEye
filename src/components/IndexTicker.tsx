@@ -64,7 +64,7 @@ export default function IndexTicker() {
         ))}
       </div>
       {freshness(data) && (
-        <span className="idx-asof" title={`Indices as of ${new Date(data.as_of).toLocaleString()}`}>
+        <span className="idx-asof" title={`Indices as of ${new Date(data.as_of).toLocaleString("en-IN")}`}>
           {freshness(data)}
         </span>
       )}

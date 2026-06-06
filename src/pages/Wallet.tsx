@@ -101,7 +101,7 @@ export default function Wallet() {
           {ledger.map((t) => (
             <li key={t.id}>
               <span className="lg-reason">{t.reason.replace(/_/g, " ")}</span>
-              <span className="lg-date">{new Date(t.ts).toLocaleString()}</span>
+              <span className="lg-date">{new Date(t.ts).toLocaleString("en-IN")}</span>
               <span className={`lg-delta ${t.delta >= 0 ? "up" : "down"}`}>
                 {t.delta >= 0 ? "+" : ""}
                 {t.delta}
