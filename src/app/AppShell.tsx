@@ -29,6 +29,13 @@ export default function AppShell() {
       <header className="topbar">
         <div className="topbar-brand">
           <Logo size={24} />
+          {/* OTA smoke-test marker — temporary; remove after confirming. */}
+          <span
+            style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: "#18c98c", opacity: 0.9 }}
+            title="Over-the-air update smoke test"
+          >
+            OTA&nbsp;✓&nbsp;1
+          </span>
         </div>
 
         <nav className="topnav">
