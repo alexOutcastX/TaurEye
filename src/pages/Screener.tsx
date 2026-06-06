@@ -45,6 +45,26 @@ const SORT_COLS: { key: string; label: string }[] = [
   { key: "symbol", label: "Symbol" },
 ];
 
+// Client-side sort of the loaded results. Keeps the displayed order a pure
+// function of (column, direction) so tapping a header/changing the control
+// ALWAYS reorders the table — instant, and independent of the screen re-query.
+// Missing values sink to the bottom in both directions (mirrors the engine).
+type Sortable = number | string | null | undefined;
+function sortRows(rows: Metrics[], key: string, dir: "asc" | "desc"): Metrics[] {
+  const reverse = dir === "desc";
+  const val = (m: Metrics) => (m as unknown as Record<string, Sortable>)[key];
+  return [...rows].sort((a, b) => {
+    const va = val(a), vb = val(b);
+    const ma = va === null || va === undefined;
+    const mb = vb === null || vb === undefined;
+    if (ma && mb) return 0;
+    if (ma) return 1;
+    if (mb) return -1;
+    const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    return reverse ? -cmp : cmp;
+  });
+}
+
 const DEFAULT_REQ: ScreenRequest = {
   filters: [{ field: "change_pct", op: "gt", value: 2 }],
   logic: "AND",
@@ -99,6 +119,12 @@ export default function Screener() {
     for (const f of fields) (g[f.group] ??= []).push(f);
     return g;
   }, [fields]);
+
+  // The rows actually rendered — always sorted by the active column/direction.
+  const displayRows = useMemo(
+    () => sortRows(rows, req.sort_by, req.sort_dir),
+    [rows, req.sort_by, req.sort_dir],
+  );
 
   useEffect(() => {
     api.fields().then(setFields).catch((e) => setError(String(e)));
@@ -188,10 +214,10 @@ export default function Screener() {
     applySort(key, dir);
   };
   // Sort by an explicit column + direction (used by the Sort control and headers).
+  // Applied client-side via displayRows, so it's instant and always reorders the
+  // table — no screen re-query (that path could leave the order stale).
   const applySort = (key: string, dir: "asc" | "desc") => {
-    const next = { ...req, sort_by: key, sort_dir: dir };
-    setReq(next);
-    run(next);
+    setReq((r) => ({ ...r, sort_by: key, sort_dir: dir }));
   };
 
   const save = async () => {
@@ -409,7 +435,7 @@ export default function Screener() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((m) => (
+            {displayRows.map((m) => (
               <tr key={`${m.exchange}:${m.symbol}`}>
                 <td className="left sym">
                   <button
@@ -456,7 +482,7 @@ export default function Screener() {
                 </td>
               </tr>
             ))}
-            {!rows.length && !loading && (
+            {!displayRows.length && !loading && (
               <tr>
                 <td colSpan={12} className="empty">No scrips match these filters.</td>
               </tr>
