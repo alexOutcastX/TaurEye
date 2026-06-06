@@ -22,6 +22,21 @@ const config: CapacitorConfig = {
     // LAN testing. Harmless for https backends.
     cleartext: true,
   },
+  plugins: {
+    // Capgo over-the-air updates. autoUpdate pulls the latest bundle from the
+    // configured channel in the background and applies it on the next launch,
+    // so web/code changes reach installed apps without a Play Store / APK
+    // rebuild. Only the web layer updates this way — native changes (new
+    // plugins, this config, permissions) still require a rebuild + reinstall.
+    CapacitorUpdater: {
+      autoUpdate: true,
+      // Roll back to the last good bundle if the app doesn't call
+      // notifyAppReady() within this window (a crashed/broken update).
+      appReadyTimeout: 10000,
+      // The channel CI uploads to (see .github/workflows/mobile-ota.yml).
+      defaultChannel: "production",
+    },
+  },
 };
 
 export default config;
