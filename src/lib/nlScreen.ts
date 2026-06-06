@@ -45,8 +45,8 @@ const RULES: Rule[] = [
   { re: /\boverbought\b/, label: "Overbought (RSI > 70)", build: () => ({ field: "rsi_14", op: "gt", value: 70 }) },
 
   // price vs moving averages
-  { re: /\b(above|over)\s*200\s*(d?ma|sma)?\b/, label: "Above 200 DMA", build: () => ({ field: "pct_above_sma200", op: "gt", value: 0 }) },
-  { re: /\b(below|under)\s*200\s*(d?ma|sma)?\b/, label: "Below 200 DMA", build: () => ({ field: "pct_above_sma200", op: "lt", value: 0 }) },
+  { re: /\b(above|over)\s*200\s*(d?ma|sma)\b/, label: "Above 200 DMA", build: () => ({ field: "pct_above_sma200", op: "gt", value: 0 }) },
+  { re: /\b(below|under)\s*200\s*(d?ma|sma)\b/, label: "Below 200 DMA", build: () => ({ field: "pct_above_sma200", op: "lt", value: 0 }) },
   { re: /\b(above|over)\s*50\s*(d?ma|sma)\b/, label: "Above 50 DMA", build: () => ({ field: "pct_above_sma50", op: "gt", value: 0 }) },
   { re: /\b(below|under)\s*50\s*(d?ma|sma)\b/, label: "Below 50 DMA", build: () => ({ field: "pct_above_sma50", op: "lt", value: 0 }) },
   { re: /\b(above|over)\s*20\s*(d?ma|sma)\b/, label: "Above 20 DMA", build: () => ({ field: "pct_above_sma20", op: "gt", value: 0 }) },
