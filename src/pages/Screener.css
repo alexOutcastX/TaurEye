@@ -186,7 +186,7 @@ table.results { width: 100%; border-collapse: collapse; font-size: 13px; }
   font-size: 12px;
 }
 .results th.left, .results td.left { text-align: left; }
-.results th.sortable { cursor: pointer; user-select: none; }
+.results th.sortable { cursor: pointer; user-select: none; touch-action: manipulation; }
 .results th.sortable:hover { color: var(--text); }
 .results th.active { color: var(--accent); }
 .arrow { display: inline-block; width: 12px; }

@@ -41,6 +41,17 @@ table.wl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .wl-table tbody tr:hover { background: var(--surface-2); }
 .wl-table tbody tr:last-child td { border-bottom: none; }
 .wl-table .sym { font-weight: 600; color: var(--text); }
+/* clickable scrip -> chart/details page */
+.wl-table .sym-link {
+  background: none; border: none; padding: 0; font: inherit;
+  font-weight: 600; color: var(--accent); cursor: pointer; text-align: left;
+}
+.wl-table .sym-link:hover { text-decoration: underline; }
+.wl-table .name-link {
+  background: none; border: none; padding: 0; font: inherit;
+  color: var(--text-muted); cursor: pointer; text-align: left;
+}
+.wl-table .name-link:hover { color: var(--text); text-decoration: underline; }
 .wl-table .name { color: var(--text-muted); max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
 .wl-table .dim { color: var(--text-faint); }
 

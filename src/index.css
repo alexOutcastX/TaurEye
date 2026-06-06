@@ -75,6 +75,9 @@ a {
 button {
   font-family: inherit;
   cursor: pointer;
+  /* Avoid the mobile double-tap-zoom + 300ms tap delay swallowing quick repeat
+     taps (e.g. tapping a sort header twice to flip direction). */
+  touch-action: manipulation;
 }
 
 input {
