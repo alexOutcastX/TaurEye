@@ -86,8 +86,21 @@ export default function Watchlist() {
                 const q = quotes[w.symbol];
                 return (
                   <tr key={w.symbol}>
-                    <td className="left sym">{w.symbol}</td>
-                    <td className="left name">{w.name}</td>
+                    <td className="left sym">
+                      <button
+                        type="button"
+                        className="sym-link"
+                        onClick={() => openChart(w)}
+                        title={`${w.name} — open chart & details`}
+                      >
+                        {w.symbol}
+                      </button>
+                    </td>
+                    <td className="left name">
+                      <button type="button" className="name-link" onClick={() => openChart(w)}>
+                        {w.name}
+                      </button>
+                    </td>
                     <td className="dim">{w.exchange}</td>
                     <td className="mono">{q ? fmtNum(q.close) : "—"}</td>
                     <td className={`mono ${q ? signClass(q.change_pct) : ""}`}>

@@ -39,15 +39,22 @@ const DEFAULT_REQ: ScreenRequest = {
   limit: 100,
 };
 
+// Module-level cache so navigating away from the Screener and back doesn't reset
+// the user's screen (the route component unmounts on navigation). Survives for
+// the session; a saved-screen "Run" (location.state) still takes precedence.
+let cachedReq: ScreenRequest | null = null;
+let cachedRows: Metrics[] = [];
+let cachedCount = 0;
+
 export default function Screener() {
   const location = useLocation();
   const incoming = (location.state as { request?: ScreenRequest } | null)?.request;
 
   const [fields, setFields] = useState<FieldDef[]>([]);
   const [segs, setSegs] = useState<SegmentInfo[]>([]);
-  const [req, setReq] = useState<ScreenRequest>(incoming ?? DEFAULT_REQ);
-  const [rows, setRows] = useState<Metrics[]>([]);
-  const [count, setCount] = useState(0);
+  const [req, setReq] = useState<ScreenRequest>(incoming ?? cachedReq ?? DEFAULT_REQ);
+  const [rows, setRows] = useState<Metrics[]>(incoming ? [] : cachedRows);
+  const [count, setCount] = useState(incoming ? 0 : cachedCount);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, setWatchTick] = useState(0);
@@ -102,6 +109,8 @@ export default function Screener() {
       const res = await api.screen(r);
       setRows(res.results);
       setCount(res.count);
+      cachedRows = res.results;
+      cachedCount = res.count;
     } catch (e) {
       setError(String(e));
     } finally {
@@ -109,9 +118,16 @@ export default function Screener() {
     }
   }
 
-  // initial run once fields are available
+  // Persist the request so navigating away and back keeps the screen.
   useEffect(() => {
-    if (fields.length) run(req);
+    cachedReq = req;
+  }, [req]);
+
+  // Run once fields are available — but skip if we restored cached results
+  // (returning to the page), so the previous screen stays put.
+  useEffect(() => {
+    if (!fields.length) return;
+    if (incoming || cachedRows.length === 0) run(req);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.length]);
 
