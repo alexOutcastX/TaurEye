@@ -7,6 +7,10 @@ import "./index.css";
 import App from "./App.tsx";
 import { AuthProvider } from "./auth/AuthContext";
 import { initOta } from "./lib/ota";
+import { applyTheme, getTheme } from "./lib/theme";
+
+// Apply the saved light/dark theme before first paint (avoids a flash).
+applyTheme(getTheme());
 
 // Capgo over-the-air updates (native only). With autoUpdate on, the plugin
 // downloads a new web bundle in the background and swaps it in on the next
