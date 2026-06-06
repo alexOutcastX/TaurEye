@@ -209,6 +209,9 @@ export default function Chart() {
       rightPriceScale: { borderColor: border },
       timeScale: { borderColor: border, rightOffset: 4 },
       crosshair: { mode: CrosshairMode.Normal },
+      // Pin the axis locale so date formatting is deterministic and never trips
+      // on an environment whose default locale Intl rejects.
+      localization: { locale: "en-IN" },
     });
     chartRef.current = chart;
 
@@ -524,7 +527,7 @@ export default function Chart() {
           <h2 className="patterns-title">Patterns detected</h2>
           <div className="pattern-chips">
             {patterns.map((p, i) => (
-              <span key={i} className={`pattern-chip ${p.kind}`} title={p.detail ?? ""}>
+              <span key={i} className="pattern-chip" title={p.detail ?? ""}>
                 {p.label}
               </span>
             ))}

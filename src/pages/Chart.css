@@ -147,14 +147,12 @@
 .patterns { margin-top: var(--sp-4); }
 .patterns-title { font-size: 14px; font-weight: 700; margin: 0 0 var(--sp-2); }
 .pattern-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Neutral, non-directional chips — no red/green, no bullish/bearish colour. */
 .pattern-chip {
   font-size: 12px; font-weight: 600;
   padding: 5px 11px; border-radius: 999px;
-  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted);
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
 }
-.pattern-chip.bull { color: var(--up); border-color: rgba(24,201,140,0.4); }
-.pattern-chip.bear { color: var(--down); border-color: rgba(240,80,110,0.4); }
-.pattern-chip.neutral { color: var(--text-muted); }
 .patterns-note { margin: var(--sp-2) 0 0; font-size: 11px; color: var(--text-faint); }
 
 /* ---- AI analysis ---- */
