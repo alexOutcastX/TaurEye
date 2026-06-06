@@ -1,6 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "../api/client";
+import { checkForUpdate } from "../lib/ota";
 import LoadingScreen from "./LoadingScreen";
+
+// Don't let a slow OTA check delay startup beyond this — boot proceeds anyway.
+const OTA_CHECK_BUDGET_MS = 3000;
 
 /**
  * Holds the app behind a loading screen until the backend's metrics snapshot is
@@ -19,10 +23,17 @@ export default function BootGate({ children }: { children: ReactNode }) {
     setError(null);
     (async () => {
       try {
+        // Force an OTA update check on every startup, shown on the loading
+        // screen. Capped so a slow/failed check never blocks boot. (No-op on web.)
+        const otaCheck = Promise.race([
+          checkForUpdate(),
+          new Promise<void>((r) => setTimeout(r, OTA_CHECK_BUDGET_MS)),
+        ]);
         const [h] = await Promise.all([
           api.health(),
           api.fields().catch(() => []),
           api.segments().catch(() => []),
+          otaCheck,
         ]);
         if (!cancelled) {
           if (h && typeof h.universe === "number" && h.universe === 0) {

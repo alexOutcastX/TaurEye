@@ -52,10 +52,12 @@ export function otaMessage(s: OtaStatus): string | null {
       return `Downloading update… ${s.percent}%`;
     case "ready":
       return "Update ready — applies on next launch";
+    case "uptodate":
+      return "App is up to date";
     case "failed":
       return "Update failed — using the installed version";
     default:
-      return null; // idle / uptodate → don't distract the user
+      return null; // idle → nothing to surface
   }
 }
 
@@ -89,4 +91,29 @@ export function initOta(): void {
   CapacitorUpdater.addListener("updateFailed", () => {
     emit({ state: "failed" });
   });
+}
+
+/**
+ * Explicitly ask the channel for the latest bundle on this launch and surface
+ * the result on the loading screen. Non-destructive: it does NOT download/apply
+ * itself — Capgo's autoUpdate (onLaunch) owns applying the bundle. This just
+ * *forces a visible check at every startup* and reports the outcome.
+ * Resolves quickly; never throws (so it can't block boot). No-op on web.
+ */
+export async function checkForUpdate(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  emit({ state: "checking", percent: 0 });
+  try {
+    const [latest, cur] = await Promise.all([
+      CapacitorUpdater.getLatest(),
+      CapacitorUpdater.current(),
+    ]);
+    const curVer = cur?.bundle?.version;
+    const noNew = /no new version/i.test(latest?.message ?? "");
+    const newer =
+      !!latest?.version && latest.version !== curVer && latest.version !== "builtin" && !noNew;
+    emit(newer ? { state: "ready", version: latest.version } : { state: "uptodate" });
+  } catch {
+    emit({ state: "idle" }); // a failed check must not stall startup
+  }
 }
