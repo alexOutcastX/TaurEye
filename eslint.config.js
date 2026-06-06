@@ -18,5 +18,12 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // react-hooks v7's set-state-in-effect flags intentional effect-driven
+      // state syncs we rely on (loading flags before a fetch, resets on prop
+      // change, mount-time data loads). These aren't defects, so keep the rule
+      // off until/unless those effects are reworked for the React Compiler.
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])

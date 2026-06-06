@@ -229,12 +229,13 @@ export default function Chart() {
     vol.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
     volRef.current = vol;
 
+    const maSeries = maRefs.current;
     return () => {
       chart.remove();
       chartRef.current = null;
       candleRef.current = null;
       volRef.current = null;
-      maRefs.current.clear();
+      maSeries.clear();
     };
   }, []);
 
@@ -353,7 +354,8 @@ export default function Chart() {
   const toggleMA = (period: number) =>
     setEnabled((prev) => {
       const next = new Set(prev);
-      next.has(period) ? next.delete(period) : next.add(period);
+      if (next.has(period)) next.delete(period);
+      else next.add(period);
       return next;
     });
 
