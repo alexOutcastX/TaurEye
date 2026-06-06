@@ -100,6 +100,14 @@
   100% { left: 100%; }
 }
 
+/* determinate fill while an OTA update downloads (width set inline = percent) */
+.boot-bar.det span {
+  animation: none;
+  left: 0;
+  background: var(--accent, #18c98c);
+  transition: width 0.25s ease;
+}
+
 .boot-msg {
   font-size: 13px;
   color: var(--text-muted, #9aa4b2);
