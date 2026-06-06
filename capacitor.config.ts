@@ -32,18 +32,33 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: true,
     },
-    // Capgo over-the-air updates. autoUpdate pulls the latest bundle from the
-    // configured channel in the background and applies it on the next launch,
-    // so web/code changes reach installed apps without a Play Store / APK
-    // rebuild. Only the web layer updates this way — native changes (new
-    // plugins, this config, permissions) still require a rebuild + reinstall.
+    // Capgo over-the-air updates. autoUpdate "onLaunch" applies a freshly
+    // downloaded bundle directly at cold start (instead of the next launch), so
+    // users get the update in the same session. The native splash stays up while
+    // it downloads/applies and Capgo hides it automatically (autoSplashscreen)
+    // when done or when no update is needed. Only the web layer updates this way
+    // — native changes still require a rebuild + reinstall.
     CapacitorUpdater: {
-      autoUpdate: true,
+      autoUpdate: "onLaunch",
       // Roll back to the last good bundle if the app doesn't call
       // notifyAppReady() within this window (a crashed/broken update).
       appReadyTimeout: 10000,
       // The channel CI uploads to (see .github/workflows/mobile-ota.yml).
       defaultChannel: "production",
+      // Let Capgo own the splash screen during a direct update.
+      autoSplashscreen: true,
+      // Native loading indicator over the splash while the bundle downloads.
+      autoSplashscreenLoader: true,
+      // Safety net: if the update can't be fetched in time, dismiss the splash
+      // and let the bundle install on the next background/launch instead.
+      autoSplashscreenTimeout: 15000,
+    },
+    // Required for autoSplashscreen: Capgo controls when the splash hides.
+    SplashScreen: {
+      launchAutoHide: false,
+      backgroundColor: "#0a0c0f",
+      androidSpinnerStyle: "large",
+      spinnerColor: "#18c98c",
     },
   },
 };
