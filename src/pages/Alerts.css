@@ -4,17 +4,6 @@
 .alerts-count { color: var(--text-faint); font-size: 13px; }
 .alerts-sub { color: var(--text-muted); font-size: 13px; margin-top: 2px; max-width: 640px; }
 
-.alerts-perm {
-  margin-top: var(--sp-3);
-  background: transparent;
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  border-radius: var(--r-sm);
-  padding: 9px 14px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
 .alerts-debug { margin-top: var(--sp-3); font-size: 12px; color: var(--text-muted); }
 .alerts-debug summary { cursor: pointer; color: var(--text-faint); }
 .alerts-token {

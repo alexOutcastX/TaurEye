@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import {
-  ensurePermission,
   getAlerts,
   onAlertsChange,
   removeAlert,
@@ -16,7 +15,6 @@ import "./Alerts.css";
 export default function Alerts() {
   const nav = useNavigate();
   const [alerts, setAlerts] = useState<PriceAlert[]>(getAlerts());
-  const [perm, setPerm] = useState<boolean | null>(null);
 
   useEffect(() => onAlertsChange(() => setAlerts(getAlerts())), []);
 
@@ -36,15 +34,6 @@ export default function Alerts() {
         Saved on this device. Checked each time you open the app against the latest
         end-of-day price — you'll get a notification when a level is crossed.
       </p>
-
-      {Capacitor.isNativePlatform() && perm !== true && (
-        <button
-          className="alerts-perm"
-          onClick={async () => setPerm(await ensurePermission())}
-        >
-          {perm === false ? "Notifications blocked — enable in system settings" : "Enable notifications"}
-        </button>
-      )}
 
       {Capacitor.isNativePlatform() && getPushToken() && (
         <details className="alerts-debug">
