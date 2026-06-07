@@ -9,6 +9,7 @@ import {
   toggleAlert,
   type PriceAlert,
 } from "../lib/alerts";
+import { getPushToken } from "../lib/push";
 import { fmtNum, fmtStamp } from "../lib/format";
 import "./Alerts.css";
 
@@ -43,6 +44,19 @@ export default function Alerts() {
         >
           {perm === false ? "Notifications blocked — enable in system settings" : "Enable notifications"}
         </button>
+      )}
+
+      {Capacitor.isNativePlatform() && getPushToken() && (
+        <details className="alerts-debug">
+          <summary>Push device token (for testing)</summary>
+          <code className="alerts-token">{getPushToken()}</code>
+          <button
+            className="mini"
+            onClick={() => navigator.clipboard?.writeText(getPushToken() ?? "")}
+          >
+            Copy token
+          </button>
+        </details>
       )}
 
       {alerts.length === 0 ? (
