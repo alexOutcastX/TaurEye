@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { initPush } from "../lib/push";
 import Logo from "../components/Logo";
 import ScripSearch from "../components/ScripSearch";
 import IndexTicker from "../components/IndexTicker";
@@ -21,6 +23,11 @@ const NAV = [
 export default function AppShell() {
   const { user, signOut } = useAuth();
   const nav = useNavigate();
+
+  // Register for remote push once on native startup (no-op on web / unconfigured).
+  useEffect(() => {
+    void initPush((path) => nav(path));
+  }, [nav]);
 
   const handleSignOut = () => {
     signOut();
