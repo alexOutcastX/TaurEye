@@ -1,0 +1,46 @@
+name: Send test push
+
+# Fire a one-off push for testing, through the working deploy SSH (no laptop
+# needed). Leave 'token' blank to broadcast to the 'eod' topic, or paste a device
+# token (Alerts page → Push device token) to send straight to one device.
+
+on:
+  workflow_dispatch:
+    inputs:
+      token:
+        description: "FCM device token (blank = send to the 'eod' topic)"
+        required: false
+        default: ""
+      title:
+        description: "Notification title"
+        required: false
+        default: "TaurEye"
+      body:
+        description: "Notification body"
+        required: false
+        default: "Test push from TaurEye 🚀"
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Send push
+        env:
+          U: ${{ secrets.VM_USER }}
+          H: ${{ secrets.VM_HOST }}
+          TOKEN: ${{ inputs.token }}
+          TITLE: ${{ inputs.title }}
+          BODY: ${{ inputs.body }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            ssh -i ~/.ssh/id_deploy "$U@$H" "cd /opt/taureye && ./venv/bin/python -m backend.app.push --token '$TOKEN' --title '$TITLE' --body '$BODY'"
+          else
+            ssh -i ~/.ssh/id_deploy "$U@$H" "cd /opt/taureye && ./venv/bin/python -m backend.app.push --title '$TITLE' --body '$BODY'"
+          fi
