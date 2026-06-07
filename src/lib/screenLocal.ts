@@ -95,15 +95,17 @@ export function runScreen(
 
   // Comparator equivalent to Python's sorted(key=(missing!=reverse, v),
   // reverse=reverse): present rows ordered by value (asc/desc), missing last.
+  const missing = (v: MetricValue) =>
+    v === null || v === undefined || (typeof v === "number" && Number.isNaN(v));
   const sorted = [...rows].sort((a, b) => {
     const va = valueOf(a, sortKey);
     const vb = valueOf(b, sortKey);
-    const ma = va === null || va === undefined;
-    const mb = vb === null || vb === undefined;
+    const ma = missing(va);
+    const mb = missing(vb);
     if (ma && mb) return 0;
     if (ma) return 1; // a missing -> after b
     if (mb) return -1; // b missing -> after a
-    const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    const cmp = va! < vb! ? -1 : va! > vb! ? 1 : 0;
     return reverse ? -cmp : cmp;
   });
 
