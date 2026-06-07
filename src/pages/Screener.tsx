@@ -53,14 +53,16 @@ type Sortable = number | string | null | undefined;
 function sortRows(rows: Metrics[], key: string, dir: "asc" | "desc"): Metrics[] {
   const reverse = dir === "desc";
   const val = (m: Metrics) => (m as unknown as Record<string, Sortable>)[key];
+  const missing = (v: Sortable) =>
+    v === null || v === undefined || (typeof v === "number" && Number.isNaN(v));
   return [...rows].sort((a, b) => {
     const va = val(a), vb = val(b);
-    const ma = va === null || va === undefined;
-    const mb = vb === null || vb === undefined;
+    const ma = missing(va);
+    const mb = missing(vb);
     if (ma && mb) return 0;
     if (ma) return 1;
     if (mb) return -1;
-    const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+    const cmp = va! < vb! ? -1 : va! > vb! ? 1 : 0;
     return reverse ? -cmp : cmp;
   });
 }
@@ -214,10 +216,15 @@ export default function Screener() {
     applySort(key, dir);
   };
   // Sort by an explicit column + direction (used by the Sort control and headers).
-  // Applied client-side via displayRows, so it's instant and always reorders the
-  // table — no screen re-query (that path could leave the order stale).
+  // displayRows reorders the currently-loaded rows instantly (no flicker), but we
+  // ALSO re-run the screen: the engine sorts then slices to `limit`, so the right
+  // top-N depends on the active column AND direction (top-N ascending is NOT the
+  // reverse of top-N descending). Re-querying — cheap over the in-memory local
+  // bundle — guarantees the visible set is the true top-N for this sort.
   const applySort = (key: string, dir: "asc" | "desc") => {
-    setReq((r) => ({ ...r, sort_by: key, sort_dir: dir }));
+    const next = { ...req, sort_by: key, sort_dir: dir };
+    setReq(next);
+    run(next);
   };
 
   const save = async () => {
