@@ -109,6 +109,8 @@ async function fire(alert: PriceAlert, price: number): Promise<void> {
           id: notifId(alert.id),
           title: `${alert.symbol} ${alert.op === "above" ? "↑" : "↓"} ₹${alert.price}`,
           body: `${alert.name} is now ₹${price.toFixed(2)} (alert: ${alert.op} ₹${alert.price}).`,
+          smallIcon: "ic_stat_taureye",
+          iconColor: "#18C98C",
           schedule: { at: new Date(Date.now() + 300) },
         },
       ],
