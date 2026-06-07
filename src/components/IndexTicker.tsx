@@ -46,10 +46,16 @@ export default function IndexTicker() {
     ) : null;
   }
 
+  // The ticker stays compact: show only headline indices (the full set lives on
+  // the Global Indices page). Fall back to the first few for older data.
+  const headlineKeys = new Set(["NIFTY", "BANKNIFTY", "SENSEX", "INDIAVIX", "USDINR", "GSPC", "IXIC", "FTSE", "N225"]);
+  const headline = data.indices.filter((q) => headlineKeys.has(q.key));
+  const shown = headline.length ? headline : data.indices.slice(0, 6);
+
   return (
     <div className="idx-strip">
       <div className="idx-items">
-        {data.indices.map((q) => (
+        {shown.map((q) => (
           <span className="idx-item" key={q.key}>
             <span className="idx-label">{q.label}</span>
             <span className="idx-value">
