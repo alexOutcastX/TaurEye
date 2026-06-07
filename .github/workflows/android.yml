@@ -22,6 +22,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Add google-services.json (enables FCM push) if provided
+        env:
+          GS: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GS" ]; then
+            printf '%s' "$GS" > android/app/google-services.json
+            echo "Wrote android/app/google-services.json ($(wc -c < android/app/google-services.json) bytes) — FCM enabled."
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON secret not set — APK will build WITHOUT push (no FCM token)."
+          fi
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:

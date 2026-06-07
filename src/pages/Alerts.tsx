@@ -48,19 +48,6 @@ export default function Alerts() {
         </details>
       )}
 
-      {Capacitor.isNativePlatform() && getPushToken() && (
-        <details className="alerts-debug">
-          <summary>Push device token (for testing)</summary>
-          <code className="alerts-token">{getPushToken()}</code>
-          <button
-            className="mini"
-            onClick={() => navigator.clipboard?.writeText(getPushToken() ?? "")}
-          >
-            Copy token
-          </button>
-        </details>
-      )}
-
       {alerts.length === 0 ? (
         <div className="alerts-empty">
           <p>No alerts yet.</p>
