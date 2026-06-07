@@ -6,6 +6,7 @@ import BootGate from "./components/BootGate";
 import Login from "./pages/Login";
 import Screener from "./pages/Screener";
 import Chart from "./pages/Chart";
+import GlobalIndices from "./pages/GlobalIndices";
 import Watchlist from "./pages/Watchlist";
 import Saved from "./pages/Saved";
 import Wallet from "./pages/Wallet";
@@ -38,6 +39,7 @@ export default function App() {
         <Route index element={<Navigate to="screener" replace />} />
         <Route path="screener" element={<Screener />} />
         <Route path="chart" element={<Chart />} />
+        <Route path="indices" element={<GlobalIndices />} />
         <Route path="watchlist" element={<Watchlist />} />
         <Route path="saved" element={<Saved />} />
         <Route path="wallet" element={<Wallet />} />

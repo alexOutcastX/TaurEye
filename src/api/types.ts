@@ -59,6 +59,9 @@ export interface IndexQuote {
   label: string;
   value: number | null;
   change_pct: number | null;
+  // Optional grouping for the Global Indices page (added by the exporter).
+  category?: "domestic" | "international" | "currency" | null;
+  country?: string | null;
 }
 
 export interface IndicesResponse {

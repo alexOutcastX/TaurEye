@@ -10,6 +10,7 @@ import "./AppShell.css";
 const NAV = [
   { to: "/app/screener", label: "Screener", icon: FilterIcon },
   { to: "/app/chart", label: "Chart", icon: ChartIcon },
+  { to: "/app/indices", label: "Indices", icon: GlobeIcon },
   { to: "/app/watchlist", label: "Watchlist", icon: StarIcon },
   { to: "/app/saved", label: "Saved Screens", icon: BookmarkIcon },
   { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
@@ -82,6 +83,14 @@ function ChartIcon() {
   return (
     <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function GlobeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18" strokeLinecap="round" />
     </svg>
   );
 }
