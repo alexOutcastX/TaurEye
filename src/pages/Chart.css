@@ -172,6 +172,68 @@
 .ai-text { margin: 0; color: var(--text); font-size: 14px; line-height: 1.6; }
 .ai-note { margin: var(--sp-2) 0 0; color: var(--text-faint); font-size: 11.5px; line-height: 1.5; }
 
+/* ---- price alert bar ---- */
+.alert-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: 13px;
+}
+.alert-bar-label { color: var(--text-muted); }
+.alert-bar select,
+.alert-bar input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--r-sm);
+  padding: 6px 8px;
+  font-size: 13px;
+  outline: none;
+}
+.alert-bar input { width: 110px; }
+.alert-add {
+  background: var(--accent);
+  color: #04130d;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 6px 14px;
+  font-size: 13px;
+  touch-action: manipulation;
+}
+.alert-add:hover { filter: brightness(1.07); }
+
+.alert-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-2); }
+.alert-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 6px 4px 11px;
+}
+.alert-chip.done { color: var(--accent); border-color: var(--accent); }
+.alert-chip-x {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 4px;
+  touch-action: manipulation;
+}
+.alert-chip-x:hover { color: var(--down); }
+
 .draw-toggle {
   margin-left: auto;
   background: var(--surface-2);
