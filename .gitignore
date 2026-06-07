@@ -72,3 +72,10 @@ backend/data/*.db-*
 fcm*.json
 *service-account*.json
 secrets/
+
+# SSH / private keys dropped in the repo folder (never commit)
+/key
+key
+*.ppk
+id_rsa*
+id_ed25519*
