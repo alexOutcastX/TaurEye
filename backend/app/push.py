@@ -60,5 +60,32 @@ def notify_topic(title: str, body: str, data: dict | None = None,
         return False
 
 
+def notify_token(token: str, title: str, body: str, data: dict | None = None) -> bool:
+    """Send directly to one device token (bypasses topic propagation — for tests)."""
+    if not _ensure_app():
+        return False
+    try:
+        from firebase_admin import messaging
+        msg_id = messaging.send(messaging.Message(
+            notification=messaging.Notification(title=title, body=body),
+            data={k: str(v) for k, v in (data or {}).items()},
+            token=token,
+        ))
+        print(f"[push] sent to token: {msg_id}")
+        return True
+    except Exception as e:  # noqa: BLE001 — surfaces e.g. token-not-registered
+        print(f"[push] token send failed: {type(e).__name__}: {e}")
+        return False
+
+
 if __name__ == "__main__":
-    notify_topic("TaurEye", "Today's end-of-day data is updated — check your watchlist.")
+    import argparse
+    p = argparse.ArgumentParser(description="Send a TaurEye push (topic by default).")
+    p.add_argument("--token", help="send directly to this device token instead of the topic")
+    p.add_argument("--title", default="TaurEye")
+    p.add_argument("--body", default="Today's end-of-day data is updated — check your watchlist.")
+    args = p.parse_args()
+    if args.token:
+        notify_token(args.token, args.title, args.body)
+    else:
+        notify_topic(args.title, args.body)

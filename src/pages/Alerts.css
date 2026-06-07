@@ -15,6 +15,21 @@
   font-weight: 600;
 }
 
+.alerts-debug { margin-top: var(--sp-3); font-size: 12px; color: var(--text-muted); }
+.alerts-debug summary { cursor: pointer; color: var(--text-faint); }
+.alerts-token {
+  display: block;
+  margin: var(--sp-2) 0;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  word-break: break-all;
+  color: var(--text-muted);
+}
+
 .alerts-empty { margin-top: var(--sp-6); }
 .alerts-empty p { color: var(--text-muted); }
 .alerts .btn-link {
