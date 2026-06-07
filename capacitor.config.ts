@@ -32,6 +32,11 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: true,
     },
+    // Remote push (FCM). How a push is shown while the app is in the foreground.
+    // Requires android/app/google-services.json (Android) to be configured.
+    FirebaseMessaging: {
+      presentationOptions: ["badge", "sound", "alert"],
+    },
     // Capgo over-the-air updates. autoUpdate "onLaunch" applies a freshly
     // downloaded bundle directly at cold start (instead of the next launch), so
     // users get the update in the same session. The native splash stays up while

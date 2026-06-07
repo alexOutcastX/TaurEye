@@ -2,3 +2,4 @@ fastapi
 uvicorn[standard]
 requests
 curl_cffi
+firebase-admin  # FCM HTTP v1 sender for push notifications (backend/app/push.py)

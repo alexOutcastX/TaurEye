@@ -13,4 +13,7 @@ echo "===== $(date) refresh START =====" >> "$LOG"
 ./venv/bin/python -m backend.app.dataengine.run nightly >> "$LOG" 2>&1 || echo "[refresh] nightly FAILED (republishing anyway)" >> "$LOG"
 ./venv/bin/python -m backend.app.dataengine.run export --all --out /usr/share/nginx/html/data >> "$LOG" 2>&1 || echo "[refresh] export FAILED" >> "$LOG"
 sudo restorecon -R /usr/share/nginx/html/data >/dev/null 2>&1 || true
+# Broadcast a push that the new EOD data is in (fail-soft: skips if FCM isn't
+# configured, never fails the refresh). Needs the service-account JSON on the VM.
+./venv/bin/python -m backend.app.push >> "$LOG" 2>&1 || echo "[refresh] push notify skipped" >> "$LOG"
 echo "===== $(date) refresh DONE =====" >> "$LOG"

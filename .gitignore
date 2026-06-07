@@ -67,3 +67,8 @@ backend/data/*.db-*
 
 # editor backups
 *~
+
+# Firebase / FCM secrets (never commit)
+fcm*.json
+*service-account*.json
+secrets/
