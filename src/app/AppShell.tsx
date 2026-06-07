@@ -5,6 +5,7 @@ import ScripSearch from "../components/ScripSearch";
 import IndexTicker from "../components/IndexTicker";
 import CreditsBadge from "../components/CreditsBadge";
 import ThemeToggle from "../components/ThemeToggle";
+import AlertsBell from "../components/AlertsBell";
 import "./AppShell.css";
 
 const NAV = [
@@ -50,6 +51,7 @@ export default function AppShell() {
 
         <div className="topbar-right">
           <ScripSearch />
+          <AlertsBell />
           <ThemeToggle />
           <CreditsBadge />
           <span className="user-pill">

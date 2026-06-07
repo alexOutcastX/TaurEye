@@ -23,6 +23,7 @@ import TradingViewChart from "../components/TradingViewChart";
 import { detectPatterns, type DetectedPattern } from "../lib/patterns";
 import { COSTS, spend } from "../lib/economy";
 import { isWatched, onWatchlistChange, toggleWatch } from "../lib/watchlist";
+import { addAlert, alertsForSymbol, onAlertsChange, removeAlert, type AlertOp } from "../lib/alerts";
 import "./Chart.css";
 
 type TF = "D" | "W" | "M";
@@ -141,6 +142,10 @@ export default function Chart() {
   const [drawLines, setDrawLines] = useState(false);
   const [ai, setAi] = useState<{ text: string | null; note: string | null }>({ text: null, note: null });
   const [aiBusy, setAiBusy] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertOp, setAlertOp] = useState<AlertOp>("above");
+  const [alertPrice, setAlertPrice] = useState("");
+  const [symAlerts, setSymAlerts] = useState(() => alertsForSymbol(symbol));
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -153,6 +158,20 @@ export default function Chart() {
 
   useEffect(() => setWatched(isWatched(symbol)), [symbol]);
   useEffect(() => onWatchlistChange(() => setWatched(isWatched(symbol))), [symbol]);
+  useEffect(() => setSymAlerts(alertsForSymbol(symbol)), [symbol]);
+  useEffect(() => onAlertsChange(() => setSymAlerts(alertsForSymbol(symbol))), [symbol]);
+
+  const openAlertForm = () => {
+    setAlertPrice((p) => p || (info?.close != null ? String(info.close) : ""));
+    setShowAlert((v) => !v);
+  };
+  const submitAlert = () => {
+    const p = parseFloat(alertPrice);
+    if (!symbol || !Number.isFinite(p) || p <= 0) return;
+    addAlert({ symbol, name, exchange, op: alertOp, price: p });
+    setAlertPrice("");
+    setShowAlert(false);
+  };
 
   // ---- fetch full daily history ----
   useEffect(() => {
@@ -425,8 +444,43 @@ export default function Chart() {
           <button className={`watch-btn ${watched ? "on" : ""}`} onClick={toggle}>
             {watched ? "★ Watching" : "☆ Watchlist"}
           </button>
+          <button className={`watch-btn ${showAlert ? "on" : ""}`} onClick={openAlertForm}>
+            🔔 Alert
+          </button>
         </div>
       </header>
+
+      {showAlert && (
+        <div className="alert-bar">
+          <span className="alert-bar-label">Notify me when price is</span>
+          <select value={alertOp} onChange={(e) => setAlertOp(e.target.value as AlertOp)}>
+            <option value="above">above</option>
+            <option value="below">below</option>
+          </select>
+          <input
+            className="mono"
+            type="number"
+            inputMode="decimal"
+            placeholder="₹ price"
+            value={alertPrice}
+            onChange={(e) => setAlertPrice(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitAlert()}
+          />
+          <button className="alert-add" onClick={submitAlert}>Add alert</button>
+        </div>
+      )}
+
+      {symAlerts.length > 0 && (
+        <div className="alert-chips">
+          {symAlerts.map((a) => (
+            <span key={a.id} className={`alert-chip${a.triggeredAt ? " done" : ""}`}>
+              {a.op === "above" ? "↑" : "↓"} ₹{fmtNum(a.price)}
+              {a.triggeredAt ? " · triggered" : ""}
+              <button className="alert-chip-x" onClick={() => removeAlert(a.id)} title="Remove alert">✕</button>
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="chart-toolbar">
         <div className="tf-group src-group">

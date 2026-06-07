@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Screener from "./pages/Screener";
 import Chart from "./pages/Chart";
 import GlobalIndices from "./pages/GlobalIndices";
+import Alerts from "./pages/Alerts";
 import Watchlist from "./pages/Watchlist";
 import Saved from "./pages/Saved";
 import Wallet from "./pages/Wallet";
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="screener" element={<Screener />} />
         <Route path="chart" element={<Chart />} />
         <Route path="indices" element={<GlobalIndices />} />
+        <Route path="alerts" element={<Alerts />} />
         <Route path="watchlist" element={<Watchlist />} />
         <Route path="saved" element={<Saved />} />
         <Route path="wallet" element={<Wallet />} />

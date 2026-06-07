@@ -1,0 +1,27 @@
+.alerts-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  flex: none;
+  touch-action: manipulation;
+  transition: color 0.12s, border-color 0.12s;
+}
+.alerts-bell:hover { color: var(--text); border-color: var(--border-strong); }
+.alerts-bell .ico { width: 18px; height: 18px; }
+.alerts-bell-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--down);
+  border: 1px solid var(--surface);
+}
