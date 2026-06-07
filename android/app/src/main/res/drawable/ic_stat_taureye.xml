@@ -1,21 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TaurEye notification small icon — white silhouette of the bull mark.
+<!-- TaurEye notification small icon — white silhouette of the bull mark:
+     two crescent horns sweeping up-and-out over the angular "TT" muzzle.
      Status-bar icons must be monochrome (white + transparent); Android masks
-     them by alpha, so the full-colour app icon can't be used here. -->
+     them by alpha and tints with default_notification_color, so the full-colour
+     app logo can't be used here. This traces the real logo's silhouette. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="600"
-    android:viewportHeight="580">
+    android:viewportWidth="512"
+    android:viewportHeight="420">
+    <!-- Left horn -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M24 50 L270 96 L262 440 L205 540 L148 455 L160 150 L95 120 Z" />
-    <group
-        android:scaleX="-1"
-        android:pivotX="300"
-        android:pivotY="0">
-        <path
-            android:fillColor="#FFFFFFFF"
-            android:pathData="M24 50 L270 96 L262 440 L205 540 L148 455 L160 150 L95 120 Z" />
-    </group>
+        android:pathData="M236 96 C 156 70, 84 48, 36 32 C 62 96, 100 150, 142 156 C 184 156, 216 132, 238 110 Z" />
+    <!-- Right horn -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M276 96 C 356 70, 428 48, 476 32 C 450 96, 412 150, 370 156 C 326 156, 296 132, 274 110 Z" />
+    <!-- Angular "TT" muzzle -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M198 150 L198 248 L164 248 L164 296 L222 296 L222 198 L246 198 L246 350 L266 350 L266 198 L290 198 L290 296 L348 296 L348 248 L314 248 L314 150 C 290 160, 222 160, 198 150 Z" />
 </vector>
