@@ -21,8 +21,8 @@ export interface Metrics {
   change_abs: number;
   volume: number;
   rel_volume: number;
-  rsi_14: number;
-  macd_hist: number;
+  rsi_14: number | null;
+  macd_hist: number | null;
   sma_20: number;
   sma_50: number;
   sma_200: number;

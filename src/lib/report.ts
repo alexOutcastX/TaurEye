@@ -8,8 +8,10 @@ import type { Metrics } from "../api/types";
 const esc = (s: string) =>
   s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
-const num = (n: number, dp = 2) =>
-  n.toLocaleString("en-IN", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+const num = (n: number | null | undefined, dp = 2) =>
+  n == null || Number.isNaN(n)
+    ? "—"
+    : n.toLocaleString("en-IN", { minimumFractionDigits: dp, maximumFractionDigits: dp });
 
 const pct = (n: number) => `${n > 0 ? "+" : ""}${n.toFixed(2)}%`;
 
