@@ -91,6 +91,20 @@ h1, h2, h3, h4 {
   margin: 0;
 }
 
+/* Native <select> dropdown list. A transparent/dark-themed select renders its
+   opened option popup light-on-white (unreadable) in some browsers, so pin the
+   options and group labels to a solid themed surface. Applies app-wide so every
+   dropdown (screener filters, chart range, etc.) stays legible in both themes. */
+option {
+  background: var(--surface);
+  color: var(--text);
+}
+optgroup {
+  background: var(--surface);
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
 a {
   color: var(--accent);
   text-decoration: none;
