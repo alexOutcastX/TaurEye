@@ -442,8 +442,8 @@ export default function Screener() {
             </tr>
           </thead>
           <tbody>
-            {displayRows.map((m) => (
-              <tr key={`${m.exchange}:${m.symbol}`}>
+            {displayRows.map((m, i) => (
+              <tr key={`${i}:${m.exchange}:${m.symbol}`}>
                 <td className="left sym">
                   <button
                     type="button"
@@ -460,7 +460,7 @@ export default function Screener() {
                 <td className={`mono ${signClass(m.change_pct)}`}>{fmtPct(m.change_pct)}</td>
                 <td className="mono dim">{fmtInt(m.volume)}</td>
                 <td className="mono">{fmtNum(m.rel_volume)}x</td>
-                <td className="mono">{m.rsi_14.toFixed(0)}</td>
+                <td className="mono">{fmtNum(m.rsi_14, 0)}</td>
                 <td className={`mono ${signClass(m.pct_above_sma50)}`}>{fmtPct(m.pct_above_sma50)}</td>
                 <td className={`mono ${signClass(m.dist_52w_high_pct)}`}>{fmtPct(m.dist_52w_high_pct)}</td>
                 <td className="mono">{fmtCap(m.market_cap_cr)}</td>
