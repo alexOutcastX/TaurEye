@@ -262,6 +262,27 @@ def fetch_one(conn, isin: str, bse_code: str) -> dict:
     return res
 
 
+def update_bse_codes() -> int:
+    """Backfill securities.bse_code from the BSE ListofScripData feed (by ISIN).
+    The BSE fundamentals APIs need this numeric scrip code; the NSE-sourced master
+    never sets it. Run once before fetching fundamentals."""
+    codes = sources.bse_scrip_codes()
+    if not codes:
+        log("  funda: BSE ListofScripData returned no scrip codes")
+        return 0
+    n = 0
+    with session() as conn:
+        for isin, code in codes.items():
+            cur = conn.execute(
+                "UPDATE securities SET bse_code=? "
+                "WHERE isin=? AND (bse_code IS NULL OR bse_code='')",
+                (code, isin),
+            )
+            n += cur.rowcount
+    log(f"  funda: backfilled bse_code for {n} securities")
+    return n
+
+
 def _due(conn, limit: int | None, max_age_days: int, refresh_all: bool) -> list[tuple[str, str]]:
     cutoff = (datetime.now(timezone.utc) - timedelta(days=max_age_days)).astimezone().isoformat()
     if refresh_all:
@@ -287,6 +308,7 @@ def update_fundamentals(limit: int | None = None, max_age_days: int = FUNDA_MAX_
     re-running picks up where it left off via funda_runs."""
     import time
     init_db()
+    update_bse_codes()
     with session() as conn:
         due = _due(conn, limit, max_age_days, refresh_all)
         log(f"FUNDA start  due={len(due)} (limit={limit}, max_age={max_age_days}d)")
@@ -305,6 +327,7 @@ def probe(symbol_or_code: str) -> None:
     """Print the RAW BSE responses for one symbol/scrip so the parsers can be
     tuned to the live JSON shape. Resolves an NSE/BSE symbol to its BSE code."""
     init_db()
+    update_bse_codes()  # ensure bse_code is populated before resolving
     with session() as conn:
         row = conn.execute(
             "SELECT isin, name, bse_code FROM securities "

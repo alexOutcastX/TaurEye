@@ -299,6 +299,37 @@ def bse_all_market_caps() -> dict[str, float]:
     return out
 
 
+def bse_scrip_codes() -> dict[str, str]:
+    """Return {ISIN: BSE scrip code} from the bulk ListofScripData feed.
+
+    The BSE fundamentals APIs (financial results, shareholding, announcements) are
+    keyed by the numeric scrip code, but the NSE-sourced security master never
+    carries it. This feed (already used for market caps) pairs each ISIN with its
+    SCRIP_CD, so a single call backfills securities.bse_code for the whole BSE
+    universe (and, via shared ISIN, the NSE-listed names too)."""
+    text = _fetch_browser_json(BSE_LIST_SCRIP, BSE_HOME + "/")
+    if not text:
+        return {}
+    try:
+        data = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        return {}
+    rows = data if isinstance(data, list) else data.get("Table", []) or data.get("data", [])
+    out: dict[str, str] = {}
+    for row in rows:
+        isin = (row.get("ISIN_NUMBER") or row.get("ISIN") or "").strip()
+        code = None
+        for k in ("SCRIP_CD", "Scrip_Cd", "scrip_cd", "SC_CODE", "ScripCode",
+                  "Scrip_Code", "scripcode", "FinInstrmId"):
+            v = row.get(k)
+            if v not in (None, "", "0", 0):
+                code = str(v).strip()
+                break
+        if isin and code:
+            out[isin] = code
+    return out
+
+
 # ---------- corporate actions (NSE) ----------
 _SPLIT_RE = re.compile(r"(?:from\s+rs[.\s]*|fv\s*)?(\d+(?:\.\d+)?)\D+(?:to\s+rs[.\s]*)?(\d+(?:\.\d+)?)", re.I)
 _BONUS_RE = re.compile(r"bonus\D+(\d+)\s*[:/]\s*(\d+)", re.I)
