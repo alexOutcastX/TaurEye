@@ -92,7 +92,7 @@ export default function Wallet() {
         ))}
       </div>
 
-      <AdSlot label="Wallet banner" height={80} />
+      <AdSlot label="Wallet banner" height={80} name="wallet" />
 
       <h2 className="wallet-subhead">Transaction history</h2>
       {ledger.length === 0 ? (

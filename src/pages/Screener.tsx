@@ -416,7 +416,7 @@ export default function Screener() {
         </div>
       </div>
 
-      <AdSlot label="Screener banner" height={70} />
+      <AdSlot label="Screener banner" height={70} name="screener" />
 
       <div className="results-head">
         <strong>{fmtInt(count)}</strong> matches
