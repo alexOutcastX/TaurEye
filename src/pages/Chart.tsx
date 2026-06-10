@@ -20,6 +20,7 @@ import { api } from "../api/client";
 import type { Candle, Metrics } from "../api/types";
 import { fmtCap, fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
 import TradingViewChart from "../components/TradingViewChart";
+import BrokerCTA from "../components/BrokerCTA";
 import { detectPatterns, type DetectedPattern } from "../lib/patterns";
 import { COSTS, spend } from "../lib/economy";
 import { isWatched, onWatchlistChange, toggleWatch } from "../lib/watchlist";
@@ -636,6 +637,8 @@ export default function Chart() {
           </p>
         </section>
       )}
+
+      <BrokerCTA />
     </section>
   );
 }
