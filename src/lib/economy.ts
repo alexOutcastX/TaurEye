@@ -1,29 +1,32 @@
-// Credit economy — SCAFFOLD with all values set to ZERO.
+// Credit economy — LOCAL/GUEST engine. Numbers are staged; the economy is OFF.
 //
 // The structure (balance, append-only ledger, faucets, sinks, gating, ads) is
-// real, but every cost and reward is currently 0 and ECONOMY_ENABLED is false,
-// so nothing is charged and every premium action is unlocked/free. When the
-// real numbers are decided, set ECONOMY_ENABLED = true and fill COSTS/REWARDS —
-// no other code needs to change.
+// real. COSTS/REWARDS now hold the agreed values (see ECONOMY.md), but
+// ECONOMY_ENABLED is still false, so nothing is charged, nothing is recorded,
+// and every premium action is unlocked/free. To activate: run the server SQL +
+// functions, switch the UI to the server wallet (src/lib/credits.ts), then set
+// ECONOMY_ENABLED = true. Keep these numbers in sync with supabase/credits.sql.
 
 export const ECONOMY_ENABLED = false;
 
-// Credits charged to use premium features (sinks). All 0 for now.
+// Credits charged to use premium features (sinks).
+// NOTE: aiAnalysis is charged SERVER-SIDE by the ai-analysis Edge Function once
+// cloud credits are on — don't also debit it client-side then (avoid double bill).
 export const COSTS = {
-  aiAnalysis: 0,
-  nlScreenBuilder: 0,
-  patternScan: 0,
-  advancedReport: 0,
-  noAdPack: 0,
+  aiAnalysis: 10,
+  nlScreenBuilder: 0, // free — acquisition wow, never gate it
+  patternScan: 3,
+  advancedReport: 5,
+  noAdPack: 100,
 } as const;
 
-// Credits granted (faucets). All 0 for now.
+// Credits granted (faucets). Kept modest so purchasing has a reason.
 export const REWARDS = {
-  signupBonus: 0,
-  dailyClaim: 0,
-  rewardedAd: 0,
-  referrer: 0,
-  referee: 0,
+  signupBonus: 50,
+  dailyClaim: 5,
+  rewardedAd: 5,
+  referrer: 50,
+  referee: 30,
 } as const;
 
 export interface CreditTxn {
@@ -84,6 +87,9 @@ export function getBalance(): number {
 
 // ---- earn / spend ----
 export function earn(reason: string, amount: number) {
+  // While the economy is disabled the module stays inert (no phantom ledger
+  // writes) even though COSTS/REWARDS are now staged with real numbers.
+  if (!ECONOMY_ENABLED) return;
   if (amount > 0) record(amount, reason);
 }
 export function canAfford(cost: number): boolean {

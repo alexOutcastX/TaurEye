@@ -7,6 +7,7 @@ import "./index.css";
 import App from "./App.tsx";
 import { AuthProvider } from "./auth/AuthContext";
 import { initOta } from "./lib/ota";
+import { initAdMob, showBanner } from "./lib/ads";
 import { applyTheme, getTheme } from "./lib/theme";
 
 // Apply the saved light/dark theme before first paint (avoids a flash).
@@ -24,6 +25,8 @@ if (Capacitor.isNativePlatform()) {
   CapacitorUpdater.notifyAppReady().catch(() => {
     /* updater unavailable — keep running on the current bundle */
   });
+  // AdMob banner (no-op unless VITE_ADMOB_BANNER_ANDROID is set + plugin synced).
+  initAdMob().then(showBanner);
 }
 
 createRoot(document.getElementById("root")!).render(
