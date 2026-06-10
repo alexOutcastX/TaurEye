@@ -333,9 +333,69 @@ def write_manifest(out: Path, files: dict, *, window: int, gz: bool) -> dict:
     return {"file": str(path), "raw": raw, "gz": gzb}
 
 
+def export_funda(out: Path, *, gz: bool) -> dict:
+    """Per-symbol fundamentals for the stock report: corporate actions (already
+    in the spine — reliable today) plus financial results, shareholding and
+    recent filings (populated by `run funda`). Only securities with at least one
+    such record get a file, keeping the fan-out lean. Written to funda/<SYMBOL>.json."""
+    fdir = out / "funda"
+    fdir.mkdir(parents=True, exist_ok=True)
+
+    def group(sql: str):
+        d = defaultdict(list)
+        for r in conn.execute(sql):
+            d[r["isin"]].append({k: r[k] for k in r.keys() if k != "isin"})
+        return d
+
+    with connect() as conn:
+        secs = conn.execute(
+            "SELECT isin, name, nse_symbol, bse_symbol, sector, segment "
+            "FROM securities WHERE active=1"
+        ).fetchall()
+        ca = group("SELECT isin, ex_date, kind, ratio, detail FROM corporate_actions "
+                   "ORDER BY ex_date DESC")
+        fin = group("SELECT isin, period_end, period_type, consolidated, revenue, "
+                    "other_income, expenses, interest, depreciation, pbt, tax, "
+                    "net_profit, eps FROM financials ORDER BY period_end DESC")
+        shp = group("SELECT isin, period_end, promoter_pct, promoter_pledge_pct, "
+                    "public_pct, fii_pct, dii_pct FROM shareholding ORDER BY period_end DESC")
+        ann = group("SELECT isin, dt, category, headline, url FROM announcements "
+                    "ORDER BY dt DESC")
+
+    written = 0
+    raw_tot = gz_tot = 0
+    for s in secs:
+        isin = s["isin"]
+        sym = _symbol(s)
+        if not sym:
+            continue
+        actions, financials, holding, news = ca.get(isin), fin.get(isin), shp.get(isin), ann.get(isin)
+        if not (actions or financials or holding or news):
+            continue
+        payload = {
+            "s": sym,
+            "n": s["name"] or sym,
+            "sec": s["sector"] or "Unknown",
+            "isin": isin,
+            "generated_at": _now(),
+            "corporate_actions": (actions or [])[:40],
+            "financials": (financials or [])[:16],
+            "shareholding": (holding or [])[:8],
+            "announcements": (news or [])[:40],
+        }
+        raw, gzb = _write(fdir / f"{sym}.json", payload, gz=gz)
+        raw_tot += raw
+        gz_tot += gzb
+        written += 1
+
+    print(f"[export] funda: {written} per-symbol files -> {fdir}"
+          f"  ({raw_tot/1e6:.2f} MB raw, {gz_tot/1e6:.2f} MB gz)")
+    return {"dir": "funda", "count": written, "raw": raw_tot, "gz": gz_tot}
+
+
 def cmd_export(out: str | None, *, window: int, gz: bool,
                fundamentals: bool, metrics: bool, ohlc: bool, candles: bool,
-               indices: bool = False, everything: bool = False) -> None:
+               indices: bool = False, everything: bool = False, funda: bool = False) -> None:
     """Dispatch. With no specific flag, export the lightweight client bundle —
     fundamentals + metrics + indices (the screener data + ticker snapshot, ~0.7
     MB gz total). The big universe-wide ohlc.json and the per-symbol candles/
@@ -368,6 +428,8 @@ def cmd_export(out: str | None, *, window: int, gz: bool,
         files["ohlc"] = export_ohlc(out_dir, window=window, gz=gz)
     if candles:
         files["candles"] = export_candles(out_dir, gz=gz)
+    if funda:
+        files["funda"] = export_funda(out_dir, gz=gz)
     write_manifest(out_dir, files, window=window, gz=gz)
     dt = (datetime.now() - t0).total_seconds()
     print(f"[export] done in {dt:.1f}s -> {out_dir}")

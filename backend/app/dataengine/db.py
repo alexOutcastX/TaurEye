@@ -84,6 +84,65 @@ CREATE TABLE IF NOT EXISTS ingest_runs (
     started_at  TEXT NOT NULL,
     ended_at    TEXT
 );
+
+-- ===== Fundamentals (Phase 1: financial results + shareholding + filings) =====
+-- These are ingested separately from the EOD price spine (slower cadence; the
+-- exchanges publish them quarterly). `raw` keeps the source JSON so nothing is
+-- lost even when a structured column isn't mapped yet.
+CREATE TABLE IF NOT EXISTS financials (
+    isin         TEXT NOT NULL,
+    period_end   TEXT NOT NULL,         -- ISO YYYY-MM-DD (quarter/year end)
+    period_type  TEXT NOT NULL,         -- Q | H | Y
+    consolidated INTEGER NOT NULL DEFAULT 0,
+    revenue      REAL,
+    other_income REAL,
+    expenses     REAL,
+    ebitda       REAL,
+    interest     REAL,
+    depreciation REAL,
+    pbt          REAL,
+    tax          REAL,
+    net_profit   REAL,
+    eps          REAL,
+    raw          TEXT,                  -- source row JSON (defensive)
+    source       TEXT NOT NULL,
+    updated_at   TEXT NOT NULL,
+    PRIMARY KEY (isin, period_end, period_type, consolidated)
+);
+CREATE INDEX IF NOT EXISTS ix_fin_isin ON financials(isin, period_end DESC);
+
+CREATE TABLE IF NOT EXISTS shareholding (
+    isin                TEXT NOT NULL,
+    period_end          TEXT NOT NULL,  -- ISO quarter end
+    promoter_pct        REAL,
+    promoter_pledge_pct REAL,           -- % of promoter holding pledged
+    public_pct          REAL,
+    fii_pct             REAL,
+    dii_pct             REAL,
+    raw                 TEXT,
+    source              TEXT NOT NULL,
+    updated_at          TEXT NOT NULL,
+    PRIMARY KEY (isin, period_end)
+);
+CREATE INDEX IF NOT EXISTS ix_shp_isin ON shareholding(isin, period_end DESC);
+
+CREATE TABLE IF NOT EXISTS announcements (
+    isin      TEXT NOT NULL,
+    dt        TEXT NOT NULL,            -- ISO datetime of the filing
+    category  TEXT,                     -- Order | Board Meeting | Results | ...
+    headline  TEXT NOT NULL,
+    url       TEXT,
+    source    TEXT NOT NULL,
+    PRIMARY KEY (isin, dt, headline)
+);
+CREATE INDEX IF NOT EXISTS ix_ann_isin ON announcements(isin, dt DESC);
+
+-- Resume/rate-limit bookkeeping for the per-symbol fundamentals fetch.
+CREATE TABLE IF NOT EXISTS funda_runs (
+    isin       TEXT PRIMARY KEY,
+    fetched_at TEXT NOT NULL,
+    status     TEXT
+);
 """
 
 
