@@ -81,22 +81,29 @@ Deno.serve(async (req) => {
   const symbol = (body.symbol ?? "").toString().slice(0, 32);
   if (!symbol) return json({ configured: true, text: null, error: "missing_symbol" }, 400);
 
-  // 1) Charge credits (server is the authority).
-  const { error: spendErr } = await userClient.rpc("spend_credits", {
-    p_reason: "ai_analysis",
-    p_cost: AI_COST,
-  });
-  if (spendErr) {
-    const insufficient = spendErr.message?.includes("insufficient_credits");
-    return json(
-      { configured: true, text: null, error: insufficient ? "insufficient_credits" : spendErr.message },
-      insufficient ? 402 : 400,
-    );
+  // 1) Charge credits (server is the authority) — only when charging is turned
+  // on. During the preview phase CHARGE_CREDITS is unset, so AI runs FREE for
+  // signed-in users (no debit). Flip it on later with:
+  //   supabase secrets set CHARGE_CREDITS=true
+  const CHARGE = Deno.env.get("CHARGE_CREDITS") === "true";
+  if (CHARGE) {
+    const { error: spendErr } = await userClient.rpc("spend_credits", {
+      p_reason: "ai_analysis",
+      p_cost: AI_COST,
+    });
+    if (spendErr) {
+      const insufficient = spendErr.message?.includes("insufficient_credits");
+      return json(
+        { configured: true, text: null, error: insufficient ? "insufficient_credits" : spendErr.message },
+        insufficient ? 402 : 400,
+      );
+    }
   }
 
   // Service client for refunds + audit (bypasses RLS).
   const admin = createClient(url, service);
   const refund = async () => {
+    if (!CHARGE) return;
     await admin.from("credit_transactions").insert({
       user_id: user.id,
       delta: AI_COST,
