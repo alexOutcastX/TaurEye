@@ -17,12 +17,13 @@ export type Broker = {
   blurb: string;
 };
 
+// Paste your referral/tracking link into `url` to enable each card.
+// Ordered by typical per-signup payout strength.
 export const BROKERS: Broker[] = [
-  { id: "zerodha", name: "Zerodha", url: "", blurb: "₹0 equity delivery" },
   { id: "angelone", name: "Angel One", url: "", blurb: "Free demat account" },
   { id: "upstox", name: "Upstox", url: "", blurb: "Quick online onboarding" },
   { id: "dhan", name: "Dhan", url: "", blurb: "Built for active traders" },
-  { id: "groww", name: "Groww", url: "", blurb: "Beginner-friendly" },
+  { id: "zerodha", name: "Zerodha", url: "", blurb: "₹0 equity delivery" },
 ];
 
 /** Brokers with a real link set — the only ones rendered. */
