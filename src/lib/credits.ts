@@ -13,6 +13,19 @@ import { isSupabaseConfigured, supabase } from "./supabase";
 
 export const creditsCloud = isSupabaseConfigured;
 
+// ---- change notification (so the badge/wallet refresh after a mutation) ----
+type Listener = () => void;
+const listeners = new Set<Listener>();
+export function onCreditsChange(fn: Listener): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+export function emitCreditsChange() {
+  listeners.forEach((l) => l());
+}
+
 /** Current server balance for the signed-in user (0 when offline/guest). */
 export async function myBalance(): Promise<number> {
   if (!supabase) return 0;
@@ -39,6 +52,7 @@ export async function spendCredits(
   if (error) {
     return { ok: false, error: error.message.includes("insufficient_credits") ? "insufficient" : error.message };
   }
+  emitCreditsChange();
   return { ok: true, balance: data as number };
 }
 
@@ -51,7 +65,22 @@ export async function claimDaily(
   if (error) {
     return { ok: false, error: error.message.includes("already_claimed") ? "already_claimed" : error.message };
   }
+  emitCreditsChange();
   return { ok: true, balance: data as number };
+}
+
+export type LedgerRow = { id: string; ts: string; delta: number; reason: string };
+
+/** Newest-first credit history for the signed-in user (RLS-scoped). */
+export async function listLedger(limit = 50): Promise<LedgerRow[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("credit_transactions")
+    .select("id, created_at, delta, reason")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data.map((r) => ({ id: r.id as string, ts: r.created_at as string, delta: r.delta as number, reason: r.reason as string }));
 }
 
 /** Purchasable credit packs (server catalog; falls back to empty offline). */

@@ -1,21 +1,17 @@
 import { useEffect, useState } from "react";
 import {
   COSTS,
-  ECONOMY_ENABLED,
   REWARDS,
   adsDisabled,
   buyNoAdPack,
-  claimDaily,
-  dailyClaimAvailable,
-  getBalance,
-  getLedger,
   onEconomyChange,
   watchRewardedAd,
 } from "../lib/economy";
+import { useCredits } from "../lib/useCredits";
 import AdSlot from "../components/AdSlot";
 import "./Wallet.css";
 
-// Draft credit packs (purchase wiring comes later: Razorpay/Stripe on web, IAP in apps).
+// Draft credit packs (purchase wiring comes later: Razorpay on web, IAP in apps).
 const PACKS = [
   { price: "₹99", credits: 100, bonus: "" },
   { price: "₹299", credits: 350, bonus: "+17%" },
@@ -23,16 +19,17 @@ const PACKS = [
 ];
 
 export default function Wallet() {
-  const [, tick] = useState(0);
+  const { cloud, balance, ledger, claim, showBalance, claimable } = useCredits();
   const [busy, setBusy] = useState(false);
-  useEffect(() => onEconomyChange(() => tick((t) => t + 1)), []);
+  const [noAds, setNoAds] = useState(adsDisabled());
+  const [msg, setMsg] = useState<string | null>(null);
+  useEffect(() => onEconomyChange(() => setNoAds(adsDisabled())), []);
 
-  const balance = getBalance();
-  const ledger = getLedger();
-  const claimable = dailyClaimAvailable();
-  const noAds = adsDisabled();
-
-  const onClaim = () => claimDaily();
+  const onClaim = async () => {
+    setMsg(null);
+    const err = await claim();
+    setMsg(err ?? `+${REWARDS.dailyClaim} credits claimed.`);
+  };
   const onWatchAd = async () => {
     setBusy(true);
     await watchRewardedAd();
@@ -46,37 +43,45 @@ export default function Wallet() {
         <h1>Wallet</h1>
         <div className="wallet-balance">
           <span className="wallet-coin">◆</span>
-          <span className="wallet-bal-val">{ECONOMY_ENABLED ? balance : "—"}</span>
+          <span className="wallet-bal-val">{showBalance ? (balance ?? "…") : "—"}</span>
           <span className="wallet-bal-cap">credits</span>
         </div>
       </header>
 
-      {!ECONOMY_ENABLED && (
+      {cloud ? (
+        <div className="wallet-note">
+          Credits are <strong>live</strong> — earning is on (signup bonus, daily
+          claim). Premium actions stay <strong>free during preview</strong>; nothing
+          is charged yet.
+        </div>
+      ) : (
         <div className="wallet-note">
           Credits are currently <strong>off (preview)</strong> — every feature is
-          free and nothing is charged. Pricing and rewards will be enabled later.
+          free and nothing is charged. Sign in to use the live cloud wallet.
         </div>
       )}
 
       <div className="wallet-grid">
-        <button className="wallet-card" onClick={onClaim} disabled={!claimable}>
+        <button className="wallet-card" onClick={onClaim} disabled={!cloud && !claimable}>
           <span className="wc-title">Daily claim</span>
           <span className="wc-sub">{claimable ? "Claim today's free credits" : "Claimed today ✓"}</span>
           <span className="wc-amt">+{REWARDS.dailyClaim}</span>
         </button>
 
-        <button className="wallet-card" onClick={onWatchAd} disabled={busy}>
+        <button className="wallet-card" onClick={onWatchAd} disabled={busy || cloud}>
           <span className="wc-title">Watch a rewarded ad</span>
-          <span className="wc-sub">{busy ? "Loading ad…" : "One per day (placeholder)"}</span>
+          <span className="wc-sub">{cloud ? "Coming soon" : busy ? "Loading ad…" : "One per day (placeholder)"}</span>
           <span className="wc-amt">+{REWARDS.rewardedAd}</span>
         </button>
 
-        <button className="wallet-card" onClick={onBuyNoAds} disabled={noAds}>
+        <button className="wallet-card" onClick={onBuyNoAds} disabled={noAds || cloud}>
           <span className="wc-title">No-ad pack</span>
-          <span className="wc-sub">{noAds ? "Active — ads removed ✓" : "Remove display ads, permanently"}</span>
+          <span className="wc-sub">{cloud ? "Coming soon" : noAds ? "Active — ads removed ✓" : "Remove display ads"}</span>
           <span className="wc-amt">{COSTS.noAdPack}◆</span>
         </button>
       </div>
+
+      {msg && <p className="wallet-note">{msg}</p>}
 
       <h2 className="wallet-subhead">Buy credits</h2>
       <div className="wallet-packs">
