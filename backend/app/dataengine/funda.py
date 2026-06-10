@@ -323,32 +323,88 @@ def update_fundamentals(limit: int | None = None, max_age_days: int = FUNDA_MAX_
     return tot
 
 
+def _quick_json(url: str, timeout: int = 18) -> object | None:
+    """Fast, single-attempt Chrome-impersonated GET for the probe (no slow
+    requests-fallback retries), so a bad endpoint fails in ~18s, not minutes."""
+    try:
+        from curl_cffi import requests as cffi
+        r = cffi.get(url, impersonate="chrome", timeout=timeout,
+                     headers={"Referer": BSE_HOME + "/", "Accept": "application/json, text/plain, */*"})
+        if r.status_code == 200 and r.content:
+            try:
+                return json.loads(r.text)
+            except (json.JSONDecodeError, ValueError):
+                return {"_non_json_head": r.text[:300]}
+        return {"_http_status": r.status_code}
+    except Exception as e:
+        return {"_error": f"{type(e).__name__}: {e}"}
+
+
+def _resolve_code(conn, symbol_or_code: str) -> tuple[str, str, str] | None:
+    row = conn.execute(
+        "SELECT isin, name, bse_code FROM securities "
+        "WHERE bse_code = ? OR nse_symbol = ? OR bse_symbol = ? LIMIT 1",
+        (symbol_or_code, symbol_or_code.upper(), symbol_or_code.upper()),
+    ).fetchone()
+    if row and row["bse_code"]:
+        return (str(row["bse_code"]), row["name"], row["isin"])
+    return None
+
+
 def probe(symbol_or_code: str) -> None:
     """Print the RAW BSE responses for one symbol/scrip so the parsers can be
-    tuned to the live JSON shape. Resolves an NSE/BSE symbol to its BSE code."""
+    tuned to the live JSON shape. Fast: only refetches the scrip list if the
+    code isn't cached yet."""
     init_db()
-    update_bse_codes()  # ensure bse_code is populated before resolving
     with session() as conn:
-        row = conn.execute(
-            "SELECT isin, name, bse_code FROM securities "
-            "WHERE bse_code = ? OR nse_symbol = ? OR bse_symbol = ? LIMIT 1",
-            (symbol_or_code, symbol_or_code.upper(), symbol_or_code.upper()),
-        ).fetchone()
-    if not row or not row["bse_code"]:
+        found = _resolve_code(conn, symbol_or_code)
+    if not found:
+        print("bse_code not cached — backfilling from BSE scrip list (one-time)…")
+        update_bse_codes()
+        with session() as conn:
+            found = _resolve_code(conn, symbol_or_code)
+    if not found:
         print(f"no BSE scrip code found for {symbol_or_code!r}")
         return
-    code = str(row["bse_code"])
-    print(f"== {row['name']} (BSE {code}, {row['isin']}) ==")
-    for label, url in (
-        ("FINANCIALS", BSE_FIN_RESULTS.format(code=code)),
-        ("SHAREHOLDING", BSE_SHAREHOLDING.format(code=code)),
-        ("ANNOUNCEMENTS", BSE_ANNOUNCEMENTS.format(
-            code=code, frm=(date.today() - timedelta(days=120)).strftime("%Y%m%d"),
-            to=date.today().strftime("%Y%m%d"))),
-    ):
-        print(f"\n--- {label} ---\n{url}")
-        data = _json(url)
-        rows = _rows(data)
-        print(f"rows: {len(rows)}")
-        if rows:
-            print(json.dumps(rows[0], indent=2)[:1500])
+    code, name, isin = found
+    print(f"== {name} (BSE {code}, {isin}) ==")
+    frm = (date.today() - timedelta(days=120)).strftime("%Y%m%d")
+    to = date.today().strftime("%Y%m%d")
+    B = "https://api.bseindia.com/BseIndiaAPI/api/"
+    candidates = {
+        "FINANCIALS": [
+            f"{B}Comp_FinancialResultData/w?scripcode={code}&seriesid=",
+            f"{B}getRequestForFinancials/w?scripcode={code}",
+            f"{B}Financial_Data/w?scripcode={code}&seriesid=",
+            f"{B}Comp_FinancialResult/w?scripcode={code}",
+            f"{B}FinancialResult/w?scripcode={code}",
+            f"{B}DebtData/w?scripcode={code}",
+        ],
+        "SHAREHOLDING": [
+            f"{B}ComShpPromoterNGroup/w?scripcode={code}&qtrid=0&Flag=PromoterNGroup",
+            f"{B}ComShpPromoterNGroup/w?Scripcode={code}&qtrid=0",
+            f"{B}ComShpPromoterNGroupTable/w?scripcode={code}&qtrid=0",
+            f"{B}Shareholding/w?scripcode={code}",
+            f"{B}GetShareHoldingData/w?scripcode={code}",
+        ],
+        "ANNOUNCEMENTS": [
+            f"{B}AnnGetData/w?pageno=1&strCat=-1&strPrevDate={frm}&strScrip={code}&strSearch=P&strToDate={to}&strType=C",
+            f"{B}AnnGetData/w?strCat=-1&strPrevDate={frm}&strToDate={to}&strScrip={code}&strSearch=P&strType=C",
+            f"{B}AnnSubCategoryGetData/w?pageno=1&strCat=-1&strPrevDate={frm}&strScrip={code}&strSearch=P&strToDate={to}&strType=C&subcategory=-1",
+        ],
+    }
+    for label, urls in candidates.items():
+        print(f"\n=== {label} ===")
+        for url in urls:
+            tail = url.split("/api/", 1)[1][:75]
+            data = _quick_json(url)
+            if isinstance(data, dict) and any(k in data for k in ("_error", "_http_status", "_non_json_head")):
+                print(f"  [skip] {tail}  -> {json.dumps(data)[:120]}")
+                continue
+            rows = _rows(data)
+            wrap = list(data.keys())[:8] if isinstance(data, dict) else f"list[{len(data)}]"
+            print(f"  rows={len(rows)}  {tail}  wrap={wrap}")
+            if rows:
+                print(f"    KEYS: {list(rows[0].keys())}")
+                print(f"    SAMPLE: {json.dumps(rows[0])[:700]}")
+                break  # winner for this dataset; stop trying others
