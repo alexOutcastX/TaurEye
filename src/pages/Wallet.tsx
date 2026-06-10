@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   COSTS,
   ECONOMY_ENABLED,
+  REWARDS,
   adsDisabled,
   buyNoAdPack,
   claimDaily,
@@ -60,20 +61,20 @@ export default function Wallet() {
       <div className="wallet-grid">
         <button className="wallet-card" onClick={onClaim} disabled={!claimable}>
           <span className="wc-title">Daily claim</span>
-          <span className="wc-sub">{claimable ? "Claim today's free credit" : "Claimed today ✓"}</span>
-          <span className="wc-amt">+1</span>
+          <span className="wc-sub">{claimable ? "Claim today's free credits" : "Claimed today ✓"}</span>
+          <span className="wc-amt">+{REWARDS.dailyClaim}</span>
         </button>
 
         <button className="wallet-card" onClick={onWatchAd} disabled={busy}>
           <span className="wc-title">Watch a rewarded ad</span>
           <span className="wc-sub">{busy ? "Loading ad…" : "One per day (placeholder)"}</span>
-          <span className="wc-amt">+5</span>
+          <span className="wc-amt">+{REWARDS.rewardedAd}</span>
         </button>
 
         <button className="wallet-card" onClick={onBuyNoAds} disabled={noAds}>
           <span className="wc-title">No-ad pack</span>
           <span className="wc-sub">{noAds ? "Active — ads removed ✓" : "Remove display ads, permanently"}</span>
-          <span className="wc-amt">{COSTS.noAdPack || 100}◆</span>
+          <span className="wc-amt">{COSTS.noAdPack}◆</span>
         </button>
       </div>
 

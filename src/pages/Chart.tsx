@@ -394,7 +394,7 @@ export default function Chart() {
     setAiBusy(true);
     setAi({ text: null, note: null });
     try {
-      const res = await api.aiAnalysis(symbol);
+      const res = await api.aiAnalysis(symbol, info ?? undefined);
       if (res.text) setAi({ text: res.text, note: res.disclaimer });
       else if (!res.configured)
         setAi({ text: null, note: "AI analysis isn't configured yet (add an LLM API key on the server)." });

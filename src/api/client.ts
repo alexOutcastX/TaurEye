@@ -10,6 +10,7 @@ import type {
   SegmentInfo,
 } from "./types";
 import { LOCAL_DATA } from "../data/source";
+import { supabase } from "../lib/supabase";
 import {
   localCandles,
   localFields,
@@ -84,9 +85,16 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   throw lastErr;
 }
 
+type AiResult = {
+  configured: boolean;
+  text: string | null;
+  error?: string;
+  disclaimer: string;
+};
+
 // Disclaimer shown when AI analysis is asked for in an offline build (no LLM
 // reachable). Mirrors the wording the backend returns when AI is unconfigured.
-const AI_OFFLINE = {
+const AI_OFFLINE: AiResult = {
   configured: false,
   text: null,
   error: "AI analysis needs an online connection.",
@@ -94,6 +102,21 @@ const AI_OFFLINE = {
     "AI commentary is informational only and not investment advice. " +
     "It is unavailable in offline mode.",
 };
+
+// In the static build, AI has no backend — it runs in the `ai-analysis` Supabase
+// Edge Function (LLM key server-side, credits charged there). When Supabase isn't
+// configured we degrade to the offline message. `facts` is the factual metrics
+// snapshot the page already holds, passed so the function needn't refetch.
+async function localAiAnalysis(symbol: string, facts?: unknown): Promise<AiResult> {
+  if (!supabase) return AI_OFFLINE;
+  const { data, error } = await supabase.functions.invoke<AiResult>("ai-analysis", {
+    body: { symbol, facts },
+  });
+  if (error || !data) {
+    return { configured: true, text: null, error: error?.message ?? "ai_failed", disclaimer: AI_OFFLINE.disclaimer };
+  }
+  return data;
+}
 
 // When LOCAL_DATA is on, the read endpoints are served from the published JSON
 // bundle (see data/snapshot.ts) and saved screens live in localStorage — so the
@@ -116,12 +139,10 @@ export const api = {
     LOCAL_DATA
       ? localMetrics(symbol)
       : req<Metrics>(`/metrics/${encodeURIComponent(symbol)}`),
-  aiAnalysis: (symbol: string) =>
+  aiAnalysis: (symbol: string, facts?: unknown) =>
     LOCAL_DATA
-      ? Promise.resolve(AI_OFFLINE)
-      : req<{ configured: boolean; text: string | null; error?: string; disclaimer: string }>(
-          `/ai/analysis/${encodeURIComponent(symbol)}`,
-        ),
+      ? localAiAnalysis(symbol, facts)
+      : req<AiResult>(`/ai/analysis/${encodeURIComponent(symbol)}`),
   candles: (symbol: string, limit = 260) =>
     LOCAL_DATA
       ? localCandles(symbol, limit)
