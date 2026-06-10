@@ -23,7 +23,7 @@ export const BROKERS: Broker[] = [
   { id: "angelone", name: "Angel One", url: "", blurb: "Free demat account" },
   { id: "upstox", name: "Upstox", url: "", blurb: "Quick online onboarding" },
   { id: "dhan", name: "Dhan", url: "", blurb: "Built for active traders" },
-  { id: "zerodha", name: "Zerodha", url: "", blurb: "₹0 equity delivery" },
+  { id: "zerodha", name: "Zerodha", url: "https://zerodha.com/open-account?c=RA7394", blurb: "₹0 equity delivery" },
 ];
 
 /** Brokers with a real link set — the only ones rendered. */
