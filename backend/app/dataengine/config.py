@@ -91,6 +91,31 @@ BSE_LIST_SCRIP = (
     "?Group=&Scripcode=&industry=&segment=Equity&status=Active"
 )
 
+# ---- BSE fundamentals APIs (Phase 1) ----
+# All keyed by BSE scrip code (securities.bse_code). These corporate-API paths
+# DRIFT periodically and answer best to a Chrome-impersonated request (curl_cffi,
+# same as the market-cap feed). VALIDATE on the VM: curl one and confirm the JSON
+# shape, then tune the parsers in funda.py. {code}=BSE scrip code, {frm}/{to}=DDMMYYYY.
+# Financial results (quarterly P&L: revenue, profit, EPS).
+BSE_FIN_RESULTS = (
+    "https://api.bseindia.com/BseIndiaAPI/api/Comp_FinancialResultData/w"
+    "?scripcode={code}&seriesid="
+)
+# Shareholding pattern (promoter holding %, pledge, public/FII/DII split).
+BSE_SHAREHOLDING = (
+    "https://api.bseindia.com/BseIndiaAPI/api/ComShpPromoterNGroup/w"
+    "?scripcode={code}&qtrid=0&Flag=PromoterNGroup"
+)
+# Corporate announcements / filings (order wins, board meetings, results).
+BSE_ANNOUNCEMENTS = (
+    "https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w"
+    "?strCat=-1&strPrevDate={frm}&strToDate={to}&strScrip={code}&strSearch=P&strType=C"
+)
+
+# Pace the per-symbol fundamentals fetch so we don't trip BSE rate limits.
+FUNDA_SLEEP = 0.4          # seconds between symbols
+FUNDA_MAX_AGE_DAYS = 7     # refetch a symbol's fundamentals at most weekly
+
 
 def ensure_dirs() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)

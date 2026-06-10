@@ -212,6 +212,15 @@ def main() -> None:
     pp = sub.add_parser("marketcap-probe")
     pp.add_argument("symbol", nargs="?", default="RELIANCE",
                     help="NSE symbol to diagnose (default RELIANCE)")
+    fp = sub.add_parser("funda", help="fetch fundamentals (financials, shareholding, filings)")
+    fp.add_argument("--limit", type=int, default=None,
+                    help="cap how many symbols to fetch this run (default: all due)")
+    fp.add_argument("--all", action="store_true",
+                    help="refetch every BSE-listed symbol, ignoring recency")
+    fp.add_argument("--max-age-days", type=int, default=7,
+                    help="refetch fundamentals older than this many days (default 7)")
+    fpp = sub.add_parser("funda-probe", help="print raw BSE fundamentals JSON for one symbol")
+    fpp.add_argument("symbol", nargs="?", default="RELIANCE")
     sub.add_parser("readjust")
     sub.add_parser("status")
     sub.add_parser("selftest")
@@ -229,6 +238,8 @@ def main() -> None:
                     help="export ohlc.json (big: whole-universe raw OHLC window)")
     xp.add_argument("--candles", action="store_true",
                     help="also write per-symbol full-history candle files (large)")
+    xp.add_argument("--funda", action="store_true",
+                    help="write per-symbol fundamentals files (corp actions + financials + shareholding)")
     xp.add_argument("--indices", action="store_true",
                     help="export indices.json (live ticker snapshot for offline)")
     xp.add_argument("--all", dest="everything", action="store_true",
@@ -257,6 +268,13 @@ def main() -> None:
     elif args.cmd == "marketcap-probe":
         from . import marketcap
         marketcap.probe(args.symbol)
+    elif args.cmd == "funda":
+        from . import funda
+        print(funda.update_fundamentals(
+            limit=args.limit, refresh_all=args.all, max_age_days=args.max_age_days))
+    elif args.cmd == "funda-probe":
+        from . import funda
+        funda.probe(args.symbol)
     elif args.cmd == "readjust":
         print({"readjusted_isins": ingest.readjust()})
     elif args.cmd == "status":
@@ -270,7 +288,7 @@ def main() -> None:
         cmd_export(args.out, window=args.days, gz=args.gz,
                    fundamentals=args.fundamentals, metrics=args.metrics,
                    ohlc=args.ohlc, candles=args.candles,
-                   indices=args.indices, everything=args.everything)
+                   indices=args.indices, everything=args.everything, funda=args.funda)
 
 
 if __name__ == "__main__":

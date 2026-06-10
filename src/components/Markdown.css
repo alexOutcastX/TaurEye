@@ -1,0 +1,39 @@
+.md {
+  color: var(--text, #e7eaef);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.md h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: var(--accent, #18c98c);
+}
+.md h4 {
+  margin: 14px 0 6px;
+  font-size: 14px;
+  color: var(--accent, #18c98c);
+}
+.md h5 {
+  margin: 12px 0 4px;
+  font-size: 13px;
+  color: var(--text-muted, #9aa4b2);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.md p {
+  margin: 0 0 10px;
+}
+.md ul {
+  margin: 0 0 10px;
+  padding-left: 18px;
+}
+.md li {
+  margin: 3px 0;
+}
+.md li::marker {
+  color: var(--accent, #18c98c);
+}
+.md strong {
+  color: var(--text, #e7eaef);
+  font-weight: 600;
+}

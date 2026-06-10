@@ -21,6 +21,7 @@ import type { Candle, Metrics } from "../api/types";
 import { fmtCap, fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
 import TradingViewChart from "../components/TradingViewChart";
 import BrokerCTA from "../components/BrokerCTA";
+import Markdown from "../components/Markdown";
 import { detectPatterns, type DetectedPattern } from "../lib/patterns";
 import { COSTS, spend } from "../lib/economy";
 import { isWatched, onWatchlistChange, toggleWatch } from "../lib/watchlist";
@@ -597,7 +598,7 @@ export default function Chart() {
       {(ai.text || ai.note) && (
         <section className="ai-panel">
           <h2 className="ai-title">✨ AI analysis</h2>
-          {ai.text && <p className="ai-text">{ai.text}</p>}
+          {ai.text && <Markdown text={ai.text} className="ai-text" />}
           {ai.note && <p className="ai-note">{ai.note}</p>}
         </section>
       )}
