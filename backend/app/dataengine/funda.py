@@ -323,21 +323,24 @@ def update_fundamentals(limit: int | None = None, max_age_days: int = FUNDA_MAX_
     return tot
 
 
-def _quick_json(url: str, timeout: int = 18) -> object | None:
-    """Fast, single-attempt Chrome-impersonated GET for the probe (no slow
-    requests-fallback retries), so a bad endpoint fails in ~18s, not minutes."""
+def _quick_json(url: str, timeout: int = 22) -> object | None:
+    """Fast single-attempt Chrome-impersonated GET for the probe. Does NOT follow
+    redirects, so a wrong path fails instantly and reveals its redirect target
+    (instead of looping 30 times) — and a real endpoint answers in one hop."""
     try:
         from curl_cffi import requests as cffi
-        r = cffi.get(url, impersonate="chrome", timeout=timeout,
+        r = cffi.get(url, impersonate="chrome", timeout=timeout, allow_redirects=False,
                      headers={"Referer": BSE_HOME + "/", "Accept": "application/json, text/plain, */*"})
+        if 300 <= r.status_code < 400:
+            return {"_redirect": (r.headers.get("location") or "")[:120], "_status": r.status_code}
         if r.status_code == 200 and r.content:
             try:
                 return json.loads(r.text)
             except (json.JSONDecodeError, ValueError):
-                return {"_non_json_head": r.text[:300]}
+                return {"_non_json_head": r.text[:200]}
         return {"_http_status": r.status_code}
     except Exception as e:
-        return {"_error": f"{type(e).__name__}: {e}"}
+        return {"_error": f"{type(e).__name__}: {str(e)[:90]}"}
 
 
 def _resolve_code(conn, symbol_or_code: str) -> tuple[str, str, str] | None:
@@ -388,23 +391,26 @@ def probe(symbol_or_code: str) -> None:
             f"{B}GetShareHoldingData/w?scripcode={code}",
         ],
         "ANNOUNCEMENTS": [
-            f"{B}AnnGetData/w?pageno=1&strCat=-1&strPrevDate={frm}&strScrip={code}&strSearch=P&strToDate={to}&strType=C",
-            f"{B}AnnGetData/w?strCat=-1&strPrevDate={frm}&strToDate={to}&strScrip={code}&strSearch=P&strType=C",
-            f"{B}AnnSubCategoryGetData/w?pageno=1&strCat=-1&strPrevDate={frm}&strScrip={code}&strSearch=P&strToDate={to}&strType=C&subcategory=-1",
+            f"{B}AnnGetData/w?pageno=1&strCat=-1&strPrevDate={frm}&strToDate={to}&strScrip={code}&strType=C&strSearch=P",
+            f"{B}AnnGetData/w?strCat=-1&strPrevDate={frm}&strToDate={to}&strScrip={code}&strType=C",
+            f"{B}AnnGetData/w?strScrip={code}&strType=C&strCat=-1&strPrevDate={frm}&strToDate={to}",
         ],
     }
     for label, urls in candidates.items():
         print(f"\n=== {label} ===")
         for url in urls:
-            tail = url.split("/api/", 1)[1][:75]
+            tail = url.split("/api/", 1)[1][:80]
             data = _quick_json(url)
-            if isinstance(data, dict) and any(k in data for k in ("_error", "_http_status", "_non_json_head")):
-                print(f"  [skip] {tail}  -> {json.dumps(data)[:120]}")
+            if isinstance(data, str):
+                print(f"  STRING {data[:60]!r}  {tail}")
+                continue
+            if isinstance(data, dict) and any(k in data for k in ("_error", "_http_status", "_non_json_head", "_redirect")):
+                print(f"  [skip] {tail}  -> {json.dumps(data)[:140]}")
                 continue
             rows = _rows(data)
             wrap = list(data.keys())[:8] if isinstance(data, dict) else f"list[{len(data)}]"
             print(f"  rows={len(rows)}  {tail}  wrap={wrap}")
-            if rows:
+            if rows and isinstance(rows[0], dict):
                 print(f"    KEYS: {list(rows[0].keys())}")
                 print(f"    SAMPLE: {json.dumps(rows[0])[:700]}")
                 break  # winner for this dataset; stop trying others
