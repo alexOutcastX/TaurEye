@@ -5,9 +5,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--sp-5);
-  background:
-    radial-gradient(900px 500px at 50% -10%, rgba(24, 201, 140, 0.10), transparent 60%),
-    var(--bg);
+  background: var(--bg); /* blank — no gradient, no imagery */
 }
 
 .login-card {

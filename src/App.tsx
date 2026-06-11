@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import type { ReactNode } from "react";
+import { Capacitor } from "@capacitor/core";
 import { useAuth } from "./auth/AuthContext";
 import AppShell from "./app/AppShell";
 import BootGate from "./components/BootGate";
@@ -24,9 +25,14 @@ function RequireAuth({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  // The native app opens straight to a clean, mobile-friendly sign-in screen
+  // (branding in the card, blank background, no marketing graphics). The
+  // full marketing Landing is web-only. Evaluated at render time so Capacitor
+  // is initialised on-device.
+  const native = Capacitor.isNativePlatform();
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
+      <Route path="/" element={native ? <Login /> : <Landing />} />
       <Route path="/login" element={<Login />} />
 
       <Route
