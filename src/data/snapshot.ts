@@ -132,6 +132,26 @@ export async function localDataInfo(): Promise<{ generated_at: string | null }> 
   }
 }
 
+/** Market-cap classification by AMFI-style rank over the whole universe:
+ *  1–100 Large Cap, 101–250 Mid Cap, 251–500 Small Cap, 501+ Micro Cap. */
+export async function localCapSegment(
+  symbol: string,
+): Promise<{ segment: string; rank: number } | null> {
+  try {
+    const s = await loadMetrics();
+    const ranked = s.metrics
+      .filter((x) => x.market_cap_cr != null && x.market_cap_cr > 0)
+      .sort((a, b) => (b.market_cap_cr ?? 0) - (a.market_cap_cr ?? 0));
+    const rank = ranked.findIndex((x) => x.symbol === symbol) + 1;
+    if (rank <= 0) return null;
+    const segment =
+      rank <= 100 ? "Large Cap" : rank <= 250 ? "Mid Cap" : rank <= 500 ? "Small Cap" : "Micro Cap";
+    return { segment, rank };
+  } catch {
+    return null;
+  }
+}
+
 /** Static security facts from fundamentals.json (face value, share count). */
 export async function localSecurityInfo(
   symbol: string,
