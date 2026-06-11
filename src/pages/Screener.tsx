@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import { generateReport } from "../lib/report";
+import ReportView from "../components/ReportView";
 import { isWatched, onWatchlistChange, toggleWatch } from "../lib/watchlist";
 import type {
   Exchange,
@@ -105,6 +105,9 @@ export default function Screener() {
   const [, setWatchTick] = useState(0);
   const [nlText, setNlText] = useState("");
   const [nlMsg, setNlMsg] = useState<string | null>(null);
+  // Row "report" opens the in-app report view (metrics only — AI report lives
+  // on the Chart page). No popup windows anywhere.
+  const [reportFor, setReportFor] = useState<Metrics | null>(null);
 
   const nav = useNavigate();
 
@@ -522,8 +525,8 @@ export default function Screener() {
                   </button>
                   <button
                     className="ra-btn"
-                    title="Generate report"
-                    onClick={() => generateReport(m)}
+                    title="Open report"
+                    onClick={() => setReportFor(m)}
                   >
                     Report
                   </button>
@@ -538,6 +541,10 @@ export default function Screener() {
           </tbody>
         </table>
       </div>
+
+      {reportFor && (
+        <ReportView m={reportFor} data={{ aiText: null }} onClose={() => setReportFor(null)} />
+      )}
     </section>
   );
 }
