@@ -1,0 +1,145 @@
+.lp {
+  min-height: 100%;
+  background:
+    radial-gradient(1100px 600px at 80% -8%, rgba(24, 201, 140, 0.12), transparent 62%),
+    radial-gradient(800px 500px at 0% 10%, rgba(24, 201, 140, 0.06), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* ---- nav ---- */
+.lp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4) var(--sp-6);
+  max-width: 1160px;
+  margin: 0 auto;
+}
+.lp-brand { display: flex; align-items: center; gap: 10px; }
+.lp-wordmark { height: 24px; width: auto; display: block; }
+.lp-nav-tag { color: var(--text-faint); font-size: 12px; letter-spacing: 0.03em; }
+
+/* ---- hero ---- */
+.lp-hero {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-6) var(--sp-7);
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-areas:
+    "copy   visual"
+    "auth   visual";
+  gap: var(--sp-5) var(--sp-6);
+  align-items: start;
+}
+.lp-hero-copy { grid-area: copy; }
+.lp-hero-visual { grid-area: visual; align-self: stretch; min-height: 340px; position: relative; }
+.lp-auth { grid-area: auth; }
+
+.lp-hero-copy h1 {
+  font-size: 40px;
+  line-height: 1.08;
+  margin: 0 0 var(--sp-4);
+  letter-spacing: -0.02em;
+}
+.lp-accent { color: var(--accent); }
+.lp-lede {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 0 0 var(--sp-4);
+  max-width: 36em;
+}
+.lp-bullets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.lp-bullets li { font-size: 14px; color: var(--text); }
+
+/* 3d bull canvas host */
+.lp-bull { width: 100%; height: 100%; min-height: 340px; display: block; }
+.lp-bull-fallback { width: 100%; display: block; margin: 0 auto; opacity: 0.9; }
+
+/* auth card */
+.lp-auth {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+  box-shadow: var(--shadow);
+  max-width: 420px;
+}
+.lp-auth-title { margin: 0; font-size: 18px; }
+.lp-auth-sub { margin: 4px 0 var(--sp-4); font-size: 13px; color: var(--text-muted); }
+
+/* ---- features ---- */
+.lp-features, .lp-compliance {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-6);
+}
+.lp-sec-title { font-size: 22px; margin: 0 0 var(--sp-5); letter-spacing: -0.01em; }
+.lp-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--sp-4);
+}
+.lp-feature {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+}
+.lp-feature h3 { margin: 0 0 8px; font-size: 15px; color: var(--text); }
+.lp-feature p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-muted); }
+
+/* ---- compliance ---- */
+.lp-compliance { border-top: 1px solid var(--border); }
+.lp-disc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.lp-disc p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--text-muted); }
+.lp-disc strong { color: var(--text); }
+.lp-disc-fine { font-size: 12px !important; color: var(--text-faint) !important; }
+
+/* ---- footer ---- */
+.lp-foot {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--sp-5) var(--sp-6) var(--sp-7);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  color: var(--text-faint);
+  font-size: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* ---- responsive ---- */
+@media (max-width: 880px) {
+  .lp-hero {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "visual"
+      "copy"
+      "auth";
+    text-align: left;
+  }
+  .lp-hero-visual { min-height: 260px; order: -1; }
+  .lp-bull, .lp-bull-fallback { min-height: 260px; max-width: 300px; }
+  .lp-hero-copy h1 { font-size: 32px; }
+  .lp-auth { max-width: none; }
+}
+@media (max-width: 480px) {
+  .lp-nav { padding: var(--sp-3) var(--sp-4); }
+  .lp-nav-tag { display: none; }
+  .lp-hero { padding: var(--sp-4); }
+  .lp-hero-copy h1 { font-size: 27px; }
+  .lp-features, .lp-compliance { padding: var(--sp-5) var(--sp-4); }
+}

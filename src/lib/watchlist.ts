@@ -7,6 +7,10 @@ export interface WatchItem {
   symbol: string;
   name: string;
   exchange: string;
+  // Stamped when the scrip is added so the Watchlist can show entry price and
+  // the change since. Optional for backward-compat with lists saved before this.
+  addedAt?: string; // ISO timestamp
+  addedPrice?: number; // EOD close at the moment it was added
 }
 
 const KEY = "taureye.watchlist";
@@ -39,7 +43,8 @@ export function toggleWatch(item: WatchItem): boolean {
     save(items);
     return false;
   }
-  items.push(item);
+  // Stamp the entry date/price now (unless the caller already set addedAt).
+  items.push({ ...item, addedAt: item.addedAt ?? new Date().toISOString() });
   save(items);
   return true;
 }

@@ -3,6 +3,7 @@
 .wl-head h1 { font-size: 22px; }
 .wl-count { color: var(--text-faint); font-size: 13px; }
 .wl-sub { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+.wl-msg { color: var(--accent); font-size: 13px; margin-top: var(--sp-2); }
 
 .wl-empty { margin-top: var(--sp-6); }
 .wl-empty p { color: var(--text-muted); }
@@ -61,6 +62,9 @@ table.wl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   color: var(--text-muted); border-radius: var(--r-sm); padding: 4px 10px; font-size: 12px;
 }
 .wl-actions .mini:hover { color: var(--text); border-color: var(--border-strong); }
+.wl-actions .mini:disabled { opacity: 0.5; cursor: default; }
+.wl-actions .mini.ai { color: var(--accent); border-color: var(--accent-dim, #128f63); }
+.wl-actions .mini.ai:hover { color: var(--accent); border-color: var(--accent); }
 .wl-actions .mini.danger:hover { color: var(--down); border-color: var(--down); }
 
 /* ---- mobile: compact, slidable table (matches the Screener) ---- */
