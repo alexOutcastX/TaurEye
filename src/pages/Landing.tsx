@@ -11,7 +11,6 @@ import "./Landing.css";
 // GPU support is inconsistent, so native shows the static mark for a guaranteed
 // clean boot.
 const BullScene = lazy(() => import("../components/BullScene"));
-const NATIVE = Capacitor.isNativePlatform();
 
 const FEATURES: { title: string; body: string }[] = [
   {
@@ -41,6 +40,9 @@ const FEATURES: { title: string; body: string }[] = [
 ];
 
 export default function Landing() {
+  // Evaluate at render time (not module load) so Capacitor is fully initialised
+  // on-device — guarantees the WebGL bull is never attempted on native.
+  const native = Capacitor.isNativePlatform();
   return (
     <div className="lp">
       <header className="lp-nav">
@@ -69,7 +71,7 @@ export default function Landing() {
         </div>
 
         <div className="lp-hero-visual">
-          {NATIVE ? (
+          {native ? (
             <BullMark size={220} className="lp-bull-fallback" />
           ) : (
             <ErrorBoundary fallback={<BullMark size={220} className="lp-bull-fallback" />}>
