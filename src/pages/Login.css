@@ -120,6 +120,36 @@
   color: var(--text);
 }
 
+.social-row {
+  display: flex;
+  gap: var(--sp-3);
+}
+.social-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 10px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.social-btn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.social-icon {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+}
+
 .login-foot {
   margin-top: var(--sp-5);
   color: var(--text-faint);

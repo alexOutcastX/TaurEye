@@ -5,6 +5,9 @@ type User = { id?: string; name: string; email: string } | null;
 
 type Result = { error?: string };
 
+/** OAuth providers we expose (must be enabled in the Supabase dashboard). */
+export type OAuthProvider = "google" | "twitter" | "github" | "apple";
+
 type AuthState = {
   user: User;
   isAuthed: boolean;
@@ -13,6 +16,7 @@ type AuthState = {
   cloud: boolean;
   signIn: (email: string, password: string) => Promise<Result>;
   signUp: (email: string, password: string) => Promise<Result>;
+  oauth: (provider: OAuthProvider) => Promise<Result>;
   bypass: () => void;
   signOut: () => Promise<void>;
 };
@@ -81,6 +85,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {};
   };
 
+  // Social sign-in: redirects to the provider, then back to /login (which
+  // forwards into the app once the session is established). Providers must be
+  // enabled in Supabase → Authentication → Providers.
+  const oauth = async (provider: OAuthProvider): Promise<Result> => {
+    if (!cloud || !supabase) return { error: "Social sign-in needs the cloud backend." };
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/login` },
+    });
+    return error ? { error: error.message } : {};
+  };
+
   // Guest mode (kept for local use / preview).
   const bypass = () => setUser({ name: "Guest", email: "guest@taureye.local" });
 
@@ -91,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthCtx.Provider
-      value={{ user, isAuthed: !!user, loading, cloud, signIn, signUp, bypass, signOut }}
+      value={{ user, isAuthed: !!user, loading, cloud, signIn, signUp, oauth, bypass, signOut }}
     >
       {children}
     </AuthCtx.Provider>
