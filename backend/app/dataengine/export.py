@@ -357,6 +357,10 @@ def export_funda(out: Path, *, gz: bool) -> dict:
         fin = group("SELECT isin, period_end, period_type, consolidated, revenue, "
                     "other_income, expenses, interest, depreciation, pbt, tax, "
                     "net_profit, eps FROM financials ORDER BY period_end DESC")
+        bs = group("SELECT isin, period_end, period_type, total_assets, total_liab, "
+                   "total_debt, long_term_debt, short_term_debt, cash, net_debt, "
+                   "equity, net_working_capital FROM balance_sheets "
+                   "ORDER BY period_end DESC")
         shp = group("SELECT isin, period_end, promoter_pct, promoter_pledge_pct, "
                     "public_pct, fii_pct, dii_pct FROM shareholding ORDER BY period_end DESC")
         ann = group("SELECT isin, dt, category, headline, url FROM announcements "
@@ -370,7 +374,8 @@ def export_funda(out: Path, *, gz: bool) -> dict:
         if not sym:
             continue
         actions, financials, holding, news = ca.get(isin), fin.get(isin), shp.get(isin), ann.get(isin)
-        if not (actions or financials or holding or news):
+        sheets = bs.get(isin)
+        if not (actions or financials or holding or news or sheets):
             continue
         payload = {
             "s": sym,
@@ -380,6 +385,7 @@ def export_funda(out: Path, *, gz: bool) -> dict:
             "generated_at": _now(),
             "corporate_actions": (actions or [])[:40],
             "financials": (financials or [])[:16],
+            "balance_sheets": (sheets or [])[:12],
             "shareholding": (holding or [])[:8],
             "announcements": (news or [])[:40],
         }

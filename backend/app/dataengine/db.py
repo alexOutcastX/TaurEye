@@ -143,6 +143,27 @@ CREATE TABLE IF NOT EXISTS funda_runs (
     fetched_at TEXT NOT NULL,
     status     TEXT
 );
+
+-- Balance-sheet snapshots (debt analysis: borrowings, equity, D/E, cash).
+CREATE TABLE IF NOT EXISTS balance_sheets (
+    isin          TEXT NOT NULL,
+    period_end    TEXT NOT NULL,        -- ISO YYYY-MM-DD
+    period_type   TEXT NOT NULL,        -- Q | Y
+    total_assets  REAL,
+    total_liab    REAL,
+    total_debt    REAL,                 -- short + long term borrowings
+    long_term_debt REAL,
+    short_term_debt REAL,
+    cash          REAL,
+    net_debt      REAL,
+    equity        REAL,                 -- total shareholders' equity
+    net_working_capital REAL,
+    raw           TEXT,
+    source        TEXT NOT NULL,
+    updated_at    TEXT NOT NULL,
+    PRIMARY KEY (isin, period_end, period_type)
+);
+CREATE INDEX IF NOT EXISTS ix_bs_isin ON balance_sheets(isin, period_end DESC);
 """
 
 

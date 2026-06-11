@@ -17,13 +17,13 @@ on:
         required: true
         default: "funda-probe"
         options:
-          - "funda-probe"               # raw BSE JSON for one symbol (uses 'symbol')
-          - "announcements --days 7"    # bulk-ingest BSE filings (free)
-          - "announcements --days 30"   # wider backfill
+          - "eodhd-probe"               # validate EODHD key/plan on one symbol
+          - "eodhd --limit 25"          # smoke-test fundamentals fetch
+          - "eodhd --limit 500"         # a nightly-sized slice
           - "export --funda --gz"       # publish per-symbol funda files
           - "status"                    # spine health
-          - "funda --limit 50"          # (vendor path, later) per-symbol fundamentals
-          - "funda"                     # (vendor path, later) all due
+          - "funda-probe"               # raw BSE JSON for one symbol (uses 'symbol')
+          - "announcements --days 7"    # BSE filings (bot-walled from VM; kept for reference)
       symbol:
         description: "Symbol for funda-probe (letters/digits only)"
         required: false
@@ -50,6 +50,7 @@ jobs:
           H: ${{ secrets.VM_HOST }}
           CHOICE: ${{ inputs.command }}
           RAWSYM: ${{ inputs.symbol }}
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
         run: |
           # Sanitize the symbol to a safe charset (strips spaces, ;, `, $, etc.).
           SYM=$(printf '%s' "$RAWSYM" | tr -cd 'A-Za-z0-9._&-')
@@ -58,10 +59,13 @@ jobs:
           # the allow-listed choice + sanitized symbol only.
           case "$CHOICE" in
             "funda-probe") ARGS="funda-probe ${SYM:-RELIANCE}" ;;
-            "announcements --days 7"|"announcements --days 30"|"export --funda --gz"|"status"|"funda --limit 50"|"funda") ARGS="$CHOICE" ;;
+            "eodhd-probe") ARGS="eodhd-probe ${SYM:-RELIANCE}" ;;
+            "eodhd --limit 25"|"eodhd --limit 500"|"announcements --days 7"|"export --funda --gz"|"status") ARGS="$CHOICE" ;;
             *) echo "rejected command: $CHOICE"; exit 1 ;;
           esac
           echo "::group::dataengine run $ARGS"
-          ssh -i ~/.ssh/id_deploy "$U@$H" \
-            "cd /opt/taureye && . venv/bin/activate && python -m backend.app.dataengine.run $ARGS"
+          # The EODHD key is passed via stdin (not the command line), so it never
+          # appears in remote process lists; GitHub masks it in this job's logs.
+          printf '%s\n' "$EODHD_API_KEY" | ssh -i ~/.ssh/id_deploy "$U@$H" \
+            "read -r EODHD_API_KEY; export EODHD_API_KEY; cd /opt/taureye && . venv/bin/activate && python -m backend.app.dataengine.run $ARGS"
           echo "::endgroup::"
