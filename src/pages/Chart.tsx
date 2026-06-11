@@ -16,7 +16,7 @@ import {
   type LineWidth,
   type Time,
 } from "lightweight-charts";
-import { api } from "../api/client";
+import { api, aiReport } from "../api/client";
 import type { Candle, Metrics } from "../api/types";
 import { fmtCap, fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
 import TradingViewChart from "../components/TradingViewChart";
@@ -24,6 +24,8 @@ import BrokerCTA from "../components/BrokerCTA";
 import Markdown from "../components/Markdown";
 import { detectPatterns, type DetectedPattern } from "../lib/patterns";
 import { COSTS, spend } from "../lib/economy";
+import { generateReport } from "../lib/report";
+import { dataUrl } from "../data/source";
 import { isWatched, onWatchlistChange, toggleWatch } from "../lib/watchlist";
 import { addAlert, alertsForSymbol, onAlertsChange, removeAlert, type AlertOp } from "../lib/alerts";
 import "./Chart.css";
@@ -144,6 +146,7 @@ export default function Chart() {
   const [drawLines, setDrawLines] = useState(false);
   const [ai, setAi] = useState<{ text: string | null; note: string | null }>({ text: null, note: null });
   const [aiBusy, setAiBusy] = useState(false);
+  const [reportBusy, setReportBusy] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertOp, setAlertOp] = useState<AlertOp>("above");
   const [alertPrice, setAlertPrice] = useState("");
@@ -408,6 +411,39 @@ export default function Chart() {
     }
   };
 
+  // Generate the structured AI report and open it as a printable page
+  // (Print -> Save as PDF). Credit-gated like AI analysis (free in preview).
+  const runReport = async () => {
+    if (!symbol || !info || reportBusy) return;
+    if (!spend("advanced_report", COSTS.advancedReport)) {
+      setAi({ text: null, note: "Not enough credits." });
+      return;
+    }
+    setReportBusy(true);
+    try {
+      // Corporate actions from the published funda bundle (absent until the
+      // first `export --funda` run on the VM — the report degrades gracefully).
+      let corpActions: { ex_date: string; kind: string; ratio: number; detail?: string | null }[] | null = null;
+      try {
+        const r = await fetch(dataUrl(`funda/${encodeURIComponent(symbol)}.json`));
+        if (r.ok) corpActions = (await r.json()).corporate_actions ?? null;
+      } catch {
+        /* no funda file published yet */
+      }
+      const pats = patterns.map((p) => ({ label: p.label, detail: p.detail ?? null }));
+      const res = await aiReport(symbol, info, pats, corpActions);
+      if (res.text) {
+        generateReport(info, { aiText: res.text, aiDisclaimer: res.disclaimer, corpActions });
+      } else if (!res.configured) {
+        setAi({ text: null, note: "AI report isn't configured yet (deploy the ai-report function)." });
+      } else {
+        setAi({ text: null, note: res.error ? `Report error: ${res.error}` : "Report unavailable." });
+      }
+    } finally {
+      setReportBusy(false);
+    }
+  };
+
   if (!symbol) {
     return (
       <section className="chart">
@@ -442,6 +478,9 @@ export default function Chart() {
           )}
           <button className="ai-btn" onClick={runAi} disabled={aiBusy}>
             {aiBusy ? "Analyzing…" : "✨ AI Analysis"}
+          </button>
+          <button className="ai-btn" onClick={runReport} disabled={reportBusy || !info} title="Structured AI report — opens printable page (Save as PDF)">
+            {reportBusy ? "Building…" : "📄 AI Report"}
           </button>
           <button className={`watch-btn ${watched ? "on" : ""}`} onClick={toggle}>
             {watched ? "★ Watching" : "☆ Watchlist"}
