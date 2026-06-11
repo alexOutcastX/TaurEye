@@ -105,7 +105,7 @@ export default function BullScene({ className }: { className?: string }) {
 
     const bull = new THREE.Group();
     bull.add(model);
-    bull.scale.setScalar(2.7 / maxDim);
+    bull.scale.setScalar((2.7 * 1.3) / maxDim); // +30% larger
     bull.rotation.y = -0.3;
     scene.add(bull);
 
