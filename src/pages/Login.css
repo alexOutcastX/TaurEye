@@ -1,38 +1,134 @@
 .login-wrap {
+  position: relative;
   min-height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: var(--sp-5);
-  background: var(--bg); /* blank — no gradient, no imagery */
+  background: #06080b;
+  overflow: hidden;
 }
 
+/* ---- flowing aurora background (pure CSS, no images) ---- */
+.login-aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.login-aurora .blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+}
+.login-aurora .b1 {
+  width: 360px; height: 360px; top: -70px; right: -70px;
+  background: radial-gradient(circle at 35% 35%, rgba(24, 201, 140, 0.85), transparent 70%);
+  opacity: 0.55;
+  animation: float1 15s ease-in-out infinite;
+}
+.login-aurora .b2 {
+  width: 440px; height: 440px; bottom: -140px; left: -110px;
+  background: radial-gradient(circle at 50% 50%, rgba(14, 124, 99, 0.9), transparent 70%);
+  opacity: 0.5;
+  animation: float2 19s ease-in-out infinite;
+}
+.login-aurora .b3 {
+  width: 320px; height: 320px; top: 42%; left: 55%;
+  background: radial-gradient(circle at 50% 50%, rgba(43, 209, 160, 0.7), transparent 72%);
+  opacity: 0.32;
+  animation: float3 22s ease-in-out infinite;
+}
+@keyframes float1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-34px,42px); } }
+@keyframes float2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(44px,-30px); } }
+@keyframes float3 { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-42%,-56%) scale(1.18); } }
+@media (prefers-reduced-motion: reduce) {
+  .login-aurora .blob { animation: none; }
+}
+
+/* ---- glass card ---- */
 .login-card {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 380px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: var(--sp-6) var(--sp-5);
-  box-shadow: var(--shadow);
+  max-width: 400px;
+  padding: var(--sp-6) var(--sp-5) var(--sp-5);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
 }
 
 .login-brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: var(--sp-5);
+  gap: 8px;
+  margin-bottom: var(--sp-3);
 }
-.login-wordmark {
-  height: 40px;
-  width: auto;
-  display: block;
+.login-wordmark { height: 26px; width: auto; display: block; opacity: 0.96; }
+
+.login-welcome {
+  text-align: center;
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 8px 0 2px;
+}
+.login-welcome-sub {
+  text-align: center;
+  font-size: 12.5px;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: 0 0 var(--sp-5);
 }
 
+/* ---- scoped AuthPanel restyle: outlined translucent inputs + gradient CTA ---- */
+.login-card .field > span { color: rgba(231, 234, 239, 0.82); }
+.login-card .field input {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 13px 14px;
+}
+.login-card .field input::placeholder { color: rgba(231, 234, 239, 0.4); }
+.login-card .field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(24, 201, 140, 0.18);
+}
+.login-card .btn-primary {
+  border-radius: 12px;
+  padding: 13px;
+  background: linear-gradient(135deg, #1ee0a0, #0ea372);
+  box-shadow: 0 8px 26px rgba(24, 201, 140, 0.4);
+}
+.login-card .btn-ghost,
+.login-card .social-btn {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--text);
+}
+.login-card .btn-ghost:hover,
+.login-card .social-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.login-card .auth-divider::before,
+.login-card .auth-divider::after { background: rgba(255, 255, 255, 0.14); }
+
 .login-foot {
+  position: relative;
+  z-index: 1;
   margin-top: var(--sp-5);
-  color: var(--text-faint);
+  color: rgba(231, 234, 239, 0.5);
   font-size: 12px;
+}
+
+@media (max-width: 420px) {
+  .login-card { padding: var(--sp-5) var(--sp-4); border-radius: 20px; }
+  .login-welcome { font-size: 21px; }
 }
