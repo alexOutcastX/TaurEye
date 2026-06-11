@@ -79,3 +79,6 @@ key
 *.ppk
 id_rsa*
 id_ed25519*
+
+# stray preview screenshots (root-level PNGs are never project assets)
+/*.png
