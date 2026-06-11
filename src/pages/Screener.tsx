@@ -18,6 +18,9 @@ import AdSlot from "../components/AdSlot";
 import { parseScreen } from "../lib/nlScreen";
 import { spend } from "../lib/economy";
 import { COSTS } from "../lib/economy";
+import { PRESETS, type Preset } from "../config/presets";
+import { decodeScreen, shareUrl } from "../lib/shareScreen";
+import { copyToClipboard } from "../lib/referral";
 import "./Screener.css";
 
 const OPS: { value: Operator; label: string }[] = [
@@ -87,12 +90,16 @@ let cachedCount = 0;
 export default function Screener() {
   const location = useLocation();
   const incoming = (location.state as { request?: ScreenRequest } | null)?.request;
+  // A shared-screen link (?s=<token>) — decoded once; takes effect on first load.
+  const [shared] = useState<ScreenRequest | null>(() =>
+    decodeScreen(new URLSearchParams(location.search).get("s")),
+  );
 
   const [fields, setFields] = useState<FieldDef[]>([]);
   const [segs, setSegs] = useState<SegmentInfo[]>([]);
-  const [req, setReq] = useState<ScreenRequest>(incoming ?? cachedReq ?? DEFAULT_REQ);
-  const [rows, setRows] = useState<Metrics[]>(incoming ? [] : cachedRows);
-  const [count, setCount] = useState(incoming ? 0 : cachedCount);
+  const [req, setReq] = useState<ScreenRequest>(incoming ?? shared ?? cachedReq ?? DEFAULT_REQ);
+  const [rows, setRows] = useState<Metrics[]>(incoming || shared ? [] : cachedRows);
+  const [count, setCount] = useState(incoming || shared ? 0 : cachedCount);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, setWatchTick] = useState(0);
@@ -171,7 +178,7 @@ export default function Screener() {
   // (returning to the page), so the previous screen stays put.
   useEffect(() => {
     if (!fields.length) return;
-    if (incoming || cachedRows.length === 0) run(req);
+    if (incoming || shared || cachedRows.length === 0) run(req);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.length]);
 
@@ -238,6 +245,20 @@ export default function Screener() {
     }
   };
 
+  // Copy a link that reproduces the current screen exactly (filters, sort, all).
+  const share = async () => {
+    const r = await copyToClipboard(shareUrl(req));
+    setNlMsg(r === "copied" ? "Share link copied — anyone opening it sees this exact screen." : "Couldn't copy the link.");
+  };
+
+  // Apply a preset from the library: replaces filters/sort and runs immediately.
+  const applyPreset = (p: Preset) => {
+    const next = { ...p.request, exchange: req.exchange, segments: req.segments };
+    setReq(next);
+    setNlMsg(`Preset: ${p.name} — ${p.desc}.`);
+    run(next);
+  };
+
   return (
     <section className="scr">
       <header className="scr-top">
@@ -272,6 +293,23 @@ export default function Screener() {
           <button className="nl-build" onClick={buildFromText}>Build</button>
         </div>
         {nlMsg && <p className="nl-msg">{nlMsg}</p>}
+
+        <div className="presets">
+          <span className="presets-label">Preset scans</span>
+          <div className="presets-row">
+            {PRESETS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="preset-chip"
+                onClick={() => applyPreset(p)}
+                title={p.desc}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="panel-controls">
           <label className="ctl">
@@ -409,6 +447,9 @@ export default function Screener() {
         <div className="panel-actions">
           <button className="btn-add" onClick={addFilter}>+ Add filter</button>
           <div className="spacer" />
+          <button className="btn-save" onClick={share} title="Copy a link that opens this exact screen">
+            Share
+          </button>
           <button className="btn-save" onClick={save}>Save screen</button>
           <button className="btn-run" onClick={() => run()} disabled={loading}>
             {loading ? "Running…" : "Run screen"}
