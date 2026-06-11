@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import bullObjSrc from "../assets/bullhead.obj?raw";
 import BullMark from "./BullMark";
 
@@ -40,19 +41,41 @@ export default function BullScene({ className }: { className?: string }) {
     camera.position.set(0, 0.15, 5.2);
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
     mount.appendChild(renderer.domElement);
 
+    // ---- environment reflections (procedural room) for the metallic sheen ----
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = envTex;
+
     // ---- lighting: warm key from top-right, brand-green rim from below-left ----
-    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-    const key = new THREE.DirectionalLight(0xffffff, 1.25);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+    const key = new THREE.DirectionalLight(0xffffff, 1.1);
     key.position.set(3, 4, 3);
     scene.add(key);
-    const rim = new THREE.DirectionalLight(0x18c98c, 0.9);
+    const rim = new THREE.DirectionalLight(0x18c98c, 1.4);
     rim.position.set(-3, -1.5, 1.5);
     scene.add(rim);
 
-    // ---- material: flat-shaded brand green (ignores the model's grey MTL) ----
-    const mat = new THREE.MeshStandardMaterial({ color: 0x18c98c, flatShading: true, metalness: 0.12, roughness: 0.55 });
+    // ---- futuristic material: chrome-green metal that reflects the env ----
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x0f3a2c,
+      flatShading: true,
+      metalness: 1.0,
+      roughness: 0.22,
+      emissive: 0x05140f,
+      envMapIntensity: 1.25,
+    });
+    // glowing brand-green wireframe edges (holographic/tech feel)
+    const wireMat = new THREE.LineBasicMaterial({
+      color: 0x2be3a6,
+      transparent: true,
+      opacity: 0.35,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
 
     // ---- load the user-supplied bull-head OBJ ----
     const disposables: THREE.BufferGeometry[] = [];
@@ -70,12 +93,15 @@ export default function BullScene({ className }: { className?: string }) {
         const g = mesh.geometry as THREE.BufferGeometry;
         g.translate(-center.x, -center.y, -center.z);
         disposables.push(g);
+        const wf = new THREE.LineSegments(new THREE.WireframeGeometry(g), wireMat);
+        disposables.push(wf.geometry as THREE.BufferGeometry);
+        mesh.add(wf);
       }
     });
     const maxDim = Math.max(dims.x, dims.y, dims.z) || 1;
 
     // stand the model upright (it's authored Z-up) and face it toward the camera
-    model.rotation.set(-1.35 + Math.PI + Math.PI / 4, 0, 0);
+    model.rotation.set(-1.35 + (270 * Math.PI) / 180, 0, 0);
 
     const bull = new THREE.Group();
     bull.add(model);
@@ -130,6 +156,9 @@ export default function BullScene({ className }: { className?: string }) {
       mount.removeEventListener("pointermove", onMove);
       disposables.forEach((g) => g.dispose());
       mat.dispose();
+      wireMat.dispose();
+      envTex.dispose();
+      pmrem.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
