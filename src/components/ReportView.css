@@ -188,3 +188,22 @@
   .rpt-grid { grid-template-columns: repeat(4, 1fr); }
   .md .md-kv strong { color: #5b6472 !important; }
 }
+
+/* page-per-section print layout */
+.printonly { display: none; }
+@media print {
+  .rpt-pb { break-before: page; }
+  .printonly {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #97a0ad;
+    border-bottom: 1px solid #eef0f3;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+  }
+  /* keep the AI commentary from leaving a lonely heading at a page bottom */
+  .rpt-ai h3, .rpt-ai h4 { break-after: avoid; }
+  .rpt-ai p, .rpt-ai li { orphans: 3; widows: 3; }
+  .rpt-disc, .rpt-foot { break-inside: avoid; }
+}

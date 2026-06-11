@@ -432,7 +432,9 @@ export default function Chart() {
         /* no funda file published yet */
       }
       const pats = patterns.map((p) => ({ label: p.label, detail: p.detail ?? null }));
-      const res = await aiReport(symbol, info, pats, corpActions);
+      // Don't feed placeholder values to the model (it would echo "Unknown").
+      const facts = { ...info, sector: info.sector === "Unknown" ? undefined : info.sector };
+      const res = await aiReport(symbol, facts, pats, corpActions);
       if (res.text) {
         setReport({ aiText: res.text, aiDisclaimer: res.disclaimer, corpActions });
       } else if (!res.configured) {

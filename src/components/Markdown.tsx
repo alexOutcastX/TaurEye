@@ -45,6 +45,11 @@ export default function Markdown({ text, className }: { text: string; className?
       flushList();
       const cells = line.slice(1, -1).split("|").map((c) => c.trim()).filter(Boolean);
       if (cells.length === 0) return;
+      // Drop generic table-header rows ("Field | Value" etc.) — pure noise.
+      const plain = cells.map((c) => c.replace(/\*/g, "").toLowerCase());
+      if (cells.length === 2 && /^(field|metric|item|label|parameter)s?$/.test(plain[0]) && /^values?$/.test(plain[1])) {
+        return;
+      }
       blocks.push(
         <p key={`kv${i}`} className="md-kv">
           {cells.length === 2 ? (
