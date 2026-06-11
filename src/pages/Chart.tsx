@@ -24,7 +24,7 @@ import BrokerCTA from "../components/BrokerCTA";
 import Markdown from "../components/Markdown";
 import { detectPatterns, type DetectedPattern } from "../lib/patterns";
 import { COSTS, spend } from "../lib/economy";
-import { generateReport } from "../lib/report";
+import ReportView, { type ReportData } from "../components/ReportView";
 import { dataUrl } from "../data/source";
 import { isWatched, onWatchlistChange, toggleWatch } from "../lib/watchlist";
 import { addAlert, alertsForSymbol, onAlertsChange, removeAlert, type AlertOp } from "../lib/alerts";
@@ -147,6 +147,7 @@ export default function Chart() {
   const [ai, setAi] = useState<{ text: string | null; note: string | null }>({ text: null, note: null });
   const [aiBusy, setAiBusy] = useState(false);
   const [reportBusy, setReportBusy] = useState(false);
+  const [report, setReport] = useState<ReportData | null>(null);
   const [showAlert, setShowAlert] = useState(false);
   const [alertOp, setAlertOp] = useState<AlertOp>("above");
   const [alertPrice, setAlertPrice] = useState("");
@@ -433,7 +434,7 @@ export default function Chart() {
       const pats = patterns.map((p) => ({ label: p.label, detail: p.detail ?? null }));
       const res = await aiReport(symbol, info, pats, corpActions);
       if (res.text) {
-        generateReport(info, { aiText: res.text, aiDisclaimer: res.disclaimer, corpActions });
+        setReport({ aiText: res.text, aiDisclaimer: res.disclaimer, corpActions });
       } else if (!res.configured) {
         setAi({ text: null, note: "AI report isn't configured yet (deploy the ai-report function)." });
       } else {
@@ -679,6 +680,10 @@ export default function Chart() {
       )}
 
       <BrokerCTA />
+
+      {report && info && (
+        <ReportView m={info} data={report} onClose={() => setReport(null)} />
+      )}
     </section>
   );
 }
