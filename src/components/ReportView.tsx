@@ -179,6 +179,11 @@ export default function ReportView({
           </>
         )}
 
+        <section className="rpt-pb">
+        <div className="rpt-minihead printonly">
+          <span>{m.symbol} · {m.name}</span>
+          <span>TaurEye report</span>
+        </div>
         <h2 className="rpt-sec">Balance Sheet &amp; Borrowings</h2>
         {sheets && sheets.length > 0 ? (
           <>
@@ -220,7 +225,13 @@ export default function ReportView({
             it will appear here once the fundamentals data feed is connected.
           </p>
         )}
+        </section>
 
+        <section className="rpt-pb">
+        <div className="rpt-minihead printonly">
+          <span>{m.symbol} · {m.name}</span>
+          <span>TaurEye report</span>
+        </div>
         <h2 className="rpt-sec">Recent Filings &amp; Capex / Order Announcements</h2>
         {filings && filings.length > 0 ? (
           <ul className="rpt-filings">
@@ -256,6 +267,7 @@ export default function ReportView({
             </table>
           </>
         )}
+        </section>
 
         <p className="rpt-disc">
           {data.aiDisclaimer ||
