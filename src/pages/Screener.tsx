@@ -120,7 +120,7 @@ export default function Screener() {
         `&name=${encodeURIComponent(m.name)}&exchange=${encodeURIComponent(m.exchange)}`,
     );
   const watch = (m: Metrics) =>
-    toggleWatch({ symbol: m.symbol, name: m.name, exchange: m.exchange });
+    toggleWatch({ symbol: m.symbol, name: m.name, exchange: m.exchange, addedPrice: m.close });
 
   const fieldMap = useMemo(
     () => Object.fromEntries(fields.map((f) => [f.key, f])),

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "./auth/AuthContext";
 import AppShell from "./app/AppShell";
 import BootGate from "./components/BootGate";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Screener from "./pages/Screener";
 import Chart from "./pages/Chart";
@@ -19,12 +20,13 @@ function RequireAuth({ children }: { children: ReactNode }) {
   // signed-in user is bounced to /login on every refresh while the async
   // Supabase session is still resolving.
   if (loading) return null;
-  return isAuthed ? <>{children}</> : <Navigate to="/login" replace />;
+  return isAuthed ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
 
       <Route
@@ -48,7 +50,7 @@ export default function App() {
         <Route path="refer" element={<Refer />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

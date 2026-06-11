@@ -16,7 +16,7 @@ import {
   type LineWidth,
   type Time,
 } from "lightweight-charts";
-import { api, aiReport } from "../api/client";
+import { api } from "../api/client";
 import type { Candle, Metrics } from "../api/types";
 import { fmtCap, fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
 import TradingViewChart from "../components/TradingViewChart";
@@ -25,7 +25,7 @@ import Markdown from "../components/Markdown";
 import { detectPatterns, type DetectedPattern } from "../lib/patterns";
 import { COSTS, spend } from "../lib/economy";
 import ReportView, { type ReportData } from "../components/ReportView";
-import { dataUrl } from "../data/source";
+import { buildAiReport } from "../lib/reportData";
 import { isWatched, onWatchlistChange, toggleWatch } from "../lib/watchlist";
 import { addAlert, alertsForSymbol, onAlertsChange, removeAlert, type AlertOp } from "../lib/alerts";
 import "./Chart.css";
@@ -377,7 +377,7 @@ export default function Chart() {
 
   const toggle = () => {
     if (!symbol) return;
-    setWatched(toggleWatch({ symbol, name, exchange }));
+    setWatched(toggleWatch({ symbol, name, exchange, addedPrice: info?.close }));
   };
   const toggleMA = (period: number) =>
     setEnabled((prev) => {
@@ -422,21 +422,10 @@ export default function Chart() {
     }
     setReportBusy(true);
     try {
-      // Corporate actions from the published funda bundle (absent until the
-      // first `export --funda` run on the VM — the report degrades gracefully).
-      let corpActions: { ex_date: string; kind: string; ratio: number; detail?: string | null }[] | null = null;
-      try {
-        const r = await fetch(dataUrl(`funda/${encodeURIComponent(symbol)}.json`));
-        if (r.ok) corpActions = (await r.json()).corporate_actions ?? null;
-      } catch {
-        /* no funda file published yet */
-      }
       const pats = patterns.map((p) => ({ label: p.label, detail: p.detail ?? null }));
-      // Don't feed placeholder values to the model (it would echo "Unknown").
-      const facts = { ...info, sector: info.sector === "Unknown" ? undefined : info.sector };
-      const res = await aiReport(symbol, facts, pats, corpActions);
-      if (res.text) {
-        setReport({ aiText: res.text, aiDisclaimer: res.disclaimer, corpActions });
+      const res = await buildAiReport(symbol, info, pats);
+      if (res.report) {
+        setReport(res.report);
       } else if (!res.configured) {
         setAi({ text: null, note: "AI report isn't configured yet (deploy the ai-report function)." });
       } else {
