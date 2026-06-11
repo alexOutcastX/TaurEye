@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Metrics } from "../api/types";
 import { fmtCap, fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
-import { localDataInfo, localSecurityInfo } from "../data/snapshot";
+import { localCapSegment, localDataInfo, localSecurityInfo } from "../data/snapshot";
 import { dataUrl } from "../data/source";
 import Markdown from "./Markdown";
 import "./ReportView.css";
@@ -22,6 +22,7 @@ interface CorpAction {
 // Shape of the published funda/<SYMBOL>.json (sections fill in as the data
 // pipeline ingests them; absent sections render an honest "not yet" note).
 interface FundaFile {
+  about?: string | null;
   corporate_actions?: CorpAction[];
   financials?: {
     period_end: string;
@@ -63,12 +64,19 @@ export default function ReportView({
 
   const [asOf, setAsOf] = useState<string | null>(null);
   const [faceValue, setFaceValue] = useState<number | null>(null);
+  const [shares, setShares] = useState<number | null>(null);
+  const [capSeg, setCapSeg] = useState<string | null>(null);
   const [funda, setFunda] = useState<FundaFile | null>(null);
 
   useEffect(() => {
     let active = true;
     localDataInfo().then((i) => active && setAsOf(i.generated_at));
-    localSecurityInfo(m.symbol).then((s) => active && setFaceValue(s?.face_value ?? null));
+    localSecurityInfo(m.symbol).then((s) => {
+      if (!active) return;
+      setFaceValue(s?.face_value ?? null);
+      setShares(s?.shares_outstanding ?? null);
+    });
+    localCapSegment(m.symbol).then((c) => active && setCapSeg(c?.segment ?? null));
     fetch(dataUrl(`funda/${encodeURIComponent(m.symbol)}.json`))
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => active && setFunda(j))
@@ -84,6 +92,19 @@ export default function ReportView({
   const latestSheet = sheets?.[0] ?? null;
   const dToE =
     latestSheet?.total_debt != null && latestSheet?.equity ? latestSheet.total_debt / latestSheet.equity : null;
+
+  // Valuation ratios — computed only when the fundamentals feed supplies the
+  // inputs (never estimated). P/E uses trailing-12-month EPS (last 4 quarters);
+  // P/B uses latest equity / shares outstanding; dividend yield needs dividend
+  // history (not in the data yet) so it stays "—" until then.
+  const ttmEps = (() => {
+    const qs = (funda?.financials ?? []).filter((f) => f.period_type === "Q" && f.eps != null).slice(0, 4);
+    if (qs.length < 4) return null;
+    return qs.reduce((s, f) => s + (f.eps as number), 0);
+  })();
+  const pe = ttmEps != null && ttmEps > 0 ? m.close / ttmEps : null;
+  const bvps = latestSheet?.equity != null && shares ? latestSheet.equity / shares : null;
+  const pb = bvps != null && bvps > 0 ? m.close / bvps : null;
 
   const asOfLabel = asOf
     ? new Date(asOf).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
@@ -106,7 +127,10 @@ export default function ReportView({
       <div className="rpt-page" id="report-print-root">
         <div className="rpt-head">
           <div>
-            <h1>{m.symbol}</h1>
+            <h1>
+              {m.symbol}
+              {capSeg && <span className="rpt-capseg">{capSeg}</span>}
+            </h1>
             <div className="rpt-sub">
               {m.name} · {m.exchange}
               {m.sector && m.sector !== "Unknown" ? ` · ${m.sector}` : ""}
@@ -126,6 +150,9 @@ export default function ReportView({
         <div className="rpt-grid">
           <Stat label="Market cap" value={fmtCap(m.market_cap_cr)} />
           <Stat label="Face value" value={faceValue != null ? `₹${fmtNum(faceValue, faceValue % 1 === 0 ? 0 : 2)}` : "—"} />
+          <Stat label="P/E (TTM)" value={pe != null ? fmtNum(pe, 1) : "—"} />
+          <Stat label="P/B" value={pb != null ? fmtNum(pb, 1) : "—"} />
+          <Stat label="Div yield" value="—" />
           <Stat label="RSI (14)" value={fmtNum(m.rsi_14, 1)} />
           <Stat label="vs 50 DMA" value={fmtPct(m.pct_above_sma50)} cls={signClass(m.pct_above_sma50)} />
           <Stat label="vs 200 DMA" value={fmtPct(m.pct_above_sma200)} cls={signClass(m.pct_above_sma200)} />
@@ -134,6 +161,16 @@ export default function ReportView({
           <Stat label="Volume" value={fmtInt(m.volume)} />
           <Stat label="Rel volume" value={`${fmtNum(m.rel_volume)}x`} />
         </div>
+
+        <h2 className="rpt-sec">About the Company</h2>
+        {funda?.about ? (
+          <p className="rpt-about">{funda.about}</p>
+        ) : (
+          <p className="rpt-na">
+            Company profile isn't available for this stock yet — it will appear
+            here once the fundamentals data feed is connected.
+          </p>
+        )}
 
         {data.aiText && (
           <>

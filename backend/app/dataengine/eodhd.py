@@ -227,6 +227,11 @@ def fetch_symbol(conn, isin: str, nse_symbol: str, key: str) -> dict | None:
             news = json.loads(nbody)
         except ValueError:
             pass
+    # Company profile -> securities.about (shown in the report's About section).
+    if isinstance(fund, dict):
+        desc = ((fund.get("General") or {}).get("Description") or "").strip()
+        if desc:
+            conn.execute("UPDATE securities SET about=? WHERE isin=?", (desc[:2000], isin))
     res = _store_all(conn, isin, fund if isinstance(fund, dict) else {}, news)
     conn.execute(
         "INSERT INTO funda_runs (isin, fetched_at, status) VALUES (?,?,?) "

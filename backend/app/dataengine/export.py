@@ -349,7 +349,7 @@ def export_funda(out: Path, *, gz: bool) -> dict:
 
     with connect() as conn:
         secs = conn.execute(
-            "SELECT isin, name, nse_symbol, bse_symbol, sector, segment "
+            "SELECT isin, name, nse_symbol, bse_symbol, sector, segment, about "
             "FROM securities WHERE active=1"
         ).fetchall()
         ca = group("SELECT isin, ex_date, kind, ratio, detail FROM corporate_actions "
@@ -382,6 +382,7 @@ def export_funda(out: Path, *, gz: bool) -> dict:
             "n": s["name"] or sym,
             "sec": s["sector"] or "Unknown",
             "isin": isin,
+            "about": s["about"],
             "generated_at": _now(),
             "corporate_actions": (actions or [])[:40],
             "financials": (financials or [])[:16],

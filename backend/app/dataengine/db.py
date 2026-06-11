@@ -184,6 +184,7 @@ _SECURITIES_MIGRATIONS = {
     "shares_src": "TEXT",
     "shares_at": "TEXT",
     "segment": "TEXT",
+    "about": "TEXT",                    # company profile (vendor General.Description)
 }
 
 

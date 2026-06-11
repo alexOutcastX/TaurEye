@@ -165,3 +165,17 @@
   padding: 1px 5px;
   white-space: nowrap;
 }
+
+.rpt-capseg {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent, #18c98c);
+  border: 1px solid var(--accent-dim, #128f63);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.rpt-about { font-size: 13.5px; line-height: 1.6; margin: 0; }
