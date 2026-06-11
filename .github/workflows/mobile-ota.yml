@@ -59,6 +59,7 @@ jobs:
           VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_OAUTH_PROVIDERS: ${{ vars.VITE_OAUTH_PROVIDERS }}
 
       - name: Upload bundle to Capgo (production channel)
         env:

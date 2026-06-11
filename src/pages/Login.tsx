@@ -12,6 +12,17 @@ const SOCIALS: { id: OAuthProvider; label: string; icon: string }[] = [
   { id: "facebook", label: "Facebook", icon: "f" },
 ];
 
+// Only show providers you've actually enabled in Supabase, so users never hit
+// the "provider is not enabled" page. Set VITE_OAUTH_PROVIDERS to a comma list
+// (e.g. "google,github") to whitelist; unset = show all (dev convenience).
+const ENABLED = (import.meta.env.VITE_OAUTH_PROVIDERS ?? "")
+  .split(",")
+  .map((s: string) => s.trim().toLowerCase())
+  .filter(Boolean);
+const VISIBLE_SOCIALS = ENABLED.length
+  ? SOCIALS.filter((s) => ENABLED.includes(s.id))
+  : SOCIALS;
+
 export default function Login() {
   const { signIn, signUp, oauth, bypass, cloud, isAuthed, loading } = useAuth();
   const nav = useNavigate();
@@ -109,11 +120,11 @@ export default function Login() {
           </button>
         </p>
 
-        {cloud && (
+        {cloud && VISIBLE_SOCIALS.length > 0 && (
           <>
             <div className="login-divider"><span>or continue with</span></div>
             <div className="social-row">
-              {SOCIALS.map((s) => (
+              {VISIBLE_SOCIALS.map((s) => (
                 <button
                   key={s.id}
                   type="button"
