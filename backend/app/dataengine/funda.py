@@ -262,6 +262,25 @@ def update_announcements(days: int = 7, max_pages: int = 80) -> dict:
     to = date.today().strftime("%Y%m%d")
     base = ("https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w?pageno={p}"
             "&strCat=-1&strPrevDate={frm}&strToDate={to}&strScrip=&strSearch=P&strType=C")
+
+    # Fast diagnostic: show exactly what BSE returns for a few param variants, so
+    # a zero result is explainable (No Records Found vs redirect vs real data).
+    B = "https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w?"
+    for label, u in (
+        ("empty+pageno", base.format(p=1, frm=frm, to=to)),
+        ("reliance+pageno", f"{B}pageno=1&strCat=-1&strPrevDate={frm}&strToDate={to}&strScrip=500325&strSearch=P&strType=C"),
+        ("reliance+nopg", f"{B}strCat=-1&strPrevDate={frm}&strToDate={to}&strScrip=500325&strType=C"),
+        ("empty+ann.aspx", f"https://api.bseindia.com/BseIndiaAPI/api/AnnouncementData/w?pageno=1&strCat=-1&strPrevDate={frm}&strToDate={to}&strScrip=&strType=C"),
+    ):
+        d = _quick_json(u)
+        if isinstance(d, list):
+            info = f"list[{len(d)}]" + (f" keys={list(d[0].keys())[:6]}" if d and isinstance(d[0], dict) else "")
+        elif isinstance(d, dict) and not any(k.startswith("_") for k in d):
+            info = f"keys={list(d.keys())[:6]}"
+        else:
+            info = repr(d)[:140]
+        log(f"  ANN diag {label}: {info}")
+
     stored = pages = unmatched = seen = 0
     with session() as conn:
         for p in range(1, max_pages + 1):
