@@ -1,6 +1,7 @@
 .bullrun { position: relative; display: block; }
 
-/* flipbook the 6 frames: each visible for 1/6 of the cycle */
+/* cross-faded flipbook: each frame ramps up as the previous ramps down, so the
+   6 source poses blend (motion-blur style) instead of snapping. */
 .bullrun .br-frame {
   position: absolute;
   inset: 0;
@@ -8,18 +9,24 @@
   height: 100%;
   object-fit: contain;
   opacity: 0;
-  animation: br-show 0.6s linear infinite;
+  animation: br-xf 0.54s linear infinite;
   -webkit-user-drag: none;
   user-select: none;
 }
 .bullrun .br-f0 { animation-delay: 0s; }
-.bullrun .br-f1 { animation-delay: 0.1s; }
-.bullrun .br-f2 { animation-delay: 0.2s; }
-.bullrun .br-f3 { animation-delay: 0.3s; }
-.bullrun .br-f4 { animation-delay: 0.4s; }
-.bullrun .br-f5 { animation-delay: 0.5s; }
+.bullrun .br-f1 { animation-delay: 0.09s; }
+.bullrun .br-f2 { animation-delay: 0.18s; }
+.bullrun .br-f3 { animation-delay: 0.27s; }
+.bullrun .br-f4 { animation-delay: 0.36s; }
+.bullrun .br-f5 { animation-delay: 0.45s; }
 
-@keyframes br-show { 0%, 16.66% { opacity: 1; } 16.67%, 100% { opacity: 0; } }
+/* peak at the frame's centre, fading in/out over one slot each side → overlap */
+@keyframes br-xf {
+  0% { opacity: 0; }
+  16.66% { opacity: 1; }
+  33.33% { opacity: 0; }
+  100% { opacity: 0; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .bullrun .br-frame { animation: none; opacity: 0; }
