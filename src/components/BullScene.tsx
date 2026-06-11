@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import bullObjSrc from "../assets/bullhead.obj?raw";
 import BullMark from "./BullMark";
 
 /**
- * Low-poly stylized bull head rendered with Three.js — the Landing hero graphic.
- * Built from flat-shaded primitives (icosahedra + faceted tube horns) for the
- * faceted "low-poly" look, with TaurEye-green glowing eyes. Rotates gently and
- * tilts toward the pointer; falls back to a static pose when the user prefers
- * reduced motion. Self-contained: creates its own renderer and tears everything
- * down on unmount (no leaks). Lazy-loaded so three.js stays out of the app
+ * Low-poly bull head (user-supplied OBJ) rendered with Three.js — the Landing
+ * hero graphic. Loaded with OBJLoader, given a flat-shaded brand-green material,
+ * auto-centred and scaled to fit. Sways gently and tilts toward the pointer;
+ * falls back to the static SVG mark when the user prefers reduced motion or when
+ * WebGL is unavailable. Self-contained: creates its own renderer and tears
+ * everything down on unmount. Lazy-loaded so three.js stays out of the app
  * bundle (see Landing).
  */
 export default function BullScene({ className }: { className?: string }) {
@@ -49,55 +51,35 @@ export default function BullScene({ className }: { className?: string }) {
     rim.position.set(-3, -1.5, 1.5);
     scene.add(rim);
 
-    // ---- materials ----
-    const body = new THREE.MeshStandardMaterial({ color: 0x232a33, flatShading: true, metalness: 0.25, roughness: 0.6 });
-    const bone = new THREE.MeshStandardMaterial({ color: 0xe7eaef, flatShading: true, roughness: 0.5 });
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x18c98c, emissive: 0x18c98c, emissiveIntensity: 1.1 });
+    // ---- material: flat-shaded brand green (ignores the model's grey MTL) ----
+    const mat = new THREE.MeshStandardMaterial({ color: 0x18c98c, flatShading: true, metalness: 0.12, roughness: 0.55 });
+
+    // ---- load the user-supplied bull-head OBJ ----
+    const disposables: THREE.BufferGeometry[] = [];
+    const model = new OBJLoader().parse(bullObjSrc);
+    const box = new THREE.Box3().setFromObject(model);
+    const center = new THREE.Vector3();
+    const dims = new THREE.Vector3();
+    box.getCenter(center);
+    box.getSize(dims);
+    // centre the GEOMETRY at the origin (so later rotation spins about the head)
+    model.traverse((c) => {
+      const mesh = c as THREE.Mesh;
+      if (mesh.isMesh) {
+        mesh.material = mat;
+        const g = mesh.geometry as THREE.BufferGeometry;
+        g.translate(-center.x, -center.y, -center.z);
+        disposables.push(g);
+      }
+    });
+    const maxDim = Math.max(dims.x, dims.y, dims.z) || 1;
+
+    // stand the model upright (it's authored Z-up) and face it toward the camera
+    model.rotation.set(-1.35, 0, 0);
 
     const bull = new THREE.Group();
-    const disposables: (THREE.BufferGeometry)[] = [];
-    const add = (geo: THREE.BufferGeometry, mat: THREE.Material, pos: [number, number, number], scale?: [number, number, number], rot?: [number, number, number]) => {
-      disposables.push(geo);
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(...pos);
-      if (scale) mesh.scale.set(...scale);
-      if (rot) mesh.rotation.set(...rot);
-      bull.add(mesh);
-      return mesh;
-    };
-
-    // cranium + faceted snout
-    add(new THREE.IcosahedronGeometry(1, 0), body, [0, 0.1, 0], [1.02, 0.94, 1.05]);
-    add(new THREE.IcosahedronGeometry(0.6, 0), body, [0, -0.35, 0.78], [0.92, 0.72, 0.78]);
-
-    // ears (flattened icosahedra)
-    add(new THREE.IcosahedronGeometry(0.42, 0), body, [0.92, 0.42, -0.1], [0.9, 1.1, 0.32], [0, 0, -0.5]);
-    add(new THREE.IcosahedronGeometry(0.42, 0), body, [-0.92, 0.42, -0.1], [0.9, 1.1, 0.32], [0, 0, 0.5]);
-
-    // glowing green eyes
-    add(new THREE.IcosahedronGeometry(0.14, 0), eyeMat, [0.44, 0.2, 0.82]);
-    add(new THREE.IcosahedronGeometry(0.14, 0), eyeMat, [-0.44, 0.2, 0.82]);
-
-    // nostrils (dark dimples on the snout)
-    add(new THREE.IcosahedronGeometry(0.08, 0), body, [0.16, -0.45, 1.28]);
-    add(new THREE.IcosahedronGeometry(0.08, 0), body, [-0.16, -0.45, 1.28]);
-
-    // faceted curved horns (tube along a bezier; low segment counts = low-poly)
-    const hornGeo = (mirror: number) => {
-      const m = mirror;
-      const curve = new THREE.QuadraticBezierCurve3(
-        new THREE.Vector3(m * 0.55, 0.55, 0.1),
-        new THREE.Vector3(m * 1.15, 0.95, 0.05),
-        new THREE.Vector3(m * 1.3, 1.65, -0.05),
-      );
-      return new THREE.TubeGeometry(curve, 8, 0.13, 5, false);
-    };
-    add(hornGeo(1), bone, [0, 0, 0]);
-    add(hornGeo(-1), bone, [0, 0, 0]);
-    // horn tips (little cones capping the ends for a pointed finish)
-    add(new THREE.ConeGeometry(0.13, 0.32, 5), bone, [1.3, 1.78, -0.05], undefined, [0, 0, -0.12]);
-    add(new THREE.ConeGeometry(0.13, 0.32, 5), bone, [-1.3, 1.78, -0.05], undefined, [0, 0, 0.12]);
-
+    bull.add(model);
+    bull.scale.setScalar(2.7 / maxDim);
     bull.rotation.y = -0.3;
     scene.add(bull);
 
@@ -147,7 +129,7 @@ export default function BullScene({ className }: { className?: string }) {
       ro.disconnect();
       mount.removeEventListener("pointermove", onMove);
       disposables.forEach((g) => g.dispose());
-      [body, bone, eyeMat].forEach((m) => m.dispose());
+      mat.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
