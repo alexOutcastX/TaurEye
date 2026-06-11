@@ -42,6 +42,9 @@ const SYSTEM = [
   "Hard rules: use ONLY the numbers supplied — never estimate, recall, or invent",
   "data (no financials, no balance sheet, no promoter data — they are not supplied).",
   "Never give buy/sell/hold advice, price targets, or predictions. Neutral tone.",
+  "FORMATTING: plain sentences and '- ' bullet lines only. NEVER use markdown",
+  "tables or pipe characters; for key-value facts write '- **Label:** value'.",
+  "No horizontal rules ('---'). Use *italics* and **bold** sparingly.",
   "Do not add sections beyond those listed. Keep it under 450 words total.",
 ].join(" ");
 

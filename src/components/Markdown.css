@@ -37,3 +37,7 @@
   color: var(--text, #e7eaef);
   font-weight: 600;
 }
+
+.md em { font-style: italic; color: inherit; }
+.md .md-kv { margin: 0 0 4px; }
+.md .md-kv strong { color: var(--text-muted, #9aa4b2); font-weight: 600; }
