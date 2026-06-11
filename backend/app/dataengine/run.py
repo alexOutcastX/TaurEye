@@ -221,6 +221,8 @@ def main() -> None:
                     help="refetch fundamentals older than this many days (default 7)")
     fpp = sub.add_parser("funda-probe", help="print raw BSE fundamentals JSON for one symbol")
     fpp.add_argument("symbol", nargs="?", default="RELIANCE")
+    ap = sub.add_parser("announcements", help="bulk-ingest BSE corporate announcements (free)")
+    ap.add_argument("--days", type=int, default=7, help="lookback window in days (default 7)")
     sub.add_parser("readjust")
     sub.add_parser("status")
     sub.add_parser("selftest")
@@ -275,6 +277,9 @@ def main() -> None:
     elif args.cmd == "funda-probe":
         from . import funda
         funda.probe(args.symbol)
+    elif args.cmd == "announcements":
+        from . import funda
+        print(funda.update_announcements(days=args.days))
     elif args.cmd == "readjust":
         print({"readjusted_isins": ingest.readjust()})
     elif args.cmd == "status":

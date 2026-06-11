@@ -203,21 +203,30 @@ def store_shareholding(conn, isin: str, rows: list[dict]) -> int:
 
 
 # ---------- announcements / filings (order wins, results, board meetings) ----------
+# BSE attachment PDFs live under this path (ATTACHMENTNAME is just the filename).
+ANN_ATTACH = "https://www.bseindia.com/xml-data/corpfiling/AttachLive/"
+
+
 def parse_announcements(data: object) -> list[dict]:
     out: list[dict] = []
     for r in _rows(data):
         if not isinstance(r, dict):
             continue
         lower = {str(k).lower(): v for k, v in r.items()}
-        head = lower.get("newssub") or lower.get("headline") or lower.get("news_subject") or lower.get("subject")
-        dt = lower.get("news_dt") or lower.get("dt_tm") or lower.get("dissemdt") or lower.get("date")
+        head = (lower.get("headline") or lower.get("newssub") or lower.get("news_sub")
+                or lower.get("news_subject") or lower.get("subject"))
+        dt = (lower.get("news_dt") or lower.get("dt_tm") or lower.get("dissemdt")
+              or lower.get("news_submission_dt") or lower.get("date"))
         if not head or not dt:
             continue
+        att = lower.get("attachmentname")
         out.append({
+            "scrip_cd": str(lower.get("scrip_cd") or lower.get("scripcd") or "").strip(),
             "dt": str(dt)[:19],
-            "category": (lower.get("category") or lower.get("cat") or None),
+            "category": (lower.get("categoryname") or lower.get("subcatname")
+                         or lower.get("category") or None),
             "headline": str(head).strip()[:400],
-            "url": (lower.get("attachmentname") or lower.get("url") or None),
+            "url": (ANN_ATTACH + str(att)) if att else None,
         })
     return out
 
@@ -225,14 +234,52 @@ def parse_announcements(data: object) -> list[dict]:
 def store_announcements(conn, isin: str, rows: list[dict]) -> int:
     n = 0
     for r in rows:
-        conn.execute(
+        cur = conn.execute(
             """INSERT INTO announcements (isin, dt, category, headline, url, source)
                VALUES (?,?,?,?,?,?)
                ON CONFLICT(isin, dt, headline) DO NOTHING""",
             (isin, r["dt"], r.get("category"), r["headline"], r.get("url"), "BSE"),
         )
-        n += 1
+        n += cur.rowcount
     return n
+
+
+def update_announcements(days: int = 7, max_pages: int = 80) -> dict:
+    """Bulk-ingest corporate announcements for ALL companies over the last `days`
+    in one paged sweep (strScrip empty), mapping each row's SCRIP_CD to our ISIN.
+    Far cheaper than per-symbol fetching, and the only fundamentals feed BSE serves
+    freely. Uses the retrying fetch so a transient timeout doesn't lose a page."""
+    import time
+    init_db()
+    update_bse_codes()  # need bse_code -> isin mapping
+    with session() as conn:
+        code2isin = {
+            str(r["bse_code"]): r["isin"]
+            for r in conn.execute(
+                "SELECT bse_code, isin FROM securities WHERE bse_code IS NOT NULL AND bse_code != ''")
+        }
+    frm = (date.today() - timedelta(days=days)).strftime("%Y%m%d")
+    to = date.today().strftime("%Y%m%d")
+    base = ("https://api.bseindia.com/BseIndiaAPI/api/AnnGetData/w?pageno={p}"
+            "&strCat=-1&strPrevDate={frm}&strToDate={to}&strScrip=&strSearch=P&strType=C")
+    stored = pages = unmatched = seen = 0
+    with session() as conn:
+        for p in range(1, max_pages + 1):
+            rows = _rows(_json(base.format(p=p, frm=frm, to=to)))
+            if not rows:
+                break
+            for a in parse_announcements({"Table": rows}):
+                seen += 1
+                isin = code2isin.get(a.get("scrip_cd", ""))
+                if not isin:
+                    unmatched += 1
+                    continue
+                stored += store_announcements(conn, isin, [a])
+            pages += 1
+            conn.commit()
+            time.sleep(0.3)
+    log(f"ANN done   pages={pages} rows_seen={seen} stored_new={stored} unmatched={unmatched}")
+    return {"pages": pages, "rows_seen": seen, "stored_new": stored, "unmatched": unmatched}
 
 
 # ---------- per-symbol fetch ----------

@@ -17,12 +17,13 @@ on:
         required: true
         default: "funda-probe"
         options:
-          - "funda-probe"          # raw BSE JSON for one symbol (uses 'symbol')
-          - "funda --limit 50"     # fetch fundamentals for 50 biggest due names
-          - "funda --limit 800"    # a nightly-sized slice
-          - "funda"                # all due
-          - "export --funda --gz"  # publish per-symbol funda files
-          - "status"               # spine health
+          - "funda-probe"               # raw BSE JSON for one symbol (uses 'symbol')
+          - "announcements --days 7"    # bulk-ingest BSE filings (free)
+          - "announcements --days 30"   # wider backfill
+          - "export --funda --gz"       # publish per-symbol funda files
+          - "status"                    # spine health
+          - "funda --limit 50"          # (vendor path, later) per-symbol fundamentals
+          - "funda"                     # (vendor path, later) all due
       symbol:
         description: "Symbol for funda-probe (letters/digits only)"
         required: false
@@ -57,7 +58,7 @@ jobs:
           # the allow-listed choice + sanitized symbol only.
           case "$CHOICE" in
             "funda-probe") ARGS="funda-probe ${SYM:-RELIANCE}" ;;
-            "funda --limit 50"|"funda --limit 800"|"funda"|"export --funda --gz"|"status") ARGS="$CHOICE" ;;
+            "announcements --days 7"|"announcements --days 30"|"export --funda --gz"|"status"|"funda --limit 50"|"funda") ARGS="$CHOICE" ;;
             *) echo "rejected command: $CHOICE"; exit 1 ;;
           esac
           echo "::group::dataengine run $ARGS"
