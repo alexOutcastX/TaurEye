@@ -50,3 +50,41 @@
 .lg-delta { font-variant-numeric: tabular-nums; font-weight: 600; }
 .lg-delta.up { color: var(--up); }
 .lg-delta.down { color: var(--down); }
+
+/* ---- Pro subscription card (dormant until checkout is wired) ---- */
+.pro-card {
+  background: var(--surface);
+  border: 1px solid var(--accent-dim, #128f63);
+  border-radius: var(--r-md, 10px);
+  padding: 14px 16px;
+}
+.pro-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.pro-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--accent, #18c98c);
+}
+.pro-price {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text, #e7eaef);
+}
+.pro-price em {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-muted, #9aa4b2);
+}
+.pro-benefits {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--text-muted, #9aa4b2);
+}
+.pro-benefits li { margin: 3px 0; }
+.pro-benefits li::marker { color: var(--accent, #18c98c); }

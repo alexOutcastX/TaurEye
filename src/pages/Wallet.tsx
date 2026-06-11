@@ -8,6 +8,7 @@ import {
   watchRewardedAd,
 } from "../lib/economy";
 import { useCredits } from "../lib/useCredits";
+import { PRO_BENEFITS, PRO_ENABLED, PRO_PRICING } from "../lib/pro";
 import AdSlot from "../components/AdSlot";
 import "./Wallet.css";
 
@@ -95,6 +96,24 @@ export default function Wallet() {
             </button>
           </div>
         ))}
+      </div>
+
+      <h2 className="wallet-subhead">TaurEye Pro</h2>
+      <div className="pro-card">
+        <div className="pro-head">
+          <span className="pro-title">Pro</span>
+          <span className="pro-price">
+            ₹{PRO_PRICING.yearlyInr}/yr <em>or ₹{PRO_PRICING.monthlyInr}/mo</em>
+          </span>
+        </div>
+        <ul className="pro-benefits">
+          {PRO_BENEFITS.map((b) => (
+            <li key={b}>{b}</li>
+          ))}
+        </ul>
+        <button className="pack-buy" disabled={!PRO_ENABLED} title={PRO_ENABLED ? "Subscribe" : "Subscriptions coming soon"}>
+          {PRO_ENABLED ? "Subscribe" : "Coming soon"}
+        </button>
       </div>
 
       <AdSlot label="Wallet banner" height={80} name="wallet" />
