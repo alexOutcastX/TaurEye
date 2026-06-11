@@ -1,56 +1,27 @@
-.bullrun { display: block; overflow: visible; }
+.bullrun { position: relative; display: block; }
 
-/* legs pivot from the hip (top of each line); staggered delays = gallop gait */
-.bullrun .br-leg {
-  stroke: #0e9c72;
-  stroke-width: 6;
-  stroke-linecap: round;
-  transform-box: fill-box;
-  transform-origin: 50% 0%;
-  animation: br-gallop 0.5s linear infinite;
+/* flipbook the 6 frames: each visible for 1/6 of the cycle */
+.bullrun .br-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  animation: br-show 0.6s linear infinite;
+  -webkit-user-drag: none;
+  user-select: none;
 }
-.bullrun .br-far { stroke: #0b7d5b; stroke-width: 5; }
-.bullrun .br-l1 { animation-delay: 0s; }
-.bullrun .br-l2 { animation-delay: -0.06s; }
-.bullrun .br-l3 { animation-delay: -0.27s; }
-.bullrun .br-l4 { animation-delay: -0.33s; }
+.bullrun .br-f0 { animation-delay: 0s; }
+.bullrun .br-f1 { animation-delay: 0.1s; }
+.bullrun .br-f2 { animation-delay: 0.2s; }
+.bullrun .br-f3 { animation-delay: 0.3s; }
+.bullrun .br-f4 { animation-delay: 0.4s; }
+.bullrun .br-f5 { animation-delay: 0.5s; }
 
-.bullrun .br-tail {
-  stroke: #0e9c72;
-  stroke-width: 3;
-  stroke-linecap: round;
-  transform-box: fill-box;
-  transform-origin: 100% 0%;
-  animation: br-tail 0.5s ease-in-out infinite;
-}
-.bullrun .br-tuft { fill: #0e9c72; }
-.bullrun .br-horn {
-  stroke: #e7eaef;
-  stroke-width: 3;
-  stroke-linecap: round;
-}
-.bullrun .br-eye { fill: #04130d; }
-
-/* whole body pitches + bobs with the stride */
-.bullrun .br-body {
-  transform-box: fill-box;
-  transform-origin: 50% 85%;
-  animation: br-bob 0.5s ease-in-out infinite;
-}
-
-.bullrun .br-ground line {
-  stroke: var(--accent, #18c98c);
-  stroke-width: 2;
-  stroke-linecap: round;
-  opacity: 0.5;
-  animation: br-ground 0.5s linear infinite;
-}
-
-@keyframes br-gallop { 0% { transform: rotate(-36deg); } 50% { transform: rotate(36deg); } 100% { transform: rotate(-36deg); } }
-@keyframes br-bob { 0%, 100% { transform: translateY(0) rotate(-2.5deg); } 50% { transform: translateY(-5px) rotate(2.5deg); } }
-@keyframes br-tail { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(10deg); } }
-@keyframes br-ground { from { transform: translateX(16px); opacity: 0.55; } to { transform: translateX(-26px); opacity: 0; } }
+@keyframes br-show { 0%, 16.66% { opacity: 1; } 16.67%, 100% { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .bullrun .br-leg, .bullrun .br-tail, .bullrun .br-body, .bullrun .br-ground line { animation: none; }
+  .bullrun .br-frame { animation: none; opacity: 0; }
+  .bullrun .br-f0 { opacity: 1; }
 }
