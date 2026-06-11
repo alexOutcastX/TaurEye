@@ -2,14 +2,15 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth, type OAuthProvider } from "../auth/AuthContext";
 import { storeRefCode } from "../lib/referral";
+import SocialIcon from "./SocialIcon";
 import "./AuthPanel.css";
 
-const SOCIALS: { id: OAuthProvider; label: string; icon: string }[] = [
-  { id: "google", label: "Google", icon: "G" },
-  { id: "twitter", label: "X", icon: "𝕏" },
-  { id: "github", label: "GitHub", icon: "" },
-  { id: "apple", label: "Apple", icon: "" },
-  { id: "facebook", label: "Facebook", icon: "f" },
+const SOCIALS: { id: OAuthProvider; label: string }[] = [
+  { id: "google", label: "Google" },
+  { id: "twitter", label: "X" },
+  { id: "github", label: "GitHub" },
+  { id: "apple", label: "Apple" },
+  { id: "facebook", label: "Facebook" },
 ];
 
 // Only show providers you've actually enabled in Supabase, so users never hit
@@ -33,10 +34,13 @@ export default function AuthPanel() {
   const nav = useNavigate();
   const [params] = useSearchParams();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
 
   // Invite link (?ref=CODE): stash the code; it's redeemed automatically after
   // the account's first sign-in (AuthContext -> claimPendingReferral).
@@ -57,9 +61,18 @@ export default function AuthPanel() {
     // success → full-page redirect to the provider, nothing else to do here.
   };
 
+  // Step 1: validate the email, then reveal the password field in the same box.
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (step === "email") {
+      if (!emailValid) {
+        setError("Enter a valid email address.");
+        return;
+      }
+      setStep("password");
+      return;
+    }
     setBusy(true);
     const fn = mode === "signup" ? signUp : signIn;
     const { error } = await fn(email || "trader@taureye.local", password);
@@ -72,6 +85,7 @@ export default function AuthPanel() {
       // Supabase may require email confirmation before a session exists.
       setError("Check your email to confirm your account, then sign in.");
       setMode("signin");
+      setStep("email");
       return;
     }
     nav("/app/screener");
@@ -85,32 +99,55 @@ export default function AuthPanel() {
   return (
     <div className="auth-panel">
       <form onSubmit={submit} className="auth-form">
-        <label className="field">
-          <span>Email</span>
-          <input
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>Password</span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
+        {step === "email" ? (
+          <label className="field">
+            <span>Email</span>
+            <div className="auth-inputgroup">
+              <input
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoFocus
+              />
+              <button type="submit" className="auth-go" aria-label="Continue">→</button>
+            </div>
+          </label>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="auth-back"
+              onClick={() => { setStep("email"); setError(null); }}
+            >
+              ‹ {email}
+            </button>
+            <label className="field">
+              <span>Password</span>
+              <div className="auth-inputgroup">
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="auth-go"
+                  disabled={busy}
+                  aria-label={mode === "signup" ? "Create account" : "Sign in"}
+                >
+                  {busy ? "…" : "→"}
+                </button>
+              </div>
+            </label>
+          </>
+        )}
 
         {error && <p className="auth-error">{error}</p>}
-
-        <button type="submit" className="btn-primary" disabled={busy}>
-          {busy ? "Please wait…" : mode === "signup" ? "Create account" : "Sign in"}
-        </button>
       </form>
 
       <p className="auth-switch">
@@ -120,6 +157,7 @@ export default function AuthPanel() {
           className="auth-link"
           onClick={() => {
             setError(null);
+            setStep("email");
             setMode(mode === "signin" ? "signup" : "signin");
           }}
         >
@@ -138,9 +176,10 @@ export default function AuthPanel() {
                 className="social-btn"
                 onClick={() => social(s.id)}
                 title={`Continue with ${s.label}`}
+                aria-label={`Continue with ${s.label}`}
               >
-                <span className="social-icon">{s.icon}</span>
-                {s.label}
+                <span className="social-icon"><SocialIcon provider={s.id} /></span>
+                <span className="social-label">{s.label}</span>
               </button>
             ))}
           </div>
