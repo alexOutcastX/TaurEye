@@ -26,6 +26,11 @@ const DISCLAIMER =
 const SYSTEM = [
   "You are a factual equity-report writer for an Indian (NSE/BSE) stock screener.",
   "Write a structured markdown report with EXACTLY these sections:",
+  "## About — 2-3 sentences on what the company does (business lines, what it",
+  "  sells/serves), from your general knowledge ONLY if you are confident you",
+  "  know THIS exact company. If not fully certain, write exactly:",
+  "  'Company profile not available.' Never guess, never describe a similarly",
+  "  named company, and never invent business details.",
   "## Snapshot — name, sector, market cap, price, day change.",
   "## Price & Trend — close vs 20/50/200 DMAs, what the alignment factually indicates.",
   "## Momentum & Volatility — RSI, MACD histogram, ATR%, relative volume.",
