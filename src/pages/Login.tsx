@@ -1,17 +1,35 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth, type OAuthProvider } from "../auth/AuthContext";
 import Logo from "../components/Logo";
 import "./Login.css";
 
+const SOCIALS: { id: OAuthProvider; label: string; icon: string }[] = [
+  { id: "google", label: "Google", icon: "G" },
+  { id: "twitter", label: "X", icon: "𝕏" },
+  { id: "github", label: "GitHub", icon: "" },
+];
+
 export default function Login() {
-  const { signIn, signUp, bypass, cloud } = useAuth();
+  const { signIn, signUp, oauth, bypass, cloud, isAuthed, loading } = useAuth();
   const nav = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // After an OAuth round-trip (or any established session), forward into the app.
+  useEffect(() => {
+    if (!loading && isAuthed) nav("/app/screener", { replace: true });
+  }, [loading, isAuthed, nav]);
+
+  const social = async (id: OAuthProvider) => {
+    setError(null);
+    const { error } = await oauth(id);
+    if (error) setError(error);
+    // success → full-page redirect to the provider, nothing else to do here.
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -88,6 +106,26 @@ export default function Login() {
             {mode === "signin" ? "Create an account" : "Sign in"}
           </button>
         </p>
+
+        {cloud && (
+          <>
+            <div className="login-divider"><span>or continue with</span></div>
+            <div className="social-row">
+              {SOCIALS.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className="social-btn"
+                  onClick={() => social(s.id)}
+                  title={`Continue with ${s.label}`}
+                >
+                  <span className="social-icon">{s.icon}</span>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <div className="login-divider"><span>or</span></div>
 
