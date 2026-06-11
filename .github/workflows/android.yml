@@ -19,6 +19,8 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to publish the APK as a GitHub Release asset
     steps:
       - uses: actions/checkout@v4
 
@@ -83,3 +85,23 @@ jobs:
           name: taureye-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      # Publish the APK as a GitHub Release asset so it has a stable, login-free
+      # direct-download link that works in a phone browser (Actions artifacts are
+      # login-gated zips and awkward to grab on mobile). The "mobile-latest"
+      # release is recreated each push to main so the link always serves the
+      # newest build:
+      #   https://github.com/alexOutcastX/TaurEye/releases/download/mobile-latest/TaurEye-debug.apk
+      - name: Publish APK to GitHub Release (mobile-friendly download)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk TaurEye-debug.apk
+          # Drop any previous rolling release+tag so the asset name never clashes
+          # and the tag points at this commit.
+          gh release delete mobile-latest --yes --cleanup-tag || true
+          gh release create mobile-latest TaurEye-debug.apk \
+            --title "TaurEye debug APK (latest)" \
+            --notes "Auto-built debug APK from main (${GITHUB_SHA}). Sideload on Android: enable 'Install unknown apps' for your browser, then open the .apk. If an older TaurEye debug build is installed, uninstall it first (debug signatures differ per build)." \
+            --prerelease
