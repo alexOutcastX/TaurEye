@@ -9,6 +9,16 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <!-- Google AdMob App ID. The Mobile Ads SDK runs an init ContentProvider
+             at app startup that CRASHES the app if this meta-data is missing —
+             independent of whether we ever request an ad. This is Google's public
+             TEST App ID (safe placeholder, serves no real ads). Replace it with
+             your real AdMob App ID once you have an AdMob account, and set the
+             VITE_ADMOB_* env vars to actually show ads. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
+
         <!-- Default small icon + tint for FCM push notifications -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
