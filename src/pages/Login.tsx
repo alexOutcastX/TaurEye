@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth, type OAuthProvider } from "../auth/AuthContext";
+import { storeRefCode } from "../lib/referral";
 import Logo from "../components/Logo";
 import "./Login.css";
 
@@ -26,11 +27,19 @@ const VISIBLE_SOCIALS = ENABLED.length
 export default function Login() {
   const { signIn, signUp, oauth, bypass, cloud, isAuthed, loading } = useAuth();
   const nav = useNavigate();
+  const [params] = useSearchParams();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Invite link (/login?ref=CODE): stash the code; it's redeemed automatically
+  // after the account's first sign-in (AuthContext -> claimPendingReferral).
+  useEffect(() => {
+    const ref = params.get("ref");
+    if (ref) storeRefCode(ref);
+  }, [params]);
 
   // After an OAuth round-trip (or any established session), forward into the app.
   useEffect(() => {

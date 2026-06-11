@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { claimPendingReferral, pendingRefCode } from "../lib/referral";
 
 type User = { id?: string; name: string; email: string } | null;
 
@@ -59,6 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sub.subscription.unsubscribe();
     };
   }, [cloud]);
+
+  // ---- referral: redeem a stashed invite code once the user is signed in ----
+  // claim_referral() is server-side one-time (already_referred guard), so this
+  // is safe to fire on every session hydration; it clears the stash either way.
+  useEffect(() => {
+    if (cloud && user?.id && pendingRefCode()) void claimPendingReferral();
+  }, [cloud, user?.id]);
 
   // ---- local (no-cloud) session persistence ----
   useEffect(() => {

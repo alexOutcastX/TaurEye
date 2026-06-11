@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  claimReferral,
   copyToClipboard,
   getReferralProgram,
   referralStats,
   shareReferral,
+  type ReferralProgram,
 } from "../lib/referral";
+import { useAuth } from "../auth/AuthContext";
 import "./Refer.css";
 
 // "28 May 2026" — short, readable date for the invited-friends list.
@@ -15,15 +18,58 @@ function fmtDate(iso: string | null): string {
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+const CLAIM_MSG: Record<string, string> = {
+  claimed: "Code redeemed — credits added! 🎉",
+  already_referred: "This account has already used a referral code.",
+  invalid_code: "That code doesn't exist — check for typos.",
+  self_referral: "You can't redeem your own code.",
+  failed: "Couldn't redeem the code — try again.",
+};
+
 export default function Refer() {
-  const program = getReferralProgram();
-  const stats = referralStats(program);
+  const { cloud, user } = useAuth();
+  const live = cloud && !!user?.id;
+  const [program, setProgram] = useState<ReferralProgram | null>(null);
+  const [claimCode, setClaimCode] = useState("");
+  const [claiming, setClaiming] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getReferralProgram().then((p) => {
+      if (active) setProgram(p);
+    });
+    return () => {
+      active = false;
+    };
+  }, [live]);
 
   const flash = (msg: string) => {
     setToast(msg);
-    window.setTimeout(() => setToast(null), 1800);
+    window.setTimeout(() => setToast(null), 2200);
   };
+
+  const onClaim = async () => {
+    if (!claimCode.trim() || claiming) return;
+    setClaiming(true);
+    const r = await claimReferral(claimCode);
+    setClaiming(false);
+    flash(CLAIM_MSG[r]);
+    if (r === "claimed") {
+      setClaimCode("");
+      setProgram(await getReferralProgram());
+    }
+  };
+
+  if (!program) {
+    return (
+      <section className="refer">
+        <header className="refer-head"><h1>Refer &amp; Earn</h1></header>
+        <p className="refer-empty">Loading…</p>
+      </section>
+    );
+  }
+  const stats = referralStats(program);
 
   const onCopyCode = async () => {
     const r = await copyToClipboard(program.code);
@@ -52,11 +98,12 @@ export default function Refer() {
         </p>
       </header>
 
-      <div className="refer-note">
-        Preview with <strong>sample data</strong> — the code, link, and invited
-        friends below are placeholders for review. Real codes and reward tracking
-        come once the backend is connected.
-      </div>
+      {!live && (
+        <div className="refer-note">
+          Preview mode — sign in to get your real referral code and reward
+          tracking.
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="refer-stats">
@@ -99,6 +146,25 @@ export default function Refer() {
           Share invite
         </button>
       </div>
+
+      {/* Redeem a friend's code (one-time; server-validated) */}
+      {live && (
+        <div className="refer-share">
+          <span className="rsh-label">Have a referral code?</span>
+          <div className="rsh-row">
+            <input
+              className="rsh-input"
+              placeholder="Enter a friend's code"
+              value={claimCode}
+              onChange={(e) => setClaimCode(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onClaim()}
+            />
+            <button className="rsh-btn" onClick={onClaim} disabled={claiming || !claimCode.trim()}>
+              {claiming ? "Redeeming…" : "Redeem"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* How it works */}
       <h2 className="refer-subhead">How it works</h2>
