@@ -16,7 +16,7 @@ export default function Login() {
         <img src="/wordmark.png" alt="TaurEye" className="login-wordmark" />
       </div>
       <div className="login-mid">
-        <BullRun size={150} />
+        <BullRun size={210} />
       </div>
       <div className="login-body">
         <AuthPanel />

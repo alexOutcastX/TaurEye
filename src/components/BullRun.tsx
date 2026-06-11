@@ -6,14 +6,14 @@ import f3 from "../assets/bull/3.png";
 import f4 from "../assets/bull/4.png";
 import f5 from "../assets/bull/5.png";
 
-// Six-frame gallop sprite (recoloured green, flipped to run right, all cropped
-// to one shared box so the bull stays registered). Flipbooked with pure CSS
-// opacity — no WebGL, so it runs fine in the Android WebView. Honours
-// prefers-reduced-motion.
+// Six-frame gallop sprite (recoloured green, flipped to run right). Every frame
+// is registered by the bull's centre of mass onto one shared canvas, so it
+// gallops IN PLACE instead of drifting. Flipbooked with pure CSS opacity — no
+// WebGL, so it runs fine in the Android WebView. Honours prefers-reduced-motion.
 const FRAMES = [f0, f1, f2, f3, f4, f5];
-const RATIO = 200 / 235; // frame height / width
+const RATIO = 200 / 363; // frame height / width
 
-export default function BullRun({ size = 150, className }: { size?: number; className?: string }) {
+export default function BullRun({ size = 220, className }: { size?: number; className?: string }) {
   return (
     <div
       className={`bullrun ${className ?? ""}`}
