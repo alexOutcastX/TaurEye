@@ -122,10 +122,12 @@
 
 .social-row {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--sp-3);
 }
 .social-btn {
-  flex: 1;
+  flex: 1 1 28%;
+  min-width: 92px;
   display: flex;
   align-items: center;
   justify-content: center;
