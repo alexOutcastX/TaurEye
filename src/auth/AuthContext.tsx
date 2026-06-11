@@ -6,7 +6,7 @@ type User = { id?: string; name: string; email: string } | null;
 type Result = { error?: string };
 
 /** OAuth providers we expose (must be enabled in the Supabase dashboard). */
-export type OAuthProvider = "google" | "twitter" | "github" | "apple";
+export type OAuthProvider = "google" | "twitter" | "github" | "apple" | "facebook";
 
 type AuthState = {
   user: User;

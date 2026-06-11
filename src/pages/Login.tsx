@@ -8,6 +8,8 @@ const SOCIALS: { id: OAuthProvider; label: string; icon: string }[] = [
   { id: "google", label: "Google", icon: "G" },
   { id: "twitter", label: "X", icon: "𝕏" },
   { id: "github", label: "GitHub", icon: "" },
+  { id: "apple", label: "Apple", icon: "" },
+  { id: "facebook", label: "Facebook", icon: "f" },
 ];
 
 export default function Login() {
