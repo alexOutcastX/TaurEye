@@ -120,6 +120,31 @@ function loadFundamentals(): Promise<FundamentalsBundle> {
   return fundamentalsCache;
 }
 
+// ---- extra lookups for the report view --------------------------------------
+
+/** When the published data bundle was generated (the "data as of" stamp). */
+export async function localDataInfo(): Promise<{ generated_at: string | null }> {
+  try {
+    const s = await loadMetrics();
+    return { generated_at: s.meta?.generated_at ?? null };
+  } catch {
+    return { generated_at: null };
+  }
+}
+
+/** Static security facts from fundamentals.json (face value, share count). */
+export async function localSecurityInfo(
+  symbol: string,
+): Promise<{ face_value: number | null; shares_outstanding: number | null } | null> {
+  try {
+    const { securities } = await loadFundamentals();
+    const r = securities.find((x) => x.s === symbol);
+    return r ? { face_value: r.fv ?? null, shares_outstanding: r.so ?? null } : null;
+  } catch {
+    return null;
+  }
+}
+
 // ---- api-compatible local implementations ----------------------------------
 
 export async function localHealth(): Promise<{
