@@ -223,6 +223,12 @@ def main() -> None:
     fpp.add_argument("symbol", nargs="?", default="RELIANCE")
     ap = sub.add_parser("announcements", help="bulk-ingest BSE corporate announcements (free)")
     ap.add_argument("--days", type=int, default=7, help="lookback window in days (default 7)")
+    ep = sub.add_parser("eodhd", help="fetch EODHD fundamentals+news (needs EODHD_API_KEY)")
+    ep.add_argument("--limit", type=int, default=None, help="cap symbols this run")
+    ep.add_argument("--max-age-days", type=int, default=7,
+                    help="refetch data older than this many days (default 7)")
+    epp = sub.add_parser("eodhd-probe", help="validate the EODHD key/plan on one symbol")
+    epp.add_argument("symbol", nargs="?", default="RELIANCE")
     sub.add_parser("readjust")
     sub.add_parser("status")
     sub.add_parser("selftest")
@@ -280,6 +286,12 @@ def main() -> None:
     elif args.cmd == "announcements":
         from . import funda
         print(funda.update_announcements(days=args.days))
+    elif args.cmd == "eodhd":
+        from . import eodhd
+        print(eodhd.update(limit=args.limit, max_age_days=args.max_age_days))
+    elif args.cmd == "eodhd-probe":
+        from . import eodhd
+        eodhd.probe(args.symbol)
     elif args.cmd == "readjust":
         print({"readjusted_isins": ingest.readjust()})
     elif args.cmd == "status":
