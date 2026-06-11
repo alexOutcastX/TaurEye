@@ -280,7 +280,9 @@ def update(limit: int | None = None, max_age_days: int = FUNDA_MAX_AGE_DAYS) -> 
 
 def probe(symbol: str) -> None:
     """Fetch one symbol's fundamentals+news from EODHD and print the shape +
-    what would be stored — validates the key/plan before a bulk run."""
+    what would be stored — validates the key/plan before a bulk run. On failure
+    it runs a diagnostic sweep: account/plan info, available exchanges, and
+    several ticker variants, so one run pinpoints plan-vs-symbol issues."""
     key = _key()
     if not key:
         print("EODHD_API_KEY is not set in the environment")
@@ -291,6 +293,35 @@ def probe(symbol: str) -> None:
     print(f"fundamentals HTTP {code}")
     if code != 200:
         print(f"BODY: {body[:300]}")
+        print("\n-- diagnostics --")
+        ucode, ubody = _get(f"{BASE}/user?api_token={key}&fmt=json")
+        print(f"account HTTP {ucode}: {ubody[:300]}")
+        xcode, xbody = _get(f"{BASE}/exchanges-list/?api_token={key}&fmt=json")
+        if xcode == 200:
+            try:
+                exch = json.loads(xbody)
+                india = [e for e in exch if isinstance(e, dict) and
+                         ("india" in str(e.get("Country", "")).lower()
+                          or str(e.get("Code", "")).upper() in ("NSE", "BSE", "BO"))]
+                print(f"exchanges-list: {len(exch)} total; India-related: "
+                      + (json.dumps(india)[:400] if india else "NONE VISIBLE TO THIS KEY"))
+            except ValueError:
+                print(f"exchanges-list non-JSON: {xbody[:150]}")
+        else:
+            print(f"exchanges-list HTTP {xcode}: {xbody[:200]}")
+        for variant in (f"{symbol.upper()}.BSE", f"{symbol.upper()}.BO", "500325.BSE", "AAPL.US"):
+            vcode, vbody = _get(f"{BASE}/fundamentals/{variant}?api_token={key}&fmt=json")
+            head = ""
+            if vcode == 200:
+                try:
+                    head = "sections=" + str(list(json.loads(vbody).keys())[:5])
+                except ValueError:
+                    head = vbody[:80]
+            else:
+                head = vbody[:80]
+            print(f"fundamentals {variant}: HTTP {vcode}  {head}")
+        pcode, pbody = _get(f"{BASE}/eod/{sym}?api_token={key}&fmt=json&period=d&order=d&limit=1")
+        print(f"eod price {sym}: HTTP {pcode}  {pbody[:120]}")
         return
     fund = json.loads(body)
     print(f"top-level sections: {list(fund.keys())}")
