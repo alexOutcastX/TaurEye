@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { Capacitor } from "@capacitor/core";
 import AuthPanel from "../components/AuthPanel";
 import BullMark from "../components/BullMark";
+import Logo from "../components/Logo";
 import ErrorBoundary from "../components/ErrorBoundary";
 import "./Landing.css";
 
@@ -47,7 +48,7 @@ export default function Landing() {
     <div className="lp">
       <header className="lp-nav">
         <div className="lp-brand">
-          <BullMark size={28} />
+          <Logo size={30} withWordmark={false} />
           <img src="/wordmark.png" alt="TaurEye" className="lp-wordmark" />
         </div>
         <span className="lp-nav-tag">NSE / BSE end-of-day screener</span>
