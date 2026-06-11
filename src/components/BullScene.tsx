@@ -75,7 +75,7 @@ export default function BullScene({ className }: { className?: string }) {
     const maxDim = Math.max(dims.x, dims.y, dims.z) || 1;
 
     // stand the model upright (it's authored Z-up) and face it toward the camera
-    model.rotation.set(-1.35, 0, 0);
+    model.rotation.set(-1.35 + Math.PI + Math.PI / 4, 0, 0);
 
     const bull = new THREE.Group();
     bull.add(model);
