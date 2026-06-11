@@ -27,6 +27,25 @@ if (Capacitor.isNativePlatform()) {
   });
   // AdMob banner (no-op unless VITE_ADMOB_BANNER_ANDROID is set + plugin synced).
   initAdMob().then(showBanner);
+
+  // OAuth deep-link return (social login): the provider redirects to
+  // app.taureye.mobile://auth-callback?code=...; exchange it for a session and
+  // close the in-app browser. AuthContext's onAuthStateChange picks it up.
+  import("@capacitor/app").then(({ App: CapApp }) => {
+    CapApp.addListener("appUrlOpen", async ({ url }) => {
+      if (!url.startsWith("app.taureye.mobile://auth-callback")) return;
+      try {
+        const code = new URL(url.replace("app.taureye.mobile://", "https://x/")).searchParams.get("code");
+        if (code) {
+          const { supabase } = await import("./lib/supabase");
+          await supabase?.auth.exchangeCodeForSession(code);
+        }
+      } finally {
+        const { Browser } = await import("@capacitor/browser");
+        Browser.close().catch(() => {});
+      }
+    });
+  });
 }
 
 createRoot(document.getElementById("root")!).render(

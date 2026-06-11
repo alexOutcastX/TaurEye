@@ -93,11 +93,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {};
   };
 
-  // Social sign-in: redirects to the provider, then back to /login (which
-  // forwards into the app once the session is established). Providers must be
-  // enabled in Supabase → Authentication → Providers.
+  // Social sign-in. Web: full-page redirect to the provider and back to /login.
+  // Native (APK): open the provider in the system browser and return via the
+  // app.taureye.mobile:// deep link (handled in main.tsx -> exchangeCode).
+  // Providers must be enabled in Supabase → Authentication → Providers.
   const oauth = async (provider: OAuthProvider): Promise<Result> => {
     if (!cloud || !supabase) return { error: "Social sign-in needs the cloud backend." };
+    const { Capacitor } = await import("@capacitor/core");
+    if (Capacitor.isNativePlatform()) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: "app.taureye.mobile://auth-callback", skipBrowserRedirect: true },
+      });
+      if (error) return { error: error.message };
+      if (data?.url) {
+        const { Browser } = await import("@capacitor/browser");
+        await Browser.open({ url: data.url });
+      }
+      return {};
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/login` },

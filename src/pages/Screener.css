@@ -314,3 +314,33 @@ table.results { width: 100%; border-collapse: collapse; font-size: 13px; }
   font-size: 12px;
   color: var(--text-muted);
 }
+
+/* ---- preset scan library ---- */
+.presets { margin: 10px 0 4px; }
+.presets-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+.presets-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.preset-chip {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.preset-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

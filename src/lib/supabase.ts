@@ -9,6 +9,9 @@ export const isSupabaseConfigured = Boolean(url && anonKey);
 
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(url, anonKey, {
-      auth: { persistSession: true, autoRefreshToken: true },
+      // PKCE: required for native OAuth deep links (the appUrlOpen handler
+      // exchanges the ?code= for a session); on web detectSessionInUrl does
+      // the same exchange automatically, so both platforms share one flow.
+      auth: { persistSession: true, autoRefreshToken: true, flowType: "pkce" },
     })
   : null;
