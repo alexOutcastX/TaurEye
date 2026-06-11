@@ -1,0 +1,62 @@
+name: VM schedule (nightly refresh time)
+
+# Set the time the Oracle VM pulls EOD data and republishes the JSON bundle.
+# Run it from your phone: GitHub (mobile browser) -> Actions -> "VM schedule
+# (nightly refresh time)" -> Run workflow -> pick a time -> Run. It rewrites the
+# VM crontab with CRON_TZ=Asia/Kolkata so the time is always India time, whatever
+# the server clock is set to.
+#
+# SAFETY: the time is a fixed dropdown (allow-list) split into numeric HH/MM, so
+# no freeform text reaches the VM shell. Only repo collaborators can trigger it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      time_ist:
+        description: "Daily refresh time (IST, 24h)"
+        type: choice
+        required: true
+        default: "21:00"
+        options:
+          - "21:00"   # 9:00 PM IST
+          - "20:00"   # 8:00 PM IST
+          - "20:30"   # 8:30 PM IST
+          - "22:00"   # 10:00 PM IST
+          - "18:30"   # 6:30 PM IST (1h after data vendors publish)
+
+concurrency:
+  group: vm-schedule
+  cancel-in-progress: false
+
+jobs:
+  set-schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Install nightly cron on the VM
+        env:
+          U: ${{ secrets.VM_USER }}
+          H: ${{ secrets.VM_HOST }}
+          T: ${{ inputs.time_ist }}
+        run: |
+          # T comes from the fixed dropdown above; split + validate to be safe.
+          HH=${T%%:*}; MM=${T##*:}
+          case "$HH" in ''|*[!0-9]*) echo "bad hour"; exit 1;; esac
+          case "$MM" in ''|*[!0-9]*) echo "bad minute"; exit 1;; esac
+          echo "Setting nightly refresh to ${HH}:${MM} IST"
+          ssh -i ~/.ssh/id_deploy "$U@$H" \
+            "MM='${MM}' HH='${HH}' bash -s" <<'REMOTE'
+          set -e
+          ( crontab -l 2>/dev/null | grep -v 'taureye nightly' | grep -vx 'CRON_TZ=Asia/Kolkata' ;
+            echo "CRON_TZ=Asia/Kolkata" ;
+            echo "${MM} ${HH} * * * /opt/taureye/refresh.sh  # taureye nightly"
+          ) | crontab -
+          echo "---- new crontab ----"
+          crontab -l
+          REMOTE

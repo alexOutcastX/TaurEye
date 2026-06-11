@@ -71,9 +71,14 @@ sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT 2>/dev
 sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
 command -v netfilter-persistent >/dev/null 2>&1 && sudo netfilter-persistent save || true
 
-echo "==> Nightly data refresh + republish cron (20:30 server time)..."
-( crontab -l 2>/dev/null | grep -v 'taureye nightly' ;
-  echo "30 20 * * * $APP/refresh.sh  # taureye nightly"
+echo "==> Nightly data refresh + republish cron (21:00 IST)..."
+# CRON_TZ pins the schedule to India time no matter what the VM's clock is set
+# to (cronie/Vixie honour it). Markets close 15:30 IST, so 21:00 IST is safely
+# after EOD data is published. grep -vx clears any prior CRON_TZ line so re-runs
+# stay idempotent.
+( crontab -l 2>/dev/null | grep -v 'taureye nightly' | grep -vx 'CRON_TZ=Asia/Kolkata' ;
+  echo "CRON_TZ=Asia/Kolkata" ;
+  echo "0 21 * * * $APP/refresh.sh  # taureye nightly"
 ) | crontab -
 
 echo ""
