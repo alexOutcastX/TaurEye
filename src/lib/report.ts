@@ -26,9 +26,74 @@ function row(label: string, value: string, cls = ""): string {
   return `<tr><td class="lbl">${esc(label)}</td><td class="val ${cls}">${esc(value)}</td></tr>`;
 }
 
-function reportHtml(m: Metrics): string {
+export interface ReportExtras {
+  /** AI-generated factual narrative (markdown) from the ai-report function. */
+  aiText?: string | null;
+  /** Disclaimer line returned alongside the AI text. */
+  aiDisclaimer?: string | null;
+  /** Corporate actions from funda/<SYMBOL>.json (splits/bonuses/dividends). */
+  corpActions?: { ex_date: string; kind: string; ratio: number; detail?: string | null }[] | null;
+}
+
+// Tiny markdown -> HTML for the AI narrative. Escapes first (no HTML injection),
+// then renders ## headings, - bullets, **bold**, and paragraph breaks.
+function mdToHtml(md: string): string {
+  const lines = md.replace(/\r/g, "").split("\n");
+  const out: string[] = [];
+  let inList = false;
+  const closeList = () => {
+    if (inList) {
+      out.push("</ul>");
+      inList = false;
+    }
+  };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) {
+      closeList();
+      continue;
+    }
+    const safe = esc(line).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    const h = safe.match(/^(#{1,3})\s+(.*)$/);
+    const b = safe.match(/^[-*]\s+(.*)$/);
+    if (h) {
+      closeList();
+      out.push(`<h3 class="ai-h">${h[2]}</h3>`);
+    } else if (b) {
+      if (!inList) {
+        out.push("<ul class='ai-ul'>");
+        inList = true;
+      }
+      out.push(`<li>${b[1]}</li>`);
+    } else {
+      closeList();
+      out.push(`<p class="ai-p">${safe}</p>`);
+    }
+  }
+  closeList();
+  return out.join("\n");
+}
+
+function corpActionsHtml(cas: NonNullable<ReportExtras["corpActions"]>): string {
+  const rows = cas
+    .slice(0, 12)
+    .map(
+      (a) =>
+        `<tr><td class="lbl">${esc(a.ex_date)}</td><td>${esc(a.kind)}</td>` +
+        `<td class="val">${esc(a.detail || String(a.ratio))}</td></tr>`,
+    )
+    .join("");
+  return `<h2>Corporate Actions</h2><table>${rows}</table>`;
+}
+
+function reportHtml(m: Metrics, extras?: ReportExtras): string {
   const up = m.change_pct > 0 ? "up" : m.change_pct < 0 ? "down" : "";
   const generated = new Date().toLocaleString("en-IN");
+  const aiBlock = extras?.aiText
+    ? `<h2>AI Commentary</h2><div class="ai">${mdToHtml(extras.aiText)}</div>` +
+      (extras.aiDisclaimer ? `<p class="ai-disc">${esc(extras.aiDisclaimer)}</p>` : "")
+    : "";
+  const caBlock = extras?.corpActions?.length ? corpActionsHtml(extras.corpActions) : "";
   return `<!doctype html><html><head><meta charset="utf-8">
 <title>${esc(m.symbol)} — TaurEye report</title>
 <style>
@@ -51,6 +116,11 @@ function reportHtml(m: Metrics): string {
   .cols { display: flex; gap: 40px; } .cols > div { flex: 1; }
   .ft { margin-top: 30px; padding-top: 12px; border-top: 1px solid #eef0f3;
         font-size: 11px; color: #97a0ad; display: flex; justify-content: space-between; }
+  .ai { font-size: 13px; line-height: 1.55; }
+  .ai .ai-h { font-size: 13px; margin: 14px 0 4px; color: #11a36b; }
+  .ai .ai-p { margin: 0 0 8px; }
+  .ai .ai-ul { margin: 0 0 8px; padding-left: 18px; }
+  .ai-disc { font-size: 11px; color: #97a0ad; margin-top: 10px; }
   @media print { body { padding: 16px 20px; } .noprint { display: none; } }
   .noprint { margin-top: 24px; }
   .btn { background: #11a36b; color: #fff; border: 0; border-radius: 6px;
@@ -93,6 +163,9 @@ function reportHtml(m: Metrics): string {
     </div>
   </div>
 
+  ${aiBlock}
+  ${caBlock}
+
   <div class="ft">
     <span>Generated ${esc(generated)} · End-of-day data</span>
     <span>TaurEye · for research, not investment advice</span>
@@ -104,13 +177,13 @@ function reportHtml(m: Metrics): string {
 </body></html>`;
 }
 
-export function generateReport(m: Metrics): void {
+export function generateReport(m: Metrics, extras?: ReportExtras): void {
   const w = window.open("", "_blank", "width=860,height=960");
   if (!w) {
     window.alert("Please allow pop-ups for this site to generate the report.");
     return;
   }
-  w.document.write(reportHtml(m));
+  w.document.write(reportHtml(m, extras));
   w.document.close();
   w.focus();
 }

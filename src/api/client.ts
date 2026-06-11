@@ -103,20 +103,32 @@ const AI_OFFLINE: AiResult = {
     "It is unavailable in offline mode.",
 };
 
-// In the static build, AI has no backend — it runs in the `ai-analysis` Supabase
-// Edge Function (LLM key server-side, credits charged there). When Supabase isn't
-// configured we degrade to the offline message. `facts` is the factual metrics
-// snapshot the page already holds, passed so the function needn't refetch.
-async function localAiAnalysis(symbol: string, facts?: unknown): Promise<AiResult> {
+// In the static build, AI has no backend — it runs in Supabase Edge Functions
+// (LLM key server-side, credits charged there). When Supabase isn't configured
+// we degrade to the offline message. `facts` is the factual metrics snapshot the
+// page already holds, passed so the functions needn't refetch.
+async function invokeAi(fn: string, body: Record<string, unknown>): Promise<AiResult> {
   if (!supabase) return AI_OFFLINE;
-  const { data, error } = await supabase.functions.invoke<AiResult>("ai-analysis", {
-    body: { symbol, facts },
-  });
+  const { data, error } = await supabase.functions.invoke<AiResult>(fn, { body });
   if (error || !data) {
     return { configured: true, text: null, error: error?.message ?? "ai_failed", disclaimer: AI_OFFLINE.disclaimer };
   }
   return data;
 }
+
+const localAiAnalysis = (symbol: string, facts?: unknown) =>
+  invokeAi("ai-analysis", { symbol, facts });
+
+/** Structured multi-section AI report (markdown) — `ai-report` Edge Function. */
+export const aiReport = (
+  symbol: string,
+  facts?: unknown,
+  patterns?: unknown,
+  corpActions?: unknown,
+): Promise<AiResult> =>
+  LOCAL_DATA
+    ? invokeAi("ai-report", { symbol, facts, patterns, corpActions })
+    : Promise.resolve(AI_OFFLINE);
 
 // When LOCAL_DATA is on, the read endpoints are served from the published JSON
 // bundle (see data/snapshot.ts) and saved screens live in localStorage — so the
