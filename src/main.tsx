@@ -5,6 +5,7 @@ import { Capacitor } from "@capacitor/core";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import "./index.css";
 import App from "./App.tsx";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider } from "./auth/AuthContext";
 import { initOta } from "./lib/ota";
 import { initAdMob, showBanner } from "./lib/ads";
@@ -48,12 +49,30 @@ if (Capacitor.isNativePlatform()) {
   });
 }
 
+// App-wide safety net: any uncaught render error shows a recoverable message
+// instead of a blank screen (critical on the native WebView, where a white
+// screen reads as a crash).
+const Fallback = (
+  <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24, textAlign: "center", color: "#e7eaef", background: "#0a0c0f" }}>
+    <h1 style={{ fontSize: 18, margin: 0 }}>Something went wrong</h1>
+    <p style={{ fontSize: 14, color: "#9aa4b2", margin: 0 }}>The app hit an unexpected error. Please reload.</p>
+    <button
+      onClick={() => window.location.reload()}
+      style={{ background: "#18c98c", color: "#04130d", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 600 }}
+    >
+      Reload
+    </button>
+  </div>
+);
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary fallback={Fallback}>
+      <BrowserRouter>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>,
 );

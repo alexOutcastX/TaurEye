@@ -105,10 +105,11 @@ export default function BullScene({ className }: { className?: string }) {
     const resize = () => {
       const w = mount.clientWidth || 1;
       const h = mount.clientHeight || 1;
-      renderer.setSize(w, h, false);
+      renderer.setSize(w, h); // update canvas CSS size too, so it never overflows
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     };
+    renderer.domElement.style.display = "block";
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(mount);
