@@ -104,3 +104,16 @@
   font-size: 13px; font-weight: 600; z-index: 50;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
 }
+
+.rsh-input {
+  flex: 1;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+.rsh-input:focus { border-color: var(--accent); }
+.rsh-input::placeholder { color: var(--text-faint); }

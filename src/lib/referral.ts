@@ -1,10 +1,14 @@
-// Refer & Earn — PLACEHOLDER DATA for team review.
+// Refer & Earn — real backend (Supabase) with a placeholder fallback so the
+// page still renders in local/guest preview.
 //
-// This module fabricates a referral code, share link, reward tiers, and a
-// sample list of invited friends so the UI can be reviewed end-to-end before
-// the real backend (code issuance + redemption verification) is wired up.
-// Nothing here is persisted or verified — swap these stubs for API calls once
-// the server side is ready.
+// Server side (supabase/referrals.sql):
+//   claim_referral(code) — one-time redemption; grants BOTH sides' credits
+//   my_referrals()       — who joined with my code (display name + reward)
+// The user's own code lives on their profile row (created at signup).
+
+import { isSupabaseConfigured, supabase } from "./supabase";
+import { REWARDS } from "./economy";
+import { emitCreditsChange } from "./credits";
 
 export interface Referral {
   id: string;
@@ -22,30 +26,86 @@ export interface ReferralProgram {
   invited: Referral[];
 }
 
-// Reward amounts shown to the user (placeholder).
-export const REWARD_PER_REFERRAL = 50;
-export const REWARD_FOR_FRIEND = 25;
+export const REWARD_PER_REFERRAL = REWARDS.referrer;
+export const REWARD_FOR_FRIEND = REWARDS.referee;
 
-// A fixed placeholder code/link so screenshots are stable for the team.
-const PLACEHOLDER_CODE = "TAUR-AX92QK";
-const PLACEHOLDER_LINK = `https://taureye.app/r/${PLACEHOLDER_CODE}`;
+// ---- pending invite code (captured from /login?ref=CODE, claimed post-auth) ----
+const REF_KEY = "taureye.referral.pending.v1";
 
-// Sample invitees: a mix of joined + pending so both states are visible.
-const PLACEHOLDER_INVITED: Referral[] = [
-  { id: "r1", name: "Aarav Sharma", joinedAt: "2026-05-28T10:12:00+05:30", status: "joined", reward: REWARD_PER_REFERRAL },
-  { id: "r2", name: "Priya Menon", joinedAt: "2026-05-30T18:45:00+05:30", status: "joined", reward: REWARD_PER_REFERRAL },
-  { id: "r3", name: "Rohan Gupta", joinedAt: "2026-06-01T09:05:00+05:30", status: "joined", reward: REWARD_PER_REFERRAL },
-  { id: "r4", name: "Neha Iyer", joinedAt: null, status: "pending", reward: 0 },
-  { id: "r5", name: "Karthik Rao", joinedAt: null, status: "pending", reward: 0 },
-];
+export function storeRefCode(code: string) {
+  if (code.trim()) localStorage.setItem(REF_KEY, code.trim());
+}
+export function pendingRefCode(): string | null {
+  return localStorage.getItem(REF_KEY);
+}
+export function clearRefCode() {
+  localStorage.removeItem(REF_KEY);
+}
 
-export function getReferralProgram(): ReferralProgram {
+export type ClaimResult = "claimed" | "already_referred" | "invalid_code" | "self_referral" | "failed";
+
+/** Redeem a referral code for the signed-in user (server-validated, one-time). */
+export async function claimReferral(code: string): Promise<ClaimResult> {
+  if (!supabase) return "failed";
+  const { error } = await supabase.rpc("claim_referral", { p_code: code });
+  if (!error) {
+    emitCreditsChange();
+    return "claimed";
+  }
+  const m = error.message || "";
+  if (m.includes("already_referred")) return "already_referred";
+  if (m.includes("invalid_code")) return "invalid_code";
+  if (m.includes("self_referral")) return "self_referral";
+  return "failed";
+}
+
+/** Auto-claim a code captured from an invite link, once, after sign-in. */
+export async function claimPendingReferral(): Promise<void> {
+  const code = pendingRefCode();
+  if (!code || !supabase) return;
+  await claimReferral(code); // outcome doesn't matter — never retry a bad code
+  clearRefCode();
+}
+
+// ---- program data ----
+const PLACEHOLDER: ReferralProgram = {
+  code: "TAUR-PREVIEW",
+  link: "https://taureye.app/login?ref=TAUR-PREVIEW",
+  rewardPerReferral: REWARD_PER_REFERRAL,
+  rewardForFriend: REWARD_FOR_FRIEND,
+  invited: [],
+};
+
+/** Load the signed-in user's real program (code, link, invited list). */
+export async function getReferralProgram(): Promise<ReferralProgram> {
+  if (!isSupabaseConfigured || !supabase) return PLACEHOLDER;
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth?.user) return PLACEHOLDER;
+
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("referral_code")
+    .eq("id", auth.user.id)
+    .maybeSingle();
+  const code = (prof?.referral_code as string) || "";
+
+  const { data: rows } = await supabase.rpc("my_referrals");
+  const invited: Referral[] = ((rows as { display_name: string; joined_at: string; reward: number }[]) ?? []).map(
+    (r, i) => ({
+      id: `r${i}`,
+      name: r.display_name,
+      joinedAt: r.joined_at,
+      status: "joined",
+      reward: r.reward,
+    }),
+  );
+
   return {
-    code: PLACEHOLDER_CODE,
-    link: PLACEHOLDER_LINK,
+    code: code || PLACEHOLDER.code,
+    link: `${window.location.origin}/login?ref=${encodeURIComponent(code)}`,
     rewardPerReferral: REWARD_PER_REFERRAL,
     rewardForFriend: REWARD_FOR_FRIEND,
-    invited: PLACEHOLDER_INVITED,
+    invited,
   };
 }
 
