@@ -179,3 +179,12 @@
   padding: 2px 9px;
 }
 .rpt-about { font-size: 13.5px; line-height: 1.6; margin: 0; }
+
+/* tighter, cleaner print layout */
+@page { margin: 12mm; }
+@media print {
+  .rpt-sec { break-after: avoid; }
+  .rpt-grid, .rpt-stat, .rpt-ca tr, .rpt-filings li { break-inside: avoid; }
+  .rpt-grid { grid-template-columns: repeat(4, 1fr); }
+  .md .md-kv strong { color: #5b6472 !important; }
+}

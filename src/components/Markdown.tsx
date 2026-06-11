@@ -2,14 +2,19 @@ import { Fragment, type ReactNode } from "react";
 import "./Markdown.css";
 
 // Minimal, safe Markdown renderer for AI output (no raw HTML injection).
-// Handles: # / ## / ### headings, - and * bullet lists, **bold** inline,
-// blank-line paragraph breaks. Enough for the model's structured replies.
+// Handles: # / ## / ### headings, - and * bullet lists, **bold** and *italic*
+// inline, blank-line paragraph breaks, and degrades | pipe | tables | into
+// clean key-value lines (the model is told not to emit tables, but if it does
+// they must not render as raw pipes).
 
 function inline(text: string): ReactNode[] {
-  // Split on **bold** spans, alternating normal / strong.
-  return text.split(/\*\*(.+?)\*\*/g).map((part, i) =>
-    i % 2 === 1 ? <strong key={i}>{part}</strong> : <Fragment key={i}>{part}</Fragment>,
-  );
+  // **bold** first, then *italic* inside the remaining plain fragments.
+  return text.split(/\*\*(.+?)\*\*/g).flatMap((part, i) => {
+    if (i % 2 === 1) return [<strong key={`b${i}`}>{part}</strong>];
+    return part.split(/\*(.+?)\*/g).map((p, j) =>
+      j % 2 === 1 ? <em key={`i${i}-${j}`}>{p}</em> : <Fragment key={`t${i}-${j}`}>{p}</Fragment>,
+    );
+  });
 }
 
 export default function Markdown({ text, className }: { text: string; className?: string }) {
@@ -30,6 +35,29 @@ export default function Markdown({ text, className }: { text: string; className?
       flushList();
       return;
     }
+    // Horizontal rules / table separators ("---", "|---|---|"): drop entirely.
+    if (/^\|?[-:\s|]+\|?$/.test(line) && /-/.test(line)) {
+      flushList();
+      return;
+    }
+    // Pipe-table row -> key-value line ("Label: value") or dot-joined cells.
+    if (line.startsWith("|") && line.endsWith("|")) {
+      flushList();
+      const cells = line.slice(1, -1).split("|").map((c) => c.trim()).filter(Boolean);
+      if (cells.length === 0) return;
+      blocks.push(
+        <p key={`kv${i}`} className="md-kv">
+          {cells.length === 2 ? (
+            <>
+              <strong>{inline(cells[0].replace(/\*\*/g, ""))}:</strong> {inline(cells[1])}
+            </>
+          ) : (
+            inline(cells.join(" · "))
+          )}
+        </p>,
+      );
+      return;
+    }
     const bullet = line.match(/^[-*]\s+(.*)$/);
     if (bullet) {
       list.push(<li key={`li${i}`}>{inline(bullet[1])}</li>);
@@ -45,6 +73,7 @@ export default function Markdown({ text, className }: { text: string; className?
       );
       return;
     }
+    // Numbered list items render as paragraphs with the number kept.
     blocks.push(<p key={i}>{inline(line)}</p>);
   });
   flushList();
