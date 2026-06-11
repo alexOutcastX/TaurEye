@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import BullMark from "./BullMark";
 
 /**
  * Low-poly stylized bull head rendered with Three.js — the Landing hero graphic.
@@ -12,17 +13,30 @@ import * as THREE from "three";
  */
 export default function BullScene({ className }: { className?: string }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
+  // If WebGL is unavailable or three.js throws on this device/WebView, swap in
+  // the static SVG mark — the decorative bull must never crash the app.
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    } catch (e) {
+      // No WebGL context (common on locked-down / low-end Android WebViews).
+      console.warn("BullScene: WebGL unavailable, using static mark.", e);
+      setFailed(true);
+      return;
+    }
+
+    try {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
     camera.position.set(0, 0.15, 5.2);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     mount.appendChild(renderer.domElement);
 
@@ -136,7 +150,18 @@ export default function BullScene({ className }: { className?: string }) {
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
+    } catch (e) {
+      console.warn("BullScene: render setup failed, using static mark.", e);
+      setFailed(true);
+      try { renderer.dispose(); } catch { /* ignore */ }
+      if (renderer.domElement?.parentNode === mount) mount.removeChild(renderer.domElement);
+      return () => {};
+    }
   }, []);
 
-  return <div ref={mountRef} className={className} aria-hidden="true" />;
+  return failed ? (
+    <BullMark size={220} className={className} />
+  ) : (
+    <div ref={mountRef} className={className} aria-hidden="true" />
+  );
 }

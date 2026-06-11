@@ -1,12 +1,17 @@
 import { Suspense, lazy } from "react";
+import { Capacitor } from "@capacitor/core";
 import AuthPanel from "../components/AuthPanel";
 import BullMark from "../components/BullMark";
+import ErrorBoundary from "../components/ErrorBoundary";
 import "./Landing.css";
 
 // three.js is heavy — keep it out of the main bundle and only fetch it when the
 // landing hero mounts. Until it loads (or if WebGL is unavailable) the static
-// SVG mark stands in.
+// SVG mark stands in. We only attempt the WebGL bull on the web: Android WebView
+// GPU support is inconsistent, so native shows the static mark for a guaranteed
+// clean boot.
 const BullScene = lazy(() => import("../components/BullScene"));
+const NATIVE = Capacitor.isNativePlatform();
 
 const FEATURES: { title: string; body: string }[] = [
   {
@@ -64,9 +69,15 @@ export default function Landing() {
         </div>
 
         <div className="lp-hero-visual">
-          <Suspense fallback={<BullMark size={220} className="lp-bull-fallback" />}>
-            <BullScene className="lp-bull" />
-          </Suspense>
+          {NATIVE ? (
+            <BullMark size={220} className="lp-bull-fallback" />
+          ) : (
+            <ErrorBoundary fallback={<BullMark size={220} className="lp-bull-fallback" />}>
+              <Suspense fallback={<BullMark size={220} className="lp-bull-fallback" />}>
+                <BullScene className="lp-bull" />
+              </Suspense>
+            </ErrorBoundary>
+          )}
         </div>
 
         <aside className="lp-auth">
