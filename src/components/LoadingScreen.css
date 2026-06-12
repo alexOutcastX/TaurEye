@@ -26,6 +26,11 @@
   filter: drop-shadow(0 10px 40px rgba(0, 0, 0, 0.6));
 }
 
+/* running-bull flipbook on the boot screen */
+.boot-bull {
+  filter: drop-shadow(0 8px 30px rgba(0, 0, 0, 0.5));
+}
+
 .boot-tagline {
   margin: 4px 0 0;
   font-size: 12px;
