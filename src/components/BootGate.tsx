@@ -5,6 +5,9 @@ import LoadingScreen from "./LoadingScreen";
 
 // Don't let a slow OTA check delay startup beyond this — boot proceeds anyway.
 const OTA_CHECK_BUDGET_MS = 3000;
+// Always show the loading screen (running bull) for at least this long, even if
+// the data resolves sooner — a deliberate branded intro on every launch.
+const MIN_BOOT_MS = 5000;
 
 /**
  * Holds the app behind a loading screen until the backend's metrics snapshot is
@@ -20,6 +23,8 @@ export default function BootGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const start = performance.now();
     setError(null);
     (async () => {
       try {
@@ -40,7 +45,11 @@ export default function BootGate({ children }: { children: ReactNode }) {
             // Store warmed but empty — surface it rather than showing a blank app.
             setError("No securities loaded. Run a data pull (taureye nightly).");
           } else {
-            setReady(true);
+            // Keep the running-bull intro up for at least MIN_BOOT_MS.
+            const wait = Math.max(0, MIN_BOOT_MS - (performance.now() - start));
+            timer = setTimeout(() => {
+              if (!cancelled) setReady(true);
+            }, wait);
           }
         }
       } catch (e) {
@@ -49,6 +58,7 @@ export default function BootGate({ children }: { children: ReactNode }) {
     })();
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [attempt]);
 
