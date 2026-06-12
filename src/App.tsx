@@ -1,7 +1,8 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import type { ReactNode } from "react";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import { useEffect, type ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import { useAuth } from "./auth/AuthContext";
+import { storeRefCode } from "./lib/referral";
 import AppShell from "./app/AppShell";
 import BootGate from "./components/BootGate";
 import Landing from "./pages/Landing";
@@ -24,6 +25,17 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return isAuthed ? <>{children}</> : <Navigate to="/" replace />;
 }
 
+// Clean invite link: /i/<code> stashes the referral code, then lands on the home
+// page where the visitor can sign up (the code is redeemed after their first
+// sign-in). Much tidier to share than /login?ref=<code>.
+function Invite() {
+  const { code } = useParams();
+  useEffect(() => {
+    if (code) storeRefCode(code);
+  }, [code]);
+  return <Navigate to="/" replace />;
+}
+
 export default function App() {
   // The native app opens straight to a clean, mobile-friendly sign-in screen
   // (branding in the card, blank background, no marketing graphics). The
@@ -34,6 +46,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={native ? <Login /> : <Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/i/:code" element={<Invite />} />
 
       <Route
         path="/app"

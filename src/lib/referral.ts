@@ -115,7 +115,7 @@ export async function getReferralProgram(): Promise<ReferralProgram> {
 
   return {
     code: code || PLACEHOLDER.code,
-    link: `${siteBase()}/login?ref=${encodeURIComponent(code)}`,
+    link: `${siteBase()}/i/${encodeURIComponent(code || PLACEHOLDER.code)}`,
     rewardPerReferral: REWARD_PER_REFERRAL,
     rewardForFriend: REWARD_FOR_FRIEND,
     invited,
@@ -138,7 +138,7 @@ export function referralStats(p: ReferralProgram) {
 // or browsers that support the Web Share API); otherwise copy to clipboard.
 // Returns the action taken so the UI can show the right feedback.
 export async function shareReferral(p: ReferralProgram): Promise<"shared" | "copied" | "failed"> {
-  const text = `Join me on TaurEye — India's stock screener. Use my code ${p.code} to get ${p.rewardForFriend} free credits.`;
+  const text = `Join me on TaurEye, India's stock screener — get ${p.rewardForFriend} free credits when you sign up:`;
 
   // Native (Capacitor): open the OS share sheet via the Share plugin. The Android
   // WebView doesn't implement navigator.share, so this is required for the app.
