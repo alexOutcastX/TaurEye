@@ -83,12 +83,12 @@ export default function ScripSearch() {
       <div className="search">
         <SearchIcon />
         <input
-          placeholder="Search scrips, e.g. RELIANCE, INFY…"
+          placeholder="Search stocks"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => results.length && setOpen(true)}
           onKeyDown={onKey}
-          aria-label="Search scrips"
+          aria-label="Search stocks"
           autoComplete="off"
         />
       </div>
