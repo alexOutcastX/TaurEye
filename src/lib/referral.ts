@@ -139,6 +139,21 @@ export function referralStats(p: ReferralProgram) {
 // Returns the action taken so the UI can show the right feedback.
 export async function shareReferral(p: ReferralProgram): Promise<"shared" | "copied" | "failed"> {
   const text = `Join me on TaurEye — India's stock screener. Use my code ${p.code} to get ${p.rewardForFriend} free credits.`;
+
+  // Native (Capacitor): open the OS share sheet via the Share plugin. The Android
+  // WebView doesn't implement navigator.share, so this is required for the app.
+  try {
+    const { Capacitor } = await import("@capacitor/core");
+    if (Capacitor.isNativePlatform()) {
+      const { Share } = await import("@capacitor/share");
+      await Share.share({ title: "TaurEye", text, url: p.link, dialogTitle: "Share invite" });
+      return "shared";
+    }
+  } catch {
+    // plugin missing / user dismissed — fall through
+  }
+
+  // Web (mobile browsers, iOS WKWebView): Web Share API.
   const nav = navigator as Navigator & {
     share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
   };
