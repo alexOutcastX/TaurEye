@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import BullMark from "./BullMark";
+import BullRun from "./BullRun";
 import { getOtaStatus, onOtaChange, otaMessage, type OtaStatus } from "../lib/ota";
 import "./LoadingScreen.css";
 
@@ -14,15 +14,13 @@ const MESSAGES = [
 type Props = { error?: string | null; onRetry?: () => void };
 
 /**
- * Boot loading screen. Plays the branded intro video (public/intro.mp4) while
- * the backend snapshot warms; falls back to the static logo mark if the video
- * can't load. Reveals the app once BootGate's data check resolves.
+ * Boot loading screen. Shows the running-bull flipbook while the snapshot warms,
+ * with an indeterminate progress bar (or a determinate OTA download bar) and a
+ * rotating status line. Reveals the app once BootGate's data check resolves.
  */
 export default function LoadingScreen({ error, onRetry }: Props) {
-  const [videoFailed, setVideoFailed] = useState(false);
   const [msg, setMsg] = useState(0);
   const [ota, setOta] = useState<OtaStatus>(getOtaStatus());
-  const showVideo = !error && !videoFailed;
 
   // Surface Capgo OTA progress (native only; stays "idle" on web).
   useEffect(() => onOtaChange(setOta), []);
@@ -44,27 +42,10 @@ export default function LoadingScreen({ error, onRetry }: Props) {
   return (
     <div className="boot" role="status" aria-live="polite">
       <div className="boot-inner">
-        {showVideo ? (
-          <video
-            className="boot-video"
-            src="/intro.mp4"
-            poster="/intro-poster.jpg"
-            autoPlay
-            muted
-            loop
-            playsInline
-            onError={() => setVideoFailed(true)}
-          />
-        ) : (
-          <>
-            <div className={`boot-logo${error ? "" : " pulsing"}`}>
-              <LogoFallback />
-            </div>
-            <div className="boot-wordmark">
-              Taur<span>Eye</span>
-            </div>
-          </>
-        )}
+        <BullRun size={170} className="boot-bull" />
+        <div className="boot-wordmark">
+          Taur<span>Eye</span>
+        </div>
 
         {error ? (
           <div className="boot-error">
@@ -86,15 +67,5 @@ export default function LoadingScreen({ error, onRetry }: Props) {
         )}
       </div>
     </div>
-  );
-}
-
-// Static fallback when the video is unavailable: the logo raster, else the SVG.
-function LogoFallback() {
-  const [usePng, setUsePng] = useState(true);
-  return usePng ? (
-    <img src="/logo.png" alt="TaurEye" width={150} onError={() => setUsePng(false)} />
-  ) : (
-    <BullMark size={150} />
   );
 }
