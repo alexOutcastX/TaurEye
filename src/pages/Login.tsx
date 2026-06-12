@@ -1,12 +1,19 @@
+import { Suspense, lazy } from "react";
 import AuthPanel from "../components/AuthPanel";
-import BullRun from "../components/BullRun";
+import BullMark from "../components/BullMark";
+import ErrorBoundary from "../components/ErrorBoundary";
 import Logo from "../components/Logo";
 import "./Login.css";
 
+// 3D bull head (three.js) — lazy-loaded so it doesn't bloat startup. Falls back
+// to the static SVG mark while loading, on reduced-motion, or if WebGL is
+// unavailable on the device's WebView.
+const BullScene = lazy(() => import("../components/BullScene"));
+
 /**
- * Minimal sign-in screen — large branding anchored top-centre, a tiny galloping
- * bull in the middle, the login widget lower on the screen with no enclosing
- * card. Native start + web /login.
+ * Minimal sign-in screen — large branding anchored top-centre, the 3D bull head
+ * in the middle, the login widget lower on the screen with no enclosing card.
+ * Native start + web /login.
  */
 export default function Login() {
   return (
@@ -16,7 +23,11 @@ export default function Login() {
         <img src="/wordmark.png" alt="TaurEye" className="login-wordmark" />
       </div>
       <div className="login-mid">
-        <BullRun size={105} />
+        <ErrorBoundary fallback={<BullMark size={150} />}>
+          <Suspense fallback={<BullMark size={150} />}>
+            <BullScene className="login-bull3d" />
+          </Suspense>
+        </ErrorBoundary>
       </div>
       <div className="login-body">
         <AuthPanel />

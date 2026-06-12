@@ -17,12 +17,16 @@
 }
 .login-wordmark { height: 30px; width: auto; display: block; }
 
-/* galloping bull fills the space between branding and the form */
+/* 3D bull head fills the space between branding and the form */
 .login-mid {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.login-bull3d { width: 250px; height: 250px; display: block; }
+@media (max-height: 720px) {
+  .login-bull3d { width: 200px; height: 200px; }
 }
 
 /* login widget sits in the lower portion, no enclosing box */
