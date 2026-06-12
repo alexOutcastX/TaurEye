@@ -57,7 +57,6 @@ export default function AppShell() {
         </nav>
 
         <div className="topbar-right">
-          <ScripSearch />
           <AlertsBell />
           <ThemeToggle />
           <CreditsBadge />
@@ -69,6 +68,8 @@ export default function AppShell() {
             Sign out
           </button>
         </div>
+
+        <ScripSearch />
       </header>
 
       <IndexTicker />

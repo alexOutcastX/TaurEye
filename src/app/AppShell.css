@@ -55,10 +55,16 @@
 
 .topbar-right {
   margin-left: auto;
+  order: 2;
   display: flex;
   align-items: center;
   gap: var(--sp-4);
 }
+
+/* search bar pinned to the top-right corner (opposite the branding) */
+.topbar-brand { order: 0; }
+.topnav { order: 1; }
+.scrip-search { order: 3; }
 
 .search {
   display: flex;
@@ -68,7 +74,7 @@
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   padding: 7px 12px;
-  width: min(320px, 28vw);
+  width: min(280px, 24vw);
   color: var(--text-faint);
 }
 .search input {
@@ -134,14 +140,18 @@
     flex-wrap: wrap;
     gap: 4px;
   }
-  /* search + account drop to their own full-width row (search stays usable) */
+  /* mobile order: row1 = brand + search (search top-right, opposite brand),
+     row2 = nav, row3 = account controls. Stops the search from being crammed
+     into the icon row (where it overlapped the alerts bell). */
+  .topbar-brand { order: 1; }
+  .scrip-search { order: 2; margin-left: auto; flex: 0 0 auto; width: min(56vw, 260px); }
+  .topnav { order: 3; }
   .topbar-right {
-    order: 3;
+    order: 4;
     width: 100%;
     margin-left: 0;
     gap: var(--sp-3);
   }
-  .scrip-search { flex: 1; min-width: 0; }
   .search { width: 100%; }
 }
 @media (max-width: 480px) {
