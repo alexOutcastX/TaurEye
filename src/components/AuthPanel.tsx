@@ -13,16 +13,16 @@ const SOCIALS: { id: OAuthProvider; label: string }[] = [
   { id: "facebook", label: "Facebook" },
 ];
 
-// Only show providers you've actually enabled in Supabase, so users never hit
-// the "provider is not enabled" page. Set VITE_OAUTH_PROVIDERS to a comma list
-// (e.g. "google,github") to whitelist; unset = show all (dev convenience).
+// Only show providers actually enabled in Supabase. Set VITE_OAUTH_PROVIDERS to
+// a comma list (e.g. "google,twitter") to whitelist; unset defaults to Google
+// only (the configured provider) so users never hit a "not enabled" page.
 const ENABLED = (import.meta.env.VITE_OAUTH_PROVIDERS ?? "")
   .split(",")
   .map((s: string) => s.trim().toLowerCase())
   .filter(Boolean);
 const VISIBLE_SOCIALS = ENABLED.length
   ? SOCIALS.filter((s) => ENABLED.includes(s.id))
-  : SOCIALS;
+  : SOCIALS.filter((s) => s.id === "google");
 
 /**
  * Self-contained email/password + social + guest sign-in widget. Shared by the
@@ -30,7 +30,7 @@ const VISIBLE_SOCIALS = ENABLED.length
  * an invite code (?ref=CODE) and forwards into the app once a session exists.
  */
 export default function AuthPanel() {
-  const { signIn, signUp, oauth, bypass, cloud, isAuthed, loading } = useAuth();
+  const { signIn, signUp, oauth, cloud, isAuthed, loading } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -88,11 +88,6 @@ export default function AuthPanel() {
       setStep("email");
       return;
     }
-    nav("/app/screener");
-  };
-
-  const skip = () => {
-    bypass();
     nav("/app/screener");
   };
 
@@ -185,12 +180,6 @@ export default function AuthPanel() {
           </div>
         </>
       )}
-
-      <div className="auth-divider"><span>or</span></div>
-
-      <button type="button" className="btn-ghost" onClick={skip}>
-        Continue without signing in →
-      </button>
     </div>
   );
 }
