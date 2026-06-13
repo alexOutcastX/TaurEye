@@ -77,7 +77,9 @@ const DEFAULT_REQ: ScreenRequest = {
   query: "",
   sort_by: "market_cap_cr",
   sort_dir: "desc",
-  limit: 100,
+  // No result cap — the screener returns every match and the table paginates.
+  // (Kept in the request shape for the legacy live-API branch; local ignores it.)
+  limit: 100000,
 };
 
 // Module-level cache so navigating away from the Screener and back doesn't reset
@@ -108,6 +110,9 @@ export default function Screener() {
   // Row "report" opens the in-app report view (metrics only — AI report lives
   // on the Chart page). No popup windows anywhere.
   const [reportFor, setReportFor] = useState<Metrics | null>(null);
+  // Client-side pagination over the full match set (no server cap anymore).
+  const PAGE_SIZE = 100;
+  const [page, setPage] = useState(0);
 
   const nav = useNavigate();
 
@@ -132,11 +137,21 @@ export default function Screener() {
     return g;
   }, [fields]);
 
-  // The rows actually rendered — always sorted by the active column/direction.
+  // All matching rows, sorted by the active column/direction.
   const displayRows = useMemo(
     () => sortRows(rows, req.sort_by, req.sort_dir),
     [rows, req.sort_by, req.sort_dir],
   );
+  const pageCount = Math.max(1, Math.ceil(displayRows.length / PAGE_SIZE));
+  // The single page of rows currently shown.
+  const pageRows = useMemo(
+    () => displayRows.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+    [displayRows, page],
+  );
+  // Snap back to the first page whenever the result set or sort changes.
+  useEffect(() => {
+    setPage(0);
+  }, [rows, req.sort_by, req.sort_dir]);
 
   useEffect(() => {
     api.fields().then(setFields).catch((e) => setError(String(e)));
@@ -342,14 +357,6 @@ export default function Screener() {
             </select>
           </label>
           <label className="ctl">
-            <span>Limit</span>
-            <select value={req.limit} onChange={(e) => update({ limit: Number(e.target.value) })}>
-              {[50, 100, 200, 500].map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </label>
-          <label className="ctl">
             <span>Sort by</span>
             <select
               value={req.sort_by}
@@ -464,6 +471,12 @@ export default function Screener() {
 
       <div className="results-head">
         <strong>{fmtInt(count)}</strong> matches
+        {displayRows.length > 0 && (
+          <span className="dim">
+            {" "}· showing {fmtInt(page * PAGE_SIZE + 1)}–
+            {fmtInt(Math.min((page + 1) * PAGE_SIZE, displayRows.length))}
+          </span>
+        )}
         {error && <span className="err">· {error}</span>}
       </div>
 
@@ -486,7 +499,7 @@ export default function Screener() {
             </tr>
           </thead>
           <tbody>
-            {displayRows.map((m) => (
+            {pageRows.map((m) => (
               <tr key={`${m.exchange}:${m.symbol}`}>
                 <td className="left sym">
                   <button
@@ -541,6 +554,44 @@ export default function Screener() {
           </tbody>
         </table>
       </div>
+
+      {pageCount > 1 && (
+        <div className="pager">
+          <button
+            className="pg-btn"
+            disabled={page === 0}
+            onClick={() => setPage(0)}
+            title="First page"
+          >
+            «
+          </button>
+          <button
+            className="pg-btn"
+            disabled={page === 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+          >
+            ‹ Prev
+          </button>
+          <span className="pg-info">
+            Page {page + 1} of {fmtInt(pageCount)}
+          </span>
+          <button
+            className="pg-btn"
+            disabled={page >= pageCount - 1}
+            onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+          >
+            Next ›
+          </button>
+          <button
+            className="pg-btn"
+            disabled={page >= pageCount - 1}
+            onClick={() => setPage(pageCount - 1)}
+            title="Last page"
+          >
+            »
+          </button>
+        </div>
+      )}
 
       {reportFor && (
         <ReportView m={reportFor} data={{ aiText: null }} onClose={() => setReportFor(null)} />
