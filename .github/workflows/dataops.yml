@@ -15,15 +15,20 @@ on:
         description: "What to run"
         type: choice
         required: true
-        default: "funda-probe"
+        default: "status"
         options:
-          - "eodhd-probe"               # validate EODHD key/plan on one symbol
-          - "eodhd --limit 25"          # smoke-test fundamentals fetch
-          - "eodhd --limit 500"         # a nightly-sized slice
-          - "export --funda --gz"       # publish per-symbol funda files
-          - "status"                    # spine health
-          - "funda-probe"               # raw BSE JSON for one symbol (uses 'symbol')
-          - "announcements --days 7"    # BSE filings (bot-walled from VM; kept for reference)
+          - "status"                            # spine health + last data date
+          - "refresh (nightly + publish)"       # pull today's EOD + corp-actions + readjust, then publish to nginx
+          - "nightly"                           # pull EOD + corp-actions + readjust (no publish)
+          - "publish bundle (export --all)"     # re-export metrics/indices/candles to nginx
+          - "corp-actions"                      # refresh corporate actions only
+          - "readjust"                          # re-apply corporate-action adjustments
+          - "publish funda files"               # per-symbol funda files to nginx
+          - "eodhd --limit 25"                  # smoke-test fundamentals fetch
+          - "eodhd --limit 500"                 # a nightly-sized slice
+          - "eodhd-probe"                       # validate EODHD key/plan on one symbol
+          - "funda-probe"                       # raw BSE JSON for one symbol (uses 'symbol')
+          - "announcements --days 7"            # BSE filings (bot-walled from VM; kept for reference)
       symbol:
         description: "Symbol for funda-probe (letters/digits only)"
         required: false
@@ -54,18 +59,30 @@ jobs:
         run: |
           # Sanitize the symbol to a safe charset (strips spaces, ;, `, $, etc.).
           SYM=$(printf '%s' "$RAWSYM" | tr -cd 'A-Za-z0-9._&-')
+          WEBROOT="/usr/share/nginx/html/data"
+          PYRUN="cd /opt/taureye && . venv/bin/activate && python -m backend.app.dataengine.run"
+          # restorecon: re-label freshly written files so SELinux lets nginx read them.
+          RELABEL="sudo restorecon -R $WEBROOT >/dev/null 2>&1 || true"
           # CHOICE is a GitHub `choice` input — validated against the fixed list
-          # above, so it cannot be an arbitrary string. Build the final args from
-          # the allow-listed choice + sanitized symbol only.
+          # above, so it cannot be an arbitrary string. Build the remote command
+          # from the allow-listed choice + sanitized symbol only. Publish steps
+          # target the nginx web root (NOT export's default public/data) so the
+          # live app actually sees the new data.
           case "$CHOICE" in
-            "funda-probe") ARGS="funda-probe ${SYM:-RELIANCE}" ;;
-            "eodhd-probe") ARGS="eodhd-probe ${SYM:-RELIANCE}" ;;
-            "eodhd --limit 25"|"eodhd --limit 500"|"announcements --days 7"|"export --funda --gz"|"status") ARGS="$CHOICE" ;;
+            "funda-probe") REMOTE="$PYRUN funda-probe ${SYM:-RELIANCE}" ;;
+            "eodhd-probe") REMOTE="$PYRUN eodhd-probe ${SYM:-RELIANCE}" ;;
+            "refresh (nightly + publish)") REMOTE="$PYRUN nightly && $PYRUN export --all --gz --out $WEBROOT && $RELABEL" ;;
+            "nightly") REMOTE="$PYRUN nightly" ;;
+            "corp-actions") REMOTE="$PYRUN corp-actions" ;;
+            "readjust") REMOTE="$PYRUN readjust" ;;
+            "publish bundle (export --all)") REMOTE="$PYRUN export --all --gz --out $WEBROOT && $RELABEL" ;;
+            "publish funda files") REMOTE="$PYRUN export --funda --gz --out $WEBROOT && $RELABEL" ;;
+            "eodhd --limit 25"|"eodhd --limit 500"|"announcements --days 7"|"status") REMOTE="$PYRUN $CHOICE" ;;
             *) echo "rejected command: $CHOICE"; exit 1 ;;
           esac
-          echo "::group::dataengine run $ARGS"
+          echo "::group::dataengine: $CHOICE"
           # The EODHD key is passed via stdin (not the command line), so it never
           # appears in remote process lists; GitHub masks it in this job's logs.
           printf '%s\n' "$EODHD_API_KEY" | ssh -i ~/.ssh/id_deploy "$U@$H" \
-            "read -r EODHD_API_KEY; export EODHD_API_KEY; cd /opt/taureye && . venv/bin/activate && python -m backend.app.dataengine.run $ARGS"
+            "read -r EODHD_API_KEY; export EODHD_API_KEY; $REMOTE"
           echo "::endgroup::"
