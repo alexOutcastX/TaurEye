@@ -111,7 +111,7 @@ export default function Screener() {
   // on the Chart page). No popup windows anywhere.
   const [reportFor, setReportFor] = useState<Metrics | null>(null);
   // Client-side pagination over the full match set (no server cap anymore).
-  const PAGE_SIZE = 100;
+  const [pageSize, setPageSize] = useState(100);
   const [page, setPage] = useState(0);
 
   const nav = useNavigate();
@@ -142,16 +142,16 @@ export default function Screener() {
     () => sortRows(rows, req.sort_by, req.sort_dir),
     [rows, req.sort_by, req.sort_dir],
   );
-  const pageCount = Math.max(1, Math.ceil(displayRows.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(displayRows.length / pageSize));
   // The single page of rows currently shown.
   const pageRows = useMemo(
-    () => displayRows.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
-    [displayRows, page],
+    () => displayRows.slice(page * pageSize, page * pageSize + pageSize),
+    [displayRows, page, pageSize],
   );
-  // Snap back to the first page whenever the result set or sort changes.
+  // Snap back to the first page whenever the result set, sort, or page size changes.
   useEffect(() => {
     setPage(0);
-  }, [rows, req.sort_by, req.sort_dir]);
+  }, [rows, req.sort_by, req.sort_dir, pageSize]);
 
   useEffect(() => {
     api.fields().then(setFields).catch((e) => setError(String(e)));
@@ -470,14 +470,24 @@ export default function Screener() {
       <AdSlot label="Screener banner" height={70} name="screener" />
 
       <div className="results-head">
-        <strong>{fmtInt(count)}</strong> matches
-        {displayRows.length > 0 && (
-          <span className="dim">
-            {" "}· showing {fmtInt(page * PAGE_SIZE + 1)}–
-            {fmtInt(Math.min((page + 1) * PAGE_SIZE, displayRows.length))}
-          </span>
-        )}
-        {error && <span className="err">· {error}</span>}
+        <span className="results-count">
+          <strong>{fmtInt(count)}</strong> matches
+          {displayRows.length > 0 && (
+            <span className="dim">
+              {" "}· showing {fmtInt(page * pageSize + 1)}–
+              {fmtInt(Math.min((page + 1) * pageSize, displayRows.length))}
+            </span>
+          )}
+          {error && <span className="err">· {error}</span>}
+        </span>
+        <label className="per-page">
+          <span>Rows</span>
+          <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+            {[20, 50, 100, 200].map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="table-wrap">
