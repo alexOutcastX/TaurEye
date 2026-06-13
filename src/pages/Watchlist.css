@@ -5,6 +5,60 @@
 .wl-sub { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
 .wl-msg { color: var(--accent); font-size: 13px; margin-top: var(--sp-2); }
 
+/* ---- watchlist tabs + management ---- */
+.wl-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-top: var(--sp-3);
+}
+.wl-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.wl-tab:hover { border-color: var(--border-strong); color: var(--text); }
+.wl-tab.on { border-color: var(--accent); color: var(--accent); }
+.wl-tab-count {
+  font-size: 11px;
+  color: var(--text-faint);
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.wl-tab.on .wl-tab-count { color: var(--accent); }
+.wl-tab.add { border-style: dashed; }
+.wl-tabs-spacer { flex: 1; }
+.wl-mng {
+  padding: 7px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.wl-mng:hover { border-color: var(--border-strong); }
+.wl-mng.danger:hover:not(:disabled) { color: var(--down); border-color: var(--down); }
+.wl-mng:disabled { opacity: 0.45; cursor: default; }
+.wl-move {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--r-sm);
+  padding: 4px 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .wl-empty { margin-top: var(--sp-6); }
 .wl-empty p { color: var(--text-muted); }
 .wl .btn-link {

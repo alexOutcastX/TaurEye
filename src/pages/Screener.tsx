@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import ReportView from "../components/ReportView";
-import { isWatched, onWatchlistChange, toggleWatch } from "../lib/watchlist";
+import { isWatched, onWatchlistChange, type WatchItem } from "../lib/watchlist";
+import WatchlistMenu from "../components/WatchlistMenu";
 import type {
   Exchange,
   FieldDef,
@@ -111,6 +112,8 @@ export default function Screener() {
   // Row "report" opens the in-app report view (metrics only — AI report lives
   // on the Chart page). No popup windows anywhere.
   const [reportFor, setReportFor] = useState<Metrics | null>(null);
+  // Open watchlist picker (which list to add a scrip to), anchored to its star.
+  const [wlMenu, setWlMenu] = useState<{ item: WatchItem; rect: DOMRect } | null>(null);
   // Client-side pagination over the full match set (no server cap anymore).
   const [pageSize, setPageSize] = useState(100);
   const [page, setPage] = useState(0);
@@ -125,8 +128,12 @@ export default function Screener() {
       `/app/chart?symbol=${encodeURIComponent(m.symbol)}` +
         `&name=${encodeURIComponent(m.name)}&exchange=${encodeURIComponent(m.exchange)}`,
     );
-  const watch = (m: Metrics) =>
-    toggleWatch({ symbol: m.symbol, name: m.name, exchange: m.exchange, addedPrice: m.close });
+  // Open the watchlist picker for this scrip, anchored to the clicked star.
+  const watch = (m: Metrics, e: React.MouseEvent<HTMLButtonElement>) =>
+    setWlMenu({
+      item: { symbol: m.symbol, name: m.name, exchange: m.exchange, addedPrice: m.close },
+      rect: e.currentTarget.getBoundingClientRect(),
+    });
 
   const fieldMap = useMemo(
     () => Object.fromEntries(fields.map((f) => [f.key, f])),
@@ -542,8 +549,8 @@ export default function Screener() {
                   </button>
                   <button
                     className={`ra-btn star ${isWatched(m.symbol) ? "on" : ""}`}
-                    title={isWatched(m.symbol) ? "Remove from watchlist" : "Add to watchlist"}
-                    onClick={() => watch(m)}
+                    title="Add to a watchlist"
+                    onClick={(e) => watch(m, e)}
                   >
                     {isWatched(m.symbol) ? "★" : "☆"}
                   </button>
@@ -606,6 +613,14 @@ export default function Screener() {
 
       {reportFor && (
         <ReportView m={reportFor} data={{ aiText: null }} onClose={() => setReportFor(null)} />
+      )}
+
+      {wlMenu && (
+        <WatchlistMenu
+          item={wlMenu.item}
+          anchor={wlMenu.rect}
+          onClose={() => setWlMenu(null)}
+        />
       )}
     </section>
   );
