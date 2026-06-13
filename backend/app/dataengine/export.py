@@ -226,32 +226,24 @@ def export_ohlc(out: Path, *, window: int, gz: bool) -> dict:
 
 
 def export_candles(out: Path, *, gz: bool) -> dict:
-    """Full per-symbol ADJUSTED history, one file each, for on-demand charts."""
+    """Full per-symbol ADJUSTED history, one file each, for on-demand charts.
+
+    A scrip that changed ISIN has its regimes stitched into one continuous series
+    (see dataengine.merge) so the chart shows the whole history at the live price
+    scale — not a frozen or truncated single regime."""
+    from .merge import merged_history, symbol_isins
+
     cdir = out / "candles"
     cdir.mkdir(parents=True, exist_ok=True)
     with connect() as conn:
-        secs = conn.execute(
-            """SELECT isin, nse_symbol, bse_symbol FROM securities s
-               WHERE active=1 AND EXISTS (SELECT 1 FROM prices p WHERE p.isin=s.isin)"""
-        ).fetchall()
+        sym_isins = symbol_isins(conn)
         written = 0
         total_raw = 0
-        for s in secs:
-            sym = _symbol(s)
-            if not sym:
-                continue
-            rs = conn.execute(
-                """SELECT date, open, high, low, close, volume, adj_factor, adj_close
-                   FROM prices WHERE isin=? ORDER BY date""",
-                (s["isin"],),
-            ).fetchall()
-            candles = []
-            for r in rs:
-                f = r["adj_factor"] or 1.0
-                candles.append([
-                    r["date"], round(r["open"] * f, 4), round(r["high"] * f, 4),
-                    round(r["low"] * f, 4), round(r["adj_close"], 4), int(r["volume"]),
-                ])
+        for sym, isins in sym_isins.items():
+            candles = [
+                [c["date"], c["open"], c["high"], c["low"], c["close"], c["volume"]]
+                for c in merged_history(conn, isins)
+            ]
             payload = {"s": sym, "adjusted": True,
                        "cols": ["date", "o", "h", "l", "c", "v"], "candles": candles}
             raw, _ = _write(cdir / f"{sym}.json", payload, gz=gz)

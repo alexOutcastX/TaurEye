@@ -66,6 +66,19 @@ def update_master() -> int:
                      listed_on=excluded.listed_on, active=1, updated_at=excluded.updated_at""",
                 (m.isin, m.name, m.nse_symbol, m.series, m.face_value, m.listed_on, _now()),
             )
+        # Retire superseded ISINs: when a scrip changes ISIN (e.g. a face-value
+        # split mints a new ISIN), the master maps the symbol to the NEW ISIN but
+        # the OLD ISIN row lingers as active=1 with the same nse_symbol. Two active
+        # rows for one symbol make the exporter write the per-symbol candle/metrics
+        # file twice and the stale one can win — freezing that stock's price/chart.
+        # The current NSE master is authoritative, so deactivate any other active
+        # row carrying a symbol we just mapped to a different ISIN.
+        for m in rows:
+            conn.execute(
+                "UPDATE securities SET active=0, updated_at=? "
+                "WHERE nse_symbol=? AND isin<>?",
+                (_now(), m.nse_symbol, m.isin),
+            )
         _record(conn, "-", "master", "ok", rows=len(rows), started=started)
     return len(rows)
 
