@@ -1,11 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { fmtNum, fmtPct, signClass } from "../lib/format";
 import {
-  getWatchlist,
+  createWatchlist,
+  deleteWatchlist,
+  getWatchlists,
+  moveToWatchlist,
   onWatchlistChange,
-  removeWatch,
+  removeFromWatchlist,
+  renameWatchlist,
+  type Watchlist as WL,
   type WatchItem,
 } from "../lib/watchlist";
 import { COSTS, spend } from "../lib/economy";
@@ -25,14 +30,26 @@ type Busy = { symbol: string; kind: "report" | "ai" } | null;
 
 export default function Watchlist() {
   const nav = useNavigate();
-  const [items, setItems] = useState<WatchItem[]>(getWatchlist());
+  const [lists, setLists] = useState<WL[]>(getWatchlists());
+  const [activeId, setActiveId] = useState<string>(lists[0]?.id ?? "default");
   const [quotes, setQuotes] = useState<Record<string, Quote | null>>({});
   const [view, setView] = useState<{ m: Metrics; data: ReportData } | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // Keep the list in sync with adds/removes from anywhere (screener, other tab).
-  useEffect(() => onWatchlistChange(() => setItems(getWatchlist())), []);
+  // Keep lists in sync with adds/removes from anywhere (screener, chart, tab).
+  useEffect(() => onWatchlistChange(() => setLists(getWatchlists())), []);
+
+  // Keep the active selection valid as lists are created/deleted.
+  useEffect(() => {
+    if (!lists.some((l) => l.id === activeId)) setActiveId(lists[0]?.id ?? "default");
+  }, [lists, activeId]);
+
+  const active = useMemo(
+    () => lists.find((l) => l.id === activeId) ?? lists[0],
+    [lists, activeId],
+  );
+  const items = useMemo(() => active?.items ?? [], [active]);
 
   const loadQuotes = useCallback(async (list: WatchItem[]) => {
     const entries = await Promise.all(
@@ -49,7 +66,7 @@ export default function Watchlist() {
         }
       }),
     );
-    setQuotes(Object.fromEntries(entries));
+    setQuotes((q) => ({ ...q, ...Object.fromEntries(entries) }));
   }, []);
 
   useEffect(() => {
@@ -61,6 +78,27 @@ export default function Watchlist() {
       `/app/chart?symbol=${encodeURIComponent(w.symbol)}` +
         `&name=${encodeURIComponent(w.name)}&exchange=${encodeURIComponent(w.exchange)}`,
     );
+
+  // ---- list management ----
+  const addList = () => {
+    const name = window.prompt("Name the new watchlist");
+    if (!name?.trim()) return;
+    const wl = createWatchlist(name);
+    setActiveId(wl.id);
+  };
+  const rename = () => {
+    if (!active) return;
+    const name = window.prompt("Rename watchlist", active.name);
+    if (name?.trim()) renameWatchlist(active.id, name);
+  };
+  const remove = () => {
+    if (!active) return;
+    const ok = window.confirm(
+      `Delete “${active.name}”?` +
+        (active.items.length ? ` Its ${active.items.length} scrip(s) will be removed.` : ""),
+    );
+    if (ok) deleteWatchlist(active.id);
+  };
 
   // Generate a report without leaving the page. "report" = factual (metrics
   // only); "ai" = the structured AI report (credit-gated, free while disabled).
@@ -89,12 +127,50 @@ export default function Watchlist() {
     }
   };
 
+  const otherLists = lists.filter((l) => l.id !== active?.id);
+
   return (
     <section className="wl">
       <header className="wl-head">
-        <h1>Watchlist</h1>
+        <h1>Watchlists</h1>
         <span className="wl-count">{items.length} scrip{items.length === 1 ? "" : "s"}</span>
       </header>
+
+      {/* list selector + management */}
+      <div className="wl-tabs">
+        {lists.map((l) => (
+          <button
+            key={l.id}
+            type="button"
+            className={`wl-tab${l.id === active?.id ? " on" : ""}`}
+            onClick={() => setActiveId(l.id)}
+          >
+            {l.name}
+            <span className="wl-tab-count">{l.items.length}</span>
+          </button>
+        ))}
+        <button type="button" className="wl-tab add" onClick={addList} title="Create a watchlist">
+          + New
+        </button>
+        <span className="wl-tabs-spacer" />
+        {active && (
+          <>
+            <button type="button" className="wl-mng" onClick={rename} title="Rename this watchlist">
+              Rename
+            </button>
+            <button
+              type="button"
+              className="wl-mng danger"
+              onClick={remove}
+              disabled={lists.length <= 1}
+              title={lists.length <= 1 ? "Keep at least one watchlist" : "Delete this watchlist"}
+            >
+              Delete
+            </button>
+          </>
+        )}
+      </div>
+
       <p className="wl-sub">
         Saved on this device · end-of-day quotes · change shown since you added each scrip.
       </p>
@@ -102,7 +178,7 @@ export default function Watchlist() {
 
       {items.length === 0 ? (
         <div className="wl-empty">
-          <p>Your watchlist is empty.</p>
+          <p>“{active?.name}” is empty.</p>
           <button className="btn-link" onClick={() => nav("/app/screener")}>
             Add scrips from the Screener →
           </button>
@@ -185,11 +261,32 @@ export default function Watchlist() {
                       >
                         {isBusy && busy?.kind === "ai" ? "…" : "✨ AI"}
                       </button>
+                      {otherLists.length > 0 && (
+                        <select
+                          className="mini wl-move"
+                          title="Move to another watchlist"
+                          value=""
+                          onChange={(e) => {
+                            if (active && e.target.value) {
+                              moveToWatchlist(active.id, e.target.value, w.symbol);
+                            }
+                          }}
+                        >
+                          <option value="" disabled>
+                            Move…
+                          </option>
+                          {otherLists.map((l) => (
+                            <option key={l.id} value={l.id}>
+                              {l.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       <button
                         className="mini danger"
-                        title="Remove from watchlist"
+                        title="Remove from this watchlist"
                         disabled={!!busy}
-                        onClick={() => removeWatch(w.symbol)}
+                        onClick={() => active && removeFromWatchlist(active.id, w.symbol)}
                       >
                         ✕
                       </button>

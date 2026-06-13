@@ -5,6 +5,7 @@ import { useAuth } from "./auth/AuthContext";
 import { storeRefCode } from "./lib/referral";
 import AppShell from "./app/AppShell";
 import BootGate from "./components/BootGate";
+import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Screener from "./pages/Screener";
@@ -58,7 +59,8 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="screener" replace />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
         <Route path="screener" element={<Screener />} />
         <Route path="chart" element={<Chart />} />
         <Route path="indices" element={<GlobalIndices />} />

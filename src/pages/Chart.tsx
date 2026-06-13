@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   CandlestickSeries,
@@ -26,7 +26,13 @@ import { detectPatterns, type DetectedPattern } from "../lib/patterns";
 import { COSTS, spend } from "../lib/economy";
 import ReportView, { type ReportData } from "../components/ReportView";
 import { buildAiReport } from "../lib/reportData";
-import { isWatched, onWatchlistChange, toggleWatch } from "../lib/watchlist";
+import {
+  isWatched,
+  listsWithSymbol,
+  onWatchlistChange,
+  type Watchlist,
+} from "../lib/watchlist";
+import WatchlistMenu from "../components/WatchlistMenu";
 import { addAlert, alertsForSymbol, onAlertsChange, removeAlert, type AlertOp } from "../lib/alerts";
 import "./Chart.css";
 
@@ -142,6 +148,8 @@ export default function Chart() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [watched, setWatched] = useState(isWatched(symbol));
+  const [inLists, setInLists] = useState<Watchlist[]>(() => listsWithSymbol(symbol));
+  const [wlRect, setWlRect] = useState<DOMRect | null>(null);
   const [patterns, setPatterns] = useState<DetectedPattern[]>([]);
   const [drawLines, setDrawLines] = useState(false);
   const [ai, setAi] = useState<{ text: string | null; note: string | null }>({ text: null, note: null });
@@ -162,8 +170,12 @@ export default function Chart() {
   const drawSeriesRef = useRef<ISeriesApi<"Line">[]>([]);
   const maRefs = useRef<Map<number, ISeriesApi<"Line">>>(new Map());
 
-  useEffect(() => setWatched(isWatched(symbol)), [symbol]);
-  useEffect(() => onWatchlistChange(() => setWatched(isWatched(symbol))), [symbol]);
+  const syncWatch = useCallback(() => {
+    setWatched(isWatched(symbol));
+    setInLists(listsWithSymbol(symbol));
+  }, [symbol]);
+  useEffect(() => syncWatch(), [syncWatch]);
+  useEffect(() => onWatchlistChange(syncWatch), [syncWatch]);
   useEffect(() => setSymAlerts(alertsForSymbol(symbol)), [symbol]);
   useEffect(() => onAlertsChange(() => setSymAlerts(alertsForSymbol(symbol))), [symbol]);
 
@@ -375,9 +387,10 @@ export default function Chart() {
     }
   }, [bars, source, drawLines]);
 
-  const toggle = () => {
+  // Open the watchlist picker anchored to the watch button.
+  const openWatchMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!symbol) return;
-    setWatched(toggleWatch({ symbol, name, exchange, addedPrice: info?.close }));
+    setWlRect(e.currentTarget.getBoundingClientRect());
   };
   const toggleMA = (period: number) =>
     setEnabled((prev) => {
@@ -474,8 +487,20 @@ export default function Chart() {
           <button className="ai-btn" onClick={runReport} disabled={reportBusy || !info} title="Structured AI report — opens printable page (Save as PDF)">
             {reportBusy ? "Building…" : "📄 AI Report"}
           </button>
-          <button className={`watch-btn ${watched ? "on" : ""}`} onClick={toggle}>
-            {watched ? "★ Watching" : "☆ Watchlist"}
+          <button
+            className={`watch-btn ${watched ? "on" : ""}`}
+            onClick={openWatchMenu}
+            title={
+              inLists.length
+                ? `In: ${inLists.map((l) => l.name).join(", ")}`
+                : "Add to a watchlist"
+            }
+          >
+            {watched
+              ? inLists.length === 1
+                ? `★ ${inLists[0].name}`
+                : `★ In ${inLists.length} lists`
+              : "☆ Watchlist"}
           </button>
           <button className={`watch-btn ${showAlert ? "on" : ""}`} onClick={openAlertForm}>
             🔔 Alert
@@ -674,6 +699,14 @@ export default function Chart() {
 
       {report && info && (
         <ReportView m={info} data={report} onClose={() => setReport(null)} />
+      )}
+
+      {wlRect && (
+        <WatchlistMenu
+          item={{ symbol, name, exchange, addedPrice: info?.close }}
+          anchor={wlRect}
+          onClose={() => setWlRect(null)}
+        />
       )}
     </section>
   );
