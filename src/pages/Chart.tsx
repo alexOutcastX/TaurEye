@@ -23,7 +23,6 @@ import TradingViewChart from "../components/TradingViewChart";
 import BrokerCTA from "../components/BrokerCTA";
 import Markdown from "../components/Markdown";
 import { detectPatterns, type DetectedPattern } from "../lib/patterns";
-import { COSTS, spend } from "../lib/economy";
 import ReportView, { type ReportData } from "../components/ReportView";
 import { buildAiReport } from "../lib/reportData";
 import {
@@ -405,11 +404,8 @@ export default function Chart() {
 
   const runAi = async () => {
     if (!symbol || aiBusy) return;
-    // credit-gated premium feature (free while economy is disabled)
-    if (!spend("ai_analysis", COSTS.aiAnalysis)) {
-      setAi({ text: null, note: "Not enough credits." });
-      return;
-    }
+    // Credits are charged SERVER-SIDE by the ai-analysis Edge Function (the single
+    // source of truth) — do NOT debit client-side here or it double-bills.
     setAiBusy(true);
     setAi({ text: null, note: null });
     try {
@@ -417,6 +413,8 @@ export default function Chart() {
       if (res.text) setAi({ text: res.text, note: res.disclaimer });
       else if (!res.configured)
         setAi({ text: null, note: "AI analysis isn't configured yet (add an LLM API key on the server)." });
+      else if (res.error === "insufficient_credits")
+        setAi({ text: null, note: "Not enough credits for AI analysis." });
       else setAi({ text: null, note: res.error ? `AI error: ${res.error}` : "AI returned no text." });
     } catch (e) {
       setAi({ text: null, note: String(e) });
@@ -429,10 +427,7 @@ export default function Chart() {
   // (Print -> Save as PDF). Credit-gated like AI analysis (free in preview).
   const runReport = async () => {
     if (!symbol || !info || reportBusy) return;
-    if (!spend("advanced_report", COSTS.advancedReport)) {
-      setAi({ text: null, note: "Not enough credits." });
-      return;
-    }
+    // Charged server-side by the ai-report Edge Function — no client-side debit.
     setReportBusy(true);
     try {
       const pats = patterns.map((p) => ({ label: p.label, detail: p.detail ?? null }));
@@ -441,6 +436,8 @@ export default function Chart() {
         setReport(res.report);
       } else if (!res.configured) {
         setAi({ text: null, note: "AI report isn't configured yet (deploy the ai-report function)." });
+      } else if (res.error === "insufficient_credits") {
+        setAi({ text: null, note: "Not enough credits for an AI report." });
       } else {
         setAi({ text: null, note: res.error ? `Report error: ${res.error}` : "Report unavailable." });
       }

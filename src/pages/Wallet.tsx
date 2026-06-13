@@ -52,13 +52,13 @@ export default function Wallet() {
       {cloud ? (
         <div className="wallet-note">
           Credits are <strong>live</strong> — earning is on (signup bonus, daily
-          claim). Premium actions stay <strong>free during preview</strong>; nothing
-          is charged yet.
+          claim). Premium <strong>AI actions</strong> (analysis &amp; reports) are
+          metered by credits and charged server-side.
         </div>
       ) : (
         <div className="wallet-note">
-          Credits are currently <strong>off (preview)</strong> — every feature is
-          free and nothing is charged. Sign in to use the live cloud wallet.
+          You’re browsing as a <strong>guest</strong> — screening and charts are
+          free. Sign in to use the live cloud wallet and run premium AI actions.
         </div>
       )}
 

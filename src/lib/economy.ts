@@ -1,13 +1,15 @@
-// Credit economy — LOCAL/GUEST engine. Numbers are staged; the economy is OFF.
+// Credit economy — LOCAL/GUEST engine. Numbers are staged per ECONOMY.md.
 //
 // The structure (balance, append-only ledger, faucets, sinks, gating, ads) is
-// real. COSTS/REWARDS now hold the agreed values (see ECONOMY.md), but
-// ECONOMY_ENABLED is still false, so nothing is charged, nothing is recorded,
-// and every premium action is unlocked/free. To activate: run the server SQL +
-// functions, switch the UI to the server wallet (src/lib/credits.ts), then set
-// ECONOMY_ENABLED = true. Keep these numbers in sync with supabase/credits.sql.
+// real. This is the guest/offline path; signed-in users on a configured Supabase
+// project use the server wallet (src/lib/credits.ts) instead — see useCredits.ts.
+// The economy is now LIVE (ECONOMY_ENABLED = true): the local ledger records and
+// gates for guests, while the cloud wallet is authoritative for accounts. Premium
+// AI sinks (analysis/report) are charged SERVER-SIDE by the Edge Functions and
+// only actually debit once the `CHARGE_CREDITS=true` function secret is set.
+// Keep these numbers in sync with supabase/credits.sql and the Edge Functions.
 
-export const ECONOMY_ENABLED = false;
+export const ECONOMY_ENABLED = true;
 
 // Credits charged to use premium features (sinks).
 // NOTE: aiAnalysis is charged SERVER-SIDE by the ai-analysis Edge Function once
