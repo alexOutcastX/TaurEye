@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import AuthPanel from "../components/AuthPanel";
 import BullMark from "../components/BullMark";
@@ -92,14 +92,7 @@ export default function Landing() {
 
       <section className="lp-features">
         <h2 className="lp-sec-title">Everything you need to research a stock</h2>
-        <div className="lp-feature-grid">
-          {FEATURES.map((f) => (
-            <article key={f.title} className="lp-feature">
-              <h3>{f.title}</h3>
-              <p>{f.body}</p>
-            </article>
-          ))}
-        </div>
+        <FeatureCarousel items={FEATURES} />
       </section>
 
       <section className="lp-compliance">
@@ -137,6 +130,102 @@ export default function Landing() {
         <span>© {new Date().getFullYear()} TaurEye · For research, not investment advice.</span>
         <span>NSE · BSE · End-of-day data</span>
       </footer>
+    </div>
+  );
+}
+
+// Auto-advancing feature carousel: loops every 3s, pauses while hovered so the
+// prev/next arrows (revealed on hover) are usable; dots give touch users manual
+// control. Cards-per-view is responsive (1 / 2 / 3).
+function FeatureCarousel({ items }: { items: { title: string; body: string }[] }) {
+  const [perView, setPerView] = useState(3);
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    const calc = () => {
+      const w = window.innerWidth;
+      setPerView(w >= 1024 ? 3 : w >= 640 ? 2 : 1);
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
+
+  const maxIndex = Math.max(0, items.length - perView);
+  // Keep the index in range when perView changes (e.g. on resize/rotate).
+  useEffect(() => {
+    setIndex((i) => Math.min(i, maxIndex));
+  }, [maxIndex]);
+
+  // Autoplay: advance one step every 3s, wrapping back to the start. Paused on
+  // hover so a reader/clicker isn't fighting the timer.
+  useEffect(() => {
+    if (paused) return;
+    const t = window.setInterval(() => {
+      setIndex((i) => (i >= maxIndex ? 0 : i + 1));
+    }, 3000);
+    return () => window.clearInterval(t);
+  }, [paused, maxIndex]);
+
+  const go = (delta: number) =>
+    setIndex((i) => {
+      const n = i + delta;
+      if (n < 0) return maxIndex;
+      if (n > maxIndex) return 0;
+      return n;
+    });
+
+  return (
+    <div
+      className="lp-carousel"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="lp-carousel-viewport">
+        <div
+          className="lp-carousel-track"
+          style={{ transform: `translateX(-${index * (100 / perView)}%)` }}
+        >
+          {items.map((f) => (
+            <div className="lp-slide" key={f.title} style={{ flex: `0 0 ${100 / perView}%` }}>
+              <article className="lp-feature">
+                <h3>{f.title}</h3>
+                <p>{f.body}</p>
+              </article>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className="lp-carousel-arrow left"
+        onClick={() => go(-1)}
+        aria-label="Previous"
+      >
+        ‹
+      </button>
+      <button
+        type="button"
+        className="lp-carousel-arrow right"
+        onClick={() => go(1)}
+        aria-label="Next"
+      >
+        ›
+      </button>
+
+      <div className="lp-carousel-dots">
+        {Array.from({ length: maxIndex + 1 }).map((_, i) => (
+          <button
+            type="button"
+            key={i}
+            className={`lp-dot${i === index ? " on" : ""}`}
+            onClick={() => setIndex(i)}
+            aria-label={`Go to slide ${i + 1}`}
+          />
+        ))}
+      </div>
     </div>
   );
 }

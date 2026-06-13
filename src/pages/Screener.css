@@ -156,10 +156,30 @@
 .btn-run:disabled { opacity: 0.6; cursor: default; }
 
 /* ---- results ---- */
-.results-head { margin: var(--sp-5) 0 var(--sp-2); color: var(--text-muted); font-size: 13px; }
+.results-head {
+  margin: var(--sp-5) 0 var(--sp-2);
+  color: var(--text-muted);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
 .results-head strong { color: var(--text); font-size: 15px; }
 .results-head .dim { color: var(--text-muted); }
 .err { color: var(--down); }
+
+.per-page { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.per-page > span { color: var(--text-muted); }
+.per-page select {
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+}
 
 /* ---- pagination ---- */
 .pager {
