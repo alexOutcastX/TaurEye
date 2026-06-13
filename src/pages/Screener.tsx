@@ -486,8 +486,8 @@ export default function Screener() {
             </tr>
           </thead>
           <tbody>
-            {displayRows.map((m, i) => (
-              <tr key={`${i}:${m.exchange}:${m.symbol}`}>
+            {displayRows.map((m) => (
+              <tr key={`${m.exchange}:${m.symbol}`}>
                 <td className="left sym">
                   <button
                     type="button"
