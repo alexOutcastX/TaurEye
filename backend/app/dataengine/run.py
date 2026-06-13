@@ -244,6 +244,28 @@ def cmd_selftest() -> None:
     assert abs(pre["adj_close"] - 100.0) < 1e-6, pre      # 200 * 0.5
     assert abs(post["adj_close"] - 100.0) < 1e-6, post    # 100 * 1.0
     print("adjust:    OK  (1:1 bonus -> pre-ex 200 back-adjusts to 100, continuous)")
+
+    # --- merge: stitch two ISIN regimes of one scrip into a continuous series ---
+    from .merge import merge_regimes
+    # OLD ISIN: deep history at HALF the live scale (e.g. pre a 1:2 face-value
+    # split). NEW ISIN: live bars. They overlap on 2025-06-16.
+    old = [
+        {"date": "2025-01-01", "open": 200, "high": 210, "low": 195, "close": 200, "volume": 10},
+        {"date": "2025-06-16", "open": 220, "high": 225, "low": 215, "close": 220, "volume": 12},
+    ]
+    new = [
+        {"date": "2025-06-16", "open": 440, "high": 450, "low": 430, "close": 440, "volume": 30},
+        {"date": "2026-06-12", "open": 460, "high": 470, "low": 455, "close": 460, "volume": 33},
+    ]
+    merged = merge_regimes([new, old])  # live-first
+    dates = [c["date"] for c in merged]
+    assert dates == ["2025-01-01", "2025-06-16", "2026-06-12"], dates
+    # live bar untouched (latest = CMP); old deep bar scaled x2 to align (200->400).
+    assert merged[-1]["close"] == 460, merged[-1]
+    assert abs(merged[0]["close"] - 400.0) < 1e-6, merged[0]
+    # the overlap date keeps the LIVE value, not the old one.
+    assert merged[1]["close"] == 440, merged[1]
+    print("merge:     OK  (old regime scaled x2 to the live scale; latest bar = CMP)")
     print("selftest:  ALL PASSED")
 
 
