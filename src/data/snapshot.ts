@@ -99,10 +99,24 @@ function loadMetrics(): Promise<MetricsBundle> {
     metricsCache = getJSON<MetricsBundle>(
       "metrics.json",
       "Run `taureye export` and (re)deploy the data bundle.",
-    ).catch((e) => {
-      metricsCache = null;
-      throw e;
-    });
+    )
+      .then((s) => {
+        // Defensive de-dup: drop any repeated symbol+exchange rows from the
+        // bundle. Duplicates hide in the default order but cluster together once
+        // you sort (e.g. by % change), showing up as doubled screener rows.
+        const seen = new Set<string>();
+        s.metrics = s.metrics.filter((m) => {
+          const k = `${m.symbol}|${m.exchange}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+        return s;
+      })
+      .catch((e) => {
+        metricsCache = null;
+        throw e;
+      });
   }
   return metricsCache;
 }
