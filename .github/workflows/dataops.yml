@@ -18,6 +18,7 @@ on:
         default: "status"
         options:
           - "status"                            # spine health + last data date
+          - "kill stuck data jobs"              # free a locked DB (stuck/zombie engine process)
           - "refresh (nightly + publish)"       # pull today's EOD + corp-actions + readjust, then publish to nginx
           - "nightly"                           # pull EOD + corp-actions + readjust (no publish)
           - "publish bundle (export --all)"     # re-export metrics/indices/candles to nginx
@@ -71,6 +72,7 @@ jobs:
           case "$CHOICE" in
             "funda-probe") REMOTE="$PYRUN funda-probe ${SYM:-RELIANCE}" ;;
             "eodhd-probe") REMOTE="$PYRUN eodhd-probe ${SYM:-RELIANCE}" ;;
+            "kill stuck data jobs") REMOTE="pkill -9 -f 'app[.]dataengine[.]run' || true; sleep 1; pgrep -af 'app[.]dataengine[.]run' || echo 'OK: no data-engine processes running — DB lock released'" ;;
             "refresh (nightly + publish)") REMOTE="$PYRUN nightly && $PYRUN export --all --gz --out $WEBROOT && $RELABEL" ;;
             "nightly") REMOTE="$PYRUN nightly" ;;
             "corp-actions") REMOTE="$PYRUN corp-actions" ;;
