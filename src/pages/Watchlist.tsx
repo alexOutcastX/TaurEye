@@ -13,7 +13,6 @@ import {
   type Watchlist as WL,
   type WatchItem,
 } from "../lib/watchlist";
-import { COSTS, spend } from "../lib/economy";
 import { buildAiReport } from "../lib/reportData";
 import ReportView, { type ReportData } from "../components/ReportView";
 import type { Metrics } from "../api/types";
@@ -105,10 +104,8 @@ export default function Watchlist() {
   const openReport = async (w: WatchItem, kind: "report" | "ai") => {
     if (busy) return;
     setMsg(null);
-    if (kind === "ai" && !spend("advanced_report", COSTS.advancedReport)) {
-      setMsg("Not enough credits for an AI report.");
-      return;
-    }
+    // The AI report is charged server-side by the ai-report Edge Function — no
+    // client-side debit here (avoids double-billing once charging is on).
     setBusy({ symbol: w.symbol, kind });
     try {
       const m = await api.metrics(w.symbol);
@@ -119,6 +116,7 @@ export default function Watchlist() {
       const res = await buildAiReport(w.symbol, m);
       if (res.report) setView({ m, data: res.report });
       else if (!res.configured) setMsg("AI report isn't configured yet (deploy the ai-report function).");
+      else if (res.error === "insufficient_credits") setMsg("Not enough credits for an AI report.");
       else setMsg(res.error ? `Report error: ${res.error}` : "Report unavailable.");
     } catch (e) {
       setMsg(String(e));
