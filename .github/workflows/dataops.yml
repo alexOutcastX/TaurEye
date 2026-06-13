@@ -83,6 +83,8 @@ jobs:
           echo "::group::dataengine: $CHOICE"
           # The EODHD key is passed via stdin (not the command line), so it never
           # appears in remote process lists; GitHub masks it in this job's logs.
-          printf '%s\n' "$EODHD_API_KEY" | ssh -i ~/.ssh/id_deploy "$U@$H" \
+          printf '%s\n' "$EODHD_API_KEY" | ssh -i ~/.ssh/id_deploy \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=40 -o ConnectTimeout=20 \
+            "$U@$H" \
             "read -r EODHD_API_KEY; export EODHD_API_KEY; $REMOTE"
           echo "::endgroup::"
