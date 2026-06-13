@@ -51,7 +51,7 @@ export default function AuthPanel() {
 
   // After an OAuth round-trip (or any established session), forward into the app.
   useEffect(() => {
-    if (!loading && isAuthed) nav("/app/screener", { replace: true });
+    if (!loading && isAuthed) nav("/app/dashboard", { replace: true });
   }, [loading, isAuthed, nav]);
 
   const social = async (id: OAuthProvider) => {
@@ -88,7 +88,7 @@ export default function AuthPanel() {
       setStep("email");
       return;
     }
-    nav("/app/screener");
+    nav("/app/dashboard");
   };
 
   return (
