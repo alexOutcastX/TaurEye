@@ -71,7 +71,8 @@ function sortRows(rows: Metrics[], key: string, dir: "asc" | "desc"): Metrics[] 
 }
 
 const DEFAULT_REQ: ScreenRequest = {
-  filters: [{ field: "change_pct", op: "gt", value: 2 }],
+  // Default to no filters — the screener opens on the full universe.
+  filters: [],
   logic: "AND",
   exchange: null,
   query: "",
