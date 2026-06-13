@@ -141,6 +141,63 @@ def cmd_status() -> None:
               f"date={r['trade_date']} rows={r['rows']} q={r['quarantined']}")
 
 
+def cmd_inspect(symbol: str) -> None:
+    """Diagnose one symbol's price spine: which securities row(s) it maps to, the
+    ISIN(s), and the first/last price dates — to pinpoint a stuck/misrouted feed
+    (e.g. June bars landing under a different ISIN than the master's symbol)."""
+    init_db()
+    sym = symbol.strip().upper()
+    with session() as conn:
+        global_last = conn.execute("SELECT MAX(date) m FROM prices").fetchone()["m"]
+        rows = conn.execute(
+            "SELECT isin,name,nse_symbol,bse_symbol,bse_code,segment,active "
+            "FROM securities WHERE UPPER(nse_symbol)=? OR UPPER(bse_symbol)=? "
+            "ORDER BY active DESC",
+            (sym, sym),
+        ).fetchall()
+        print(f"symbol     : {sym}")
+        print(f"spine last : {global_last}  (latest date present in prices, any symbol)")
+        if not rows:
+            print("securities : (no master row maps to this symbol)")
+            return
+        print(f"securities : {len(rows)} master row(s) map to this symbol")
+        for s in rows:
+            isin = s["isin"]
+            agg = conn.execute(
+                "SELECT COUNT(*) c, MIN(date) lo, MAX(date) hi FROM prices WHERE isin=?",
+                (isin,),
+            ).fetchone()
+            last = conn.execute(
+                "SELECT date,close,adj_close,source FROM prices WHERE isin=? "
+                "ORDER BY date DESC LIMIT 3",
+                (isin,),
+            ).fetchall()
+            flag = "" if agg["hi"] == global_last else "  <-- STALE vs spine"
+            print(f"\n  isin={isin}  active={s['active']}  seg={s['segment']}  "
+                  f"nse={s['nse_symbol']} bse={s['bse_symbol']} code={s['bse_code']}")
+            print(f"  name={s['name']}")
+            print(f"  prices: {agg['c']} rows  {agg['lo']}..{agg['hi']}{flag}")
+            for r in last:
+                print(f"    {r['date']}  close={r['close']}  adj={r['adj_close']}  src={r['source']}")
+        # Catch the misrouting case: June bars written under an ISIN whose master
+        # row no longer carries this symbol (orphaned by an ISIN change).
+        known = {s["isin"] for s in rows}
+        print()
+        print("recent rows for this symbol via the BSE-code/name link (orphan check):")
+        orphans = conn.execute(
+            "SELECT p.isin, MAX(p.date) hi, COUNT(*) c FROM prices p "
+            "JOIN securities s ON s.isin=p.isin "
+            "WHERE (UPPER(s.name) LIKE ? ) AND p.isin NOT IN (%s) "
+            "GROUP BY p.isin ORDER BY hi DESC LIMIT 5"
+            % (",".join("?" * len(known)) if known else "''"),
+            (f"%{sym}%", *known),
+        ).fetchall()
+        if not orphans:
+            print("  (none — no other ISIN with this name carries newer bars)")
+        for o in orphans:
+            print(f"  isin={o['isin']}  last={o['hi']}  rows={o['c']}")
+
+
 def cmd_logs(n: int = 30) -> None:
     """Print the last n lines of the engine log."""
     from .config import LOG_PATH
@@ -231,6 +288,8 @@ def main() -> None:
     epp.add_argument("symbol", nargs="?", default="RELIANCE")
     sub.add_parser("readjust")
     sub.add_parser("status")
+    ip = sub.add_parser("inspect", help="diagnose one symbol's price spine (ISIN map, last dates)")
+    ip.add_argument("symbol")
     sub.add_parser("selftest")
     lp = sub.add_parser("logs")
     lp.add_argument("-n", type=int, default=30, help="lines to show (default 30)")
@@ -296,6 +355,8 @@ def main() -> None:
         print({"readjusted_isins": ingest.readjust()})
     elif args.cmd == "status":
         cmd_status()
+    elif args.cmd == "inspect":
+        cmd_inspect(args.symbol)
     elif args.cmd == "selftest":
         cmd_selftest()
     elif args.cmd == "logs":

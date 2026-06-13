@@ -29,6 +29,7 @@ on:
           - "eodhd --limit 25"                  # smoke-test fundamentals fetch
           - "eodhd --limit 500"                 # a nightly-sized slice
           - "eodhd-probe"                       # validate EODHD key/plan on one symbol
+          - "inspect symbol"                    # diagnose one symbol's spine: ISIN map + last dates (uses 'symbol')
           - "funda-probe"                       # raw BSE JSON for one symbol (uses 'symbol')
           - "announcements --days 7"            # BSE filings (bot-walled from VM; kept for reference)
       symbol:
@@ -71,6 +72,7 @@ jobs:
           # target the nginx web root (NOT export's default public/data) so the
           # live app actually sees the new data.
           case "$CHOICE" in
+            "inspect symbol") REMOTE="$PYRUN inspect ${SYM:-RELIANCE}" ;;
             "funda-probe") REMOTE="$PYRUN funda-probe ${SYM:-RELIANCE}" ;;
             "eodhd-probe") REMOTE="$PYRUN eodhd-probe ${SYM:-RELIANCE}" ;;
             "kill stuck data jobs") REMOTE="pkill -9 -f 'app[.]dataengine[.]run' || true; sleep 1; pgrep -af 'app[.]dataengine[.]run' || echo 'OK: no data-engine processes running — DB lock released'" ;;
