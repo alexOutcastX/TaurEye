@@ -78,12 +78,17 @@
   padding: var(--sp-6) var(--sp-6);
 }
 .lp-sec-title { font-size: 22px; margin: 0 0 var(--sp-5); letter-spacing: -0.01em; }
-.lp-feature-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--sp-4);
+/* ---- feature carousel ---- */
+.lp-carousel { position: relative; }
+.lp-carousel-viewport { overflow: hidden; }
+.lp-carousel-track {
+  display: flex;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
+.lp-slide { box-sizing: border-box; padding: 0 calc(var(--sp-3) / 2); }
 .lp-feature {
+  height: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
@@ -91,6 +96,52 @@
 }
 .lp-feature h3 { margin: 0 0 8px; font-size: 15px; color: var(--text); }
 .lp-feature p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-muted); }
+
+/* prev/next — hidden until the carousel is hovered (desktop only; touch uses dots) */
+.lp-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(4px);
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  z-index: 2;
+}
+.lp-carousel:hover .lp-carousel-arrow { opacity: 1; }
+.lp-carousel-arrow:hover { border-color: var(--accent); color: var(--accent); }
+.lp-carousel-arrow.left { left: -6px; }
+.lp-carousel-arrow.right { right: -6px; }
+
+.lp-carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: var(--sp-4);
+}
+.lp-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.lp-dot:hover { background: var(--text-muted); }
+.lp-dot.on { background: var(--accent); transform: scale(1.25); }
 
 /* ---- compliance ---- */
 .lp-compliance { border-top: 1px solid var(--border); }
