@@ -109,10 +109,11 @@ export function runScreen(
     return reverse ? -cmp : cmp;
   });
 
-  const limited = sorted.slice(0, Math.max(1, req.limit));
+  // No cap: return the full matching set (the UI paginates). `count` is the true
+  // number of matches, not a page size.
   return {
-    count: limited.length,
+    count: sorted.length,
     total_universe: metrics.length,
-    results: limited,
+    results: sorted,
   };
 }
