@@ -1,0 +1,7 @@
+# TaurEye
+User-agent: *
+Allow: /
+Disallow: /app/
+
+# Set your production domain here once HTTPS is live:
+# Sitemap: https://taureye.app/sitemap.xml

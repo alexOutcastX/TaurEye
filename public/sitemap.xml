@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Public, crawlable pages. Update the domain to your production host. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://taureye.app/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://taureye.app/login</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://taureye.app/legal/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://taureye.app/legal/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://taureye.app/legal/refund</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://taureye.app/legal/disclaimer</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+</urlset>

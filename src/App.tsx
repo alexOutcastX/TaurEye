@@ -17,6 +17,8 @@ import Watchlist from "./pages/Watchlist";
 import Saved from "./pages/Saved";
 import Wallet from "./pages/Wallet";
 import Refer from "./pages/Refer";
+import NotFound from "./pages/NotFound";
+import ConsentBanner from "./components/ConsentBanner";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthed, loading } = useAuth();
@@ -45,7 +47,9 @@ export default function App() {
   // is initialised on-device.
   const native = Capacitor.isNativePlatform();
   return (
-    <Routes>
+    <>
+      <ConsentBanner />
+      <Routes>
       <Route path="/" element={native ? <Login /> : <Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/i/:code" element={<Invite />} />
@@ -73,7 +77,8 @@ export default function App() {
         <Route path="refer" element={<Refer />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }

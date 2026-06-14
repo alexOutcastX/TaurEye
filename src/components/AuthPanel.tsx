@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth, type OAuthProvider } from "../auth/AuthContext";
 import { storeRefCode } from "../lib/referral";
 import SocialIcon from "./SocialIcon";
@@ -37,6 +37,7 @@ export default function AuthPanel() {
   const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -71,6 +72,10 @@ export default function AuthPanel() {
         return;
       }
       setStep("password");
+      return;
+    }
+    if (mode === "signup" && !agreed) {
+      setError("Please accept the Terms and Privacy Policy to create an account.");
       return;
     }
     setBusy(true);
@@ -139,6 +144,19 @@ export default function AuthPanel() {
                 </button>
               </div>
             </label>
+            {mode === "signup" && (
+              <label className="auth-consent">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                />
+                <span>
+                  I agree to the <Link to="/legal/terms">Terms</Link> and{" "}
+                  <Link to="/legal/privacy">Privacy Policy</Link>.
+                </span>
+              </label>
+            )}
           </>
         )}
 
@@ -153,6 +171,7 @@ export default function AuthPanel() {
           onClick={() => {
             setError(null);
             setStep("email");
+            setAgreed(false);
             setMode(mode === "signin" ? "signup" : "signin");
           }}
         >
