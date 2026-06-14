@@ -54,10 +54,11 @@ Keep these three in sync: `src/lib/economy.ts` (COSTS/REWARDS), `supabase/credit
 | `src/lib/credits.ts` | Server adapter (`myBalance`/`spendCredits`/`claimDaily`/`listProducts`) — the activation layer |
 | `supabase/schema.sql` | Phase-1 tables (profiles, ledger, purchases, …) + RLS |
 | `supabase/credits.sql` | Products + secure RPCs + signup bonus (run after schema.sql) |
+| `supabase/harden-grants.sql` | Revokes anon/public EXECUTE on the SECURITY DEFINER functions (run LAST) |
 | `supabase/functions/*` | AI / Razorpay / AdMob serverless endpoints |
 
 ## Activation phases
-- **Phase A — infra dark:** run `schema.sql` + `credits.sql`, deploy functions,
+- **Phase A — infra dark:** run `schema.sql` + `credits.sql` + `harden-grants.sql`, deploy functions,
   set secrets. No user-visible change; `ECONOMY_ENABLED` stays false.
 - **Phase B — faucets + AI sink:** swap Wallet/Chart to `credits.ts`
   (`myBalance`/`claimDaily`, and let `ai-analysis` charge AI). Flip

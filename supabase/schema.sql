@@ -101,7 +101,13 @@ create table if not exists public.ai_jobs (
 );
 
 -- ---------- balance view (derived from the ledger) ----------
-create or replace view public.credit_balances as
+-- security_invoker: the view runs with the QUERYING user's permissions, so the
+-- credit_transactions RLS ("own ledger read") applies and a caller sees only
+-- their own balance. Without this, the view runs as owner and bypasses RLS,
+-- exposing every user's balance (flagged by Supabase's Security Definer linter).
+-- Requires Postgres 15+ (all current Supabase projects).
+create or replace view public.credit_balances
+  with (security_invoker = true) as
   select user_id, coalesce(sum(delta), 0)::int as balance
   from public.credit_transactions group by user_id;
 
