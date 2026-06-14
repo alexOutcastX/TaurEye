@@ -19,6 +19,9 @@ if os.path.exists(dj) and os.path.exists(djb):
 
 GREEN = colors.HexColor("#0F9D63")
 GREEN_HDR = colors.HexColor("#128F63")
+RED = colors.HexColor("#C0392B")
+ORANGE = colors.HexColor("#C77B12")
+GREYTX = colors.HexColor("#7A828D")
 DARK = colors.HexColor("#11141a")
 GREY = colors.HexColor("#E8EBEF")
 GREYL = colors.HexColor("#F5F7F9")
@@ -39,6 +42,19 @@ def status_cell(s):
     st = cellg if ("LIVE" in s or s == "Live") else cellb
     return Paragraph(s, st)
 
+prio_red = ParagraphStyle("prio_red", fontName=BOLD, fontSize=8.5, leading=11, textColor=RED)
+prio_org = ParagraphStyle("prio_org", fontName=BOLD, fontSize=8.5, leading=11, textColor=ORANGE)
+prio_grey = ParagraphStyle("prio_grey", fontName=REG, fontSize=8.5, leading=11, textColor=GREYTX)
+
+def priority_cell(p):
+    if p == "Blocker":
+        return Paragraph(p, prio_red)
+    if p == "High":
+        return Paragraph(p, prio_org)
+    if p in ("Later", "Skipped"):
+        return Paragraph(p, prio_grey)
+    return Paragraph(p, cellb)
+
 status_rows = [
     ("Screening", "Filter-based screener", "Live", "Over the metrics bundle (~5,800 stocks)"),
     ("Screening", "Natural-language screener", "Live", "Plain-English &#8594; filters; signature feature"),
@@ -47,6 +63,7 @@ status_rows = [
     ("Charts", "TradingView widget toggle", "Live", "TV's own data"),
     ("Charts", "Auto pattern detection", "Live", "Drawn as lines (patterns.ts)"),
     ("Charts", "Per-stock Key Data", "Live", "RSI, SMA50/200, 52w, ATR + SEBI disclaimer"),
+    ("Data", "Dashboard home (Market Pulse)", "Live", "Index cards, breadth, sector heatmap, movers; post-login home"),
     ("Data", "Global indices dashboard", "Live", "+ ticker"),
     ("Data", "Scrip search", "Live", ""),
     ("Engagement", "Watchlists", "Live", ""),
@@ -57,20 +74,38 @@ status_rows = [
     ("Accounts", "Cloud credit wallet", "Live", "Server balance, unforgeable (RLS)"),
     ("Accounts", "Signup bonus (50) + daily claim (5)", "Live", "Secure RPCs"),
     ("Accounts", "Referral program", "Partial", "Tables + page exist; reward grant not wired"),
-    ("AI / Reports", "AI stock analysis", "Built", "Edge Function (Haiku); needs deploy + ANTHROPIC_API_KEY"),
-    ("AI / Reports", "Advanced report", "Built", "Credit sink"),
+    ("AI / Reports", "AI stock analysis", "Live", "Haiku via Edge Function; charged 10 credits server-side"),
+    ("AI / Reports", "Advanced report", "Live", "Charged 5 credits server-side; refund on failure"),
+    ("Monetization", "Credit charging", "LIVE", "CHARGE_CREDITS=true; server-authoritative, badge live-refresh"),
     ("Monetization", "Broker affiliate (Zerodha)", "LIVE &amp; earning", "Angel/Upstox/Dhan = paste links"),
     ("Monetization", "Ads — AdSense (web)", "Built, gated", "Needs ca-pub-… + unit IDs"),
-    ("Monetization", "Ads — AdMob (app)", "Built, gated", "Needs IDs + APK rebuild + privacy policy"),
-    ("Monetization", "Razorpay credit purchases", "Built", "Needs Razorpay account + webhook"),
-    ("Monetization", "Credit charging", "Off (by design)", "Flip after AI + purchases live"),
+    ("Monetization", "Ads — AdMob (app)", "Built, gated", "Needs IDs + APK rebuild"),
+    ("Monetization", "Razorpay credit purchases", "Built", "Webhook exists; needs checkout + keys"),
     ("Monetization", "Pro subscription", "Planned", "Phase D (Rs 999/yr)"),
+    ("Compliance", "Legal pages (Terms/Privacy/Refund/Disclaimer)", "Live", "Public /legal/* routes; entity details in config/legal.ts"),
+    ("Compliance", "Web launch hygiene", "Live", "robots.txt, sitemap, PWA manifest, signup consent, cookie notice, 404"),
+    ("Compliance", "Security hardening", "Live", "RLS + security_invoker balance view + anon EXECUTE locked down"),
     ("Platforms", "Web (nginx, static)", "Live", "Deploys from main in ~1 min"),
     ("Platforms", "Android APK", "Builds", "GitHub Actions"),
-    ("Platforms", "OTA updates (Capgo)", "Wired", "Needs CAPGO_TOKEN + CAPGO_ENABLED"),
+    ("Platforms", "OTA updates (Capgo)", "Wired", "Needs CAPGO_TOKEN + CAPGO_ENABLED + one rebuild"),
     ("Platforms", "iOS", "Scaffolded", "Not a current build target"),
     ("Infra", "Nightly data pipeline", "Live", "EOD &#8594; CA-adjust &#8594; JSON export"),
-    ("Infra", "Compliance (SEBI/RLS/secrets)", "In place", "Factual-only, keys server-side"),
+    ("Infra", "Compliance (SEBI/secrets)", "In place", "Factual-only, keys server-side"),
+]
+
+# Pending for production launch: (Item, Priority, Owner, Note)
+pending_rows = [
+    ("HTTPS on the VM", "Blocker", "You / infra", "Cleartext HTTP today; needed for trust + iOS ATS. TLS cert &#8594; flip bases to https"),
+    ("Lawyer review of legal text", "Blocker", "You", "SEBI / DPDP / GST specifics before public launch"),
+    ("Fill config/legal.ts", "High", "You &#8594; me", "Registered name, support/grievance email, jurisdiction"),
+    ("Broker affiliate links", "High", "You &#8594; me", "Paste Angel One / Upstox / Dhan partner URLs (fast revenue)"),
+    ("Razorpay credit-pack checkout", "High", "Me + You", "Build checkout + create-order fn; live on your keys + deploy"),
+    ("Capgo OTA setup", "Medium", "You", "CAPGO_TOKEN secret + CAPGO_ENABLED=true + one APK rebuild"),
+    ("Signed store release builds", "Medium", "You", "Release APK/AAB + iOS provisioning + store listings/data-safety"),
+    ("AdMob / AdSense IDs", "Medium", "You", "Production unit IDs + consent wiring"),
+    ("Referral reward grant", "Medium", "Me", "Wire the referrer/referee credit grant (tables + page exist)"),
+    ("Pro subscription (Phase D)", "Later", "Me + You", "Razorpay subscriptions + monthly credit grant"),
+    ("Leaked-password protection", "Skipped", "—", "Supabase Pro-only feature; deferred"),
 ]
 
 comp_header = ["Capability", "TaurEye", "screener.in", "Chartink", "Trendlyne", "TradingView"]
@@ -115,7 +150,28 @@ for i in range(1, len(data)):
 t.setStyle(TableStyle(ts))
 el.append(t)
 
-el.append(P("2. Comparison with peers", h1))
+# Pending table
+el.append(P("2. Pending for production launch", h1))
+pdata = [[P("Item", hdr), P("Priority", hdr), P("Owner", hdr), P("Note", hdr)]]
+for item, prio, owner, n in pending_rows:
+    pdata.append([P(item, cellb), priority_cell(prio), P(owner, cell), P(n, cell)])
+tp = Table(pdata, colWidths=[206, 70, 92, 418], repeatRows=1)
+tps = [
+    ("BACKGROUND", (0, 0), (-1, 0), GREEN_HDR),
+    ("GRID", (0, 0), (-1, -1), 0.5, GREY),
+    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ("TOPPADDING", (0, 0), (-1, -1), 4),
+    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+]
+for i in range(1, len(pdata)):
+    if i % 2 == 0:
+        tps.append(("BACKGROUND", (0, i), (-1, i), GREYL))
+tp.setStyle(TableStyle(tps))
+el.append(tp)
+
+el.append(P("3. Comparison with peers", h1))
 data2 = [[P(h, hdr) for h in comp_header]]
 for row in comp_rows:
     cells = [P(row[0], cellb), P(row[1], cellg)]
