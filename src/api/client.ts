@@ -26,6 +26,7 @@ import {
   localListScreens,
   localSaveScreen,
 } from "../data/localScreens";
+import { emitCreditsChange } from "../lib/credits";
 
 // In the browser dev server this is empty -> "/api/..." goes through the Vite
 // proxy. In the packaged mobile (APK) build there is no proxy, so set
@@ -110,6 +111,11 @@ const AI_OFFLINE: AiResult = {
 async function invokeAi(fn: string, body: Record<string, unknown>): Promise<AiResult> {
   if (!supabase) return AI_OFFLINE;
   const { data, error } = await supabase.functions.invoke<AiResult>(fn, { body });
+  // The function charges (and may refund) credits server-side, so the client's
+  // cached balance is now stale. Notify the wallet/badge to re-pull — otherwise
+  // the persistent top-bar CreditsBadge only refreshes on the next explicit
+  // client-side mutation (e.g. a daily claim).
+  emitCreditsChange();
   if (error || !data) {
     return { configured: true, text: null, error: error?.message ?? "ai_failed", disclaimer: AI_OFFLINE.disclaimer };
   }
