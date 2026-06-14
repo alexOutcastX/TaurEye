@@ -7,6 +7,7 @@ import AppShell from "./app/AppShell";
 import BootGate from "./components/BootGate";
 import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
+import Legal from "./pages/Legal";
 import Login from "./pages/Login";
 import Screener from "./pages/Screener";
 import Chart from "./pages/Chart";
@@ -48,6 +49,7 @@ export default function App() {
       <Route path="/" element={native ? <Login /> : <Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/i/:code" element={<Invite />} />
+      <Route path="/legal/:doc" element={<Legal />} />
 
       <Route
         path="/app"

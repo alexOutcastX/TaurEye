@@ -4,6 +4,7 @@ import AuthPanel from "../components/AuthPanel";
 import BullMark from "../components/BullMark";
 import Logo from "../components/Logo";
 import ErrorBoundary from "../components/ErrorBoundary";
+import LegalLinks from "../components/LegalLinks";
 import "./Landing.css";
 
 // three.js is heavy — keep it out of the main bundle and only fetch it when the
@@ -128,6 +129,7 @@ export default function Landing() {
 
       <footer className="lp-foot">
         <span>© {new Date().getFullYear()} TaurEye · For research, not investment advice.</span>
+        <LegalLinks />
         <span>NSE · BSE · End-of-day data</span>
       </footer>
     </div>

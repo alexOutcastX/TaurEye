@@ -88,3 +88,10 @@
 }
 .pro-benefits li { margin: 3px 0; }
 .pro-benefits li::marker { color: var(--accent, #18c98c); }
+
+.wallet-fineprint {
+  margin: -4px 0 var(--sp-3);
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.wallet-fineprint a { color: var(--accent); }

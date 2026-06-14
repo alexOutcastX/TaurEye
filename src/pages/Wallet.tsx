@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   COSTS,
   REWARDS,
@@ -85,6 +86,10 @@ export default function Wallet() {
       {msg && <p className="wallet-note">{msg}</p>}
 
       <h2 className="wallet-subhead">Buy credits</h2>
+      <p className="wallet-fineprint">
+        Credits are inclusive of 18% GST and are non-refundable once delivered —
+        see the <Link to="/legal/refund">Refund &amp; Cancellation Policy</Link>.
+      </p>
       <div className="wallet-packs">
         {PACKS.map((p) => (
           <div className="pack" key={p.price}>
