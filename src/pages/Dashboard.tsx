@@ -1,6 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Capacitor } from "@capacitor/core";
 import { api } from "../api/client";
 import { fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
 import { getWatchlists, onWatchlistChange, type Watchlist } from "../lib/watchlist";
@@ -9,8 +8,8 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import type { IndexQuote, Metrics } from "../api/types";
 import "./Dashboard.css";
 
-// three.js is heavy and WebGL is flaky in the Android WebView — lazy-load it and
-// fall back to the static mark (always on native, or if WebGL is unavailable).
+// three.js is heavy — lazy-load it so it stays out of the app bundle. BullScene
+// itself falls back to the static BullMark if WebGL is unavailable on the device.
 const BullScene = lazy(() => import("../components/BullScene"));
 
 // Animated count-up for the hero stats (eased, ~0.9s).
@@ -52,7 +51,6 @@ interface Sector {
 
 export default function Dashboard() {
   const nav = useNavigate();
-  const native = Capacitor.isNativePlatform();
   const [metrics, setMetrics] = useState<Metrics[] | null>(null);
   const [indices, setIndices] = useState<IndexQuote[]>([]);
   const [dataDate, setDataDate] = useState<string | null>(null);
@@ -199,15 +197,11 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="dash-hero-bull">
-          {native ? (
-            <BullMark size={150} />
-          ) : (
-            <ErrorBoundary fallback={<BullMark size={150} />}>
-              <Suspense fallback={<BullMark size={150} />}>
-                <BullScene className="dash-bull3d" />
-              </Suspense>
-            </ErrorBoundary>
-          )}
+          <ErrorBoundary fallback={<BullMark size={150} />}>
+            <Suspense fallback={<BullMark size={150} />}>
+              <BullScene className="dash-bull3d" />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </div>
 
