@@ -3,6 +3,7 @@ import AuthPanel from "../components/AuthPanel";
 import BullMark from "../components/BullMark";
 import ErrorBoundary from "../components/ErrorBoundary";
 import Logo from "../components/Logo";
+import LegalLinks from "../components/LegalLinks";
 import "./Login.css";
 
 // 3D bull head (three.js) — lazy-loaded so it doesn't bloat startup. Falls back
@@ -31,6 +32,7 @@ export default function Login() {
       </div>
       <div className="login-body">
         <AuthPanel />
+        <LegalLinks className="login-legal" />
       </div>
     </div>
   );

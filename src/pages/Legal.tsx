@@ -1,0 +1,336 @@
+import { Link, Navigate, useParams } from "react-router-dom";
+import { LEGAL, LEGAL_DOCS, type LegalDocKey } from "../config/legal";
+import Logo from "../components/Logo";
+import "./Legal.css";
+
+const { product, entity, email, jurisdiction, effectiveDate } = LEGAL;
+
+export default function Legal() {
+  const { doc } = useParams<{ doc: string }>();
+  const known = LEGAL_DOCS.find((d) => d.key === doc);
+  if (!known) return <Navigate to="/legal/terms" replace />;
+  const key = known.key as LegalDocKey;
+
+  return (
+    <div className="legal">
+      <header className="legal-top">
+        <Link to="/" className="legal-brand" aria-label="Home">
+          <Logo />
+        </Link>
+        <nav className="legal-nav">
+          {LEGAL_DOCS.map((d) => (
+            <Link key={d.key} to={`/legal/${d.key}`} className={d.key === key ? "active" : ""}>
+              {d.title}
+            </Link>
+          ))}
+        </nav>
+      </header>
+
+      <main className="legal-doc">
+        <h1>{known.title}</h1>
+        <p className="legal-meta">
+          {product} · Last updated {effectiveDate}
+        </p>
+        {key === "terms" && <Terms />}
+        {key === "privacy" && <Privacy />}
+        {key === "refund" && <Refund />}
+        {key === "disclaimer" && <Disclaimer />}
+
+        <p className="legal-contact">
+          Questions or grievances? Contact <a href={`mailto:${email}`}>{email}</a>.
+        </p>
+      </main>
+
+      <footer className="legal-foot">
+        <span>
+          © {new Date().getFullYear()} {entity}
+        </span>
+        <span className="legal-foot-links">
+          {LEGAL_DOCS.map((d) => (
+            <Link key={d.key} to={`/legal/${d.key}`}>
+              {d.title}
+            </Link>
+          ))}
+        </span>
+      </footer>
+    </div>
+  );
+}
+
+function Disclaimer() {
+  return (
+    <>
+      <p>
+        <strong>Not investment advice.</strong> {product} is an information and
+        education tool for screening and charting Indian (NSE/BSE) equities. It is{" "}
+        <strong>not a SEBI-registered Investment Adviser or Research Analyst</strong>{" "}
+        and does not provide any buy, sell or hold recommendations, price targets,
+        tips, advisory or portfolio-management services. Nothing in the app
+        constitutes a personal recommendation or an offer or solicitation to
+        transact in any security.
+      </p>
+      <p>
+        <strong>Data accuracy.</strong> Figures are derived from public NSE/BSE
+        end-of-day sources, are corporate-action-adjusted on a best-effort basis,
+        and may be delayed, incomplete or contain errors. They are{" "}
+        <strong>not suitable for trade execution</strong> — always verify against
+        official exchange sources before acting.
+      </p>
+      <p>
+        <strong>AI commentary.</strong> AI-generated analysis and reports are
+        produced by automated models, are informational and educational only, may
+        be inaccurate or incomplete, and must not be relied upon as advice.
+      </p>
+      <p>
+        <strong>Market risk.</strong> Investments in securities are subject to
+        market risks; read all related documents carefully. Past performance and
+        technical indicators do not guarantee future results. Consult a
+        SEBI-registered investment adviser and exercise your own judgement before
+        investing.
+      </p>
+      <p>
+        <strong>No liability.</strong> {entity}, its owners and contributors accept
+        no liability for any loss or damage arising from use of {product} or
+        reliance on its data or outputs, to the maximum extent permitted by law.
+      </p>
+    </>
+  );
+}
+
+function Terms() {
+  return (
+    <>
+      <h2>1. Acceptance</h2>
+      <p>
+        These Terms of Service govern your use of {product} (the “Service”),
+        operated by {entity}. By creating an account or using the Service you agree
+        to these Terms, our <Link to="/legal/privacy">Privacy Policy</Link>,{" "}
+        <Link to="/legal/refund">Refund &amp; Cancellation Policy</Link> and{" "}
+        <Link to="/legal/disclaimer">Disclaimer</Link>. If you do not agree, do not
+        use the Service.
+      </p>
+
+      <h2>2. Eligibility</h2>
+      <p>
+        You must be at least 18 years old and capable of forming a binding contract
+        under applicable law. The Service is intended for users in India.
+      </p>
+
+      <h2>3. Nature of the Service</h2>
+      <p>
+        {product} is an information and education tool. It is{" "}
+        <strong>not investment advice</strong> and {entity} is not a SEBI-registered
+        Investment Adviser or Research Analyst. See the{" "}
+        <Link to="/legal/disclaimer">Disclaimer</Link> for full details. All
+        investment decisions are your own.
+      </p>
+
+      <h2>4. Accounts</h2>
+      <p>
+        You are responsible for keeping your login credentials secure and for all
+        activity under your account. Notify us promptly of any unauthorised use.
+      </p>
+
+      <h2>5. Acceptable use</h2>
+      <p>
+        You agree not to misuse the Service, including: scraping or bulk-extracting
+        data, reverse-engineering, reselling or redistributing the data bundle,
+        attempting to bypass credit charges or access controls, or using the
+        Service for any unlawful purpose.
+      </p>
+
+      <h2>6. Credits</h2>
+      <p>
+        Certain premium features (e.g. AI analysis and reports) consume{" "}
+        <strong>credits</strong>. Credits are a closed-loop, in-app convenience
+        only: they have no monetary value, are not a deposit or prepaid payment
+        instrument, are non-transferable and non-exchangeable for cash. Purchased
+        credit packs are priced inclusive or exclusive of applicable taxes (18%
+        GST) as shown at checkout. Free/promotional credits may expire or be varied
+        at our discretion. Refunds are governed by the{" "}
+        <Link to="/legal/refund">Refund &amp; Cancellation Policy</Link>.
+      </p>
+
+      <h2>7. Payments</h2>
+      <p>
+        Payments are processed by third-party payment gateways (e.g. Razorpay). We
+        do not store your full card or banking details. Your use of those gateways
+        is subject to their own terms.
+      </p>
+
+      <h2>8. Intellectual property</h2>
+      <p>
+        The Service, its software, design and compiled data outputs are owned by{" "}
+        {entity} and protected by applicable laws. Underlying market data remains
+        the property of the relevant exchanges and data providers.
+      </p>
+
+      <h2>9. No warranty</h2>
+      <p>
+        The Service is provided “as is” and “as available”, without warranties of
+        any kind, including accuracy, fitness for a particular purpose, or
+        uninterrupted availability.
+      </p>
+
+      <h2>10. Limitation of liability</h2>
+      <p>
+        To the maximum extent permitted by law, {entity} shall not be liable for any
+        indirect, incidental or consequential losses, or for any trading or
+        investment losses arising from use of, or reliance on, the Service. Our
+        total aggregate liability shall not exceed the amount you paid us in the
+        three months preceding the claim.
+      </p>
+
+      <h2>11. Termination</h2>
+      <p>
+        We may suspend or terminate access for breach of these Terms. You may stop
+        using the Service at any time.
+      </p>
+
+      <h2>12. Changes</h2>
+      <p>
+        We may update these Terms from time to time. Continued use after changes
+        take effect constitutes acceptance.
+      </p>
+
+      <h2>13. Governing law</h2>
+      <p>
+        These Terms are governed by the laws of India, and the courts at{" "}
+        {jurisdiction} shall have exclusive jurisdiction.
+      </p>
+    </>
+  );
+}
+
+function Privacy() {
+  return (
+    <>
+      <p>
+        {entity} (“we”, “us”) operates {product}. This policy explains what personal
+        data we collect, why, and your rights under the Digital Personal Data
+        Protection Act, 2023 (India).
+      </p>
+
+      <h2>1. Data we collect</h2>
+      <ul>
+        <li>
+          <strong>Account data</strong> — your email address and authentication
+          identifiers, managed by our auth provider (Supabase).
+        </li>
+        <li>
+          <strong>App data you create</strong> — watchlists, saved screens and
+          report history, stored to provide the Service.
+        </li>
+        <li>
+          <strong>Credit &amp; transaction records</strong> — your credit ledger and
+          purchase records.
+        </li>
+        <li>
+          <strong>Device data</strong> — push-notification tokens (if you opt in)
+          and basic device/diagnostic information.
+        </li>
+        <li>
+          <strong>Payment data</strong> — handled by our payment gateway (Razorpay).
+          We do not store full card or bank details.
+        </li>
+      </ul>
+
+      <h2>2. How we use it</h2>
+      <p>
+        To provide and secure the Service, process credit purchases, send
+        notifications you request, prevent abuse, and meet legal obligations. We do
+        not sell your personal data.
+      </p>
+
+      <h2>3. Sharing &amp; processors</h2>
+      <p>
+        We share data with service providers strictly to run the Service: hosting
+        and database/auth (Supabase), payment processing (Razorpay), and, where
+        enabled, advertising (Google AdMob) and AI inference providers for the AI
+        features. Each processes data under its own terms.
+      </p>
+
+      <h2>4. Cookies &amp; local storage</h2>
+      <p>
+        We use local storage and similar technologies to keep you signed in and to
+        store your preferences and (for guests) a local credit ledger.
+      </p>
+
+      <h2>5. Retention</h2>
+      <p>
+        We retain personal data for as long as your account is active or as needed
+        to provide the Service and meet legal, tax and accounting requirements.
+      </p>
+
+      <h2>6. Your rights</h2>
+      <p>
+        You may request access to, correction of, or deletion of your personal data,
+        and may withdraw consent, by contacting <a href={`mailto:${email}`}>{email}</a>.
+        We will respond within the timelines required by law.
+      </p>
+
+      <h2>7. Security</h2>
+      <p>
+        We apply reasonable technical and organisational safeguards, including
+        row-level security on user data and server-side enforcement of credit
+        operations. No method of transmission or storage is fully secure.
+      </p>
+
+      <h2>8. Children</h2>
+      <p>The Service is not directed to anyone under 18.</p>
+
+      <h2>9. Grievance contact</h2>
+      <p>
+        For privacy questions or grievances, contact our grievance officer at{" "}
+        <a href={`mailto:${email}`}>{email}</a>.
+      </p>
+    </>
+  );
+}
+
+function Refund() {
+  return (
+    <>
+      <p>
+        This policy applies to purchases of credit packs and, where offered,
+        subscriptions within {product}.
+      </p>
+
+      <h2>1. Digital goods</h2>
+      <p>
+        Credits and subscriptions are digital products delivered to your account
+        immediately on successful payment. Once credits have been added to your
+        balance, they are <strong>generally non-refundable</strong>, as the digital
+        goods have been delivered.
+      </p>
+
+      <h2>2. Failed or duplicate payments</h2>
+      <p>
+        If you were charged but credits were not delivered, or you were charged more
+        than once for the same order, we will refund the affected amount. Contact{" "}
+        <a href={`mailto:${email}`}>{email}</a> with your payment reference.
+      </p>
+
+      <h2>3. Subscription cancellation</h2>
+      <p>
+        Where a recurring subscription (e.g. {product} Pro) is offered, you may
+        cancel at any time; cancellation stops future renewals and access continues
+        until the end of the current paid period. Part-period amounts are
+        non-refundable unless required by law.
+      </p>
+
+      <h2>4. How to request a refund</h2>
+      <p>
+        Email <a href={`mailto:${email}`}>{email}</a> from your registered address
+        with your order/payment ID and the reason. Eligible refunds are processed to
+        the original payment method, typically within 5–7 business days after
+        approval (gateway timelines may vary).
+      </p>
+
+      <h2>5. Contact</h2>
+      <p>
+        For any billing question, reach us at <a href={`mailto:${email}`}>{email}</a>.
+      </p>
+    </>
+  );
+}
