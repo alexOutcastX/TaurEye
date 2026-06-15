@@ -1,0 +1,60 @@
+name: Refresh data (manual)
+
+# Phone-friendly button: force the nightly EOD refresh on the VM on demand and
+# print the log so you can see whether the data pull actually succeeded.
+#
+# Tap "Run workflow" in the GitHub mobile app / Actions tab. It also pushes the
+# latest exporter code + refresh.sh to the VM first, so fixes take effect.
+#
+# Reuses the same VM_HOST / VM_USER / VM_SSH_KEY secrets as the deploy workflow.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: refresh-vm
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Sync exporter code + refresh.sh to the VM
+        env:
+          U: ${{ secrets.VM_USER }}
+          H: ${{ secrets.VM_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_deploy "$U@$H" 'mkdir -p /opt/taureye/backend'
+          rsync -az --delete --exclude 'data' --exclude 'saved_screens.json' \
+            -e "ssh -i ~/.ssh/id_deploy" backend/ "$U@$H:/opt/taureye/backend/"
+          rsync -az -e "ssh -i ~/.ssh/id_deploy" deploy/refresh.sh "$U@$H:/opt/taureye/refresh.sh"
+          ssh -i ~/.ssh/id_deploy "$U@$H" 'chmod +x /opt/taureye/refresh.sh'
+
+      - name: Run the refresh on the VM
+        env:
+          U: ${{ secrets.VM_USER }}
+          H: ${{ secrets.VM_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_deploy "$U@$H" 'cd /opt/taureye && ./refresh.sh' || true
+
+      - name: Show the latest refresh log + published data date
+        env:
+          U: ${{ secrets.VM_USER }}
+          H: ${{ secrets.VM_HOST }}
+        run: |
+          echo "::group::refresh.log (last 120 lines)"
+          ssh -i ~/.ssh/id_deploy "$U@$H" 'tail -n 120 /opt/taureye/backend/data/refresh.log' || true
+          echo "::endgroup::"
+          echo "::group::Published data_date (from the served bundle)"
+          ssh -i ~/.ssh/id_deploy "$U@$H" \
+            'python3 -c "import json;print(\"data_date =\", json.load(open(\"/usr/share/nginx/html/data/indices.json\")).get(\"data_date\"))"' || true
+          echo "::endgroup::"
