@@ -36,9 +36,32 @@ def _prev_trading_day(today: date | None = None) -> date:
     return d
 
 
+# NSE/BSE publish the day's bhavcopy in the evening, so before this hour (IST,
+# the VM's timezone) today's EOD isn't out yet and the freshest available data
+# is the previous trading day. After it, today's own close is fetchable.
+_BHAVCOPY_HOUR = 19
+
+
+def _latest_trading_day(now: datetime | None = None) -> date:
+    """The most recent trading day whose EOD bhavcopy should be available.
+
+    This is what 'nightly'/'eod' default to (the CLI calls it "the most recent
+    trading day"). Crucially, a weekday evening run resolves to TODAY — so the
+    post-market 9pm cron publishes the same day's close, instead of re-fetching
+    yesterday like _prev_trading_day did (which left prices a day stale).
+    """
+    now = now or datetime.now()
+    d = now.date()
+    if d.weekday() < 5 and now.hour < _BHAVCOPY_HOUR:
+        d -= timedelta(days=1)            # weekday, but bhavcopy not published yet
+    while d.weekday() >= 5:               # skip weekends back to Friday
+        d -= timedelta(days=1)
+    return d
+
+
 def _parse_date(s: str | None) -> date:
     if not s:
-        return _prev_trading_day()
+        return _latest_trading_day()
     return datetime.strptime(s, "%Y-%m-%d").date()
 
 
