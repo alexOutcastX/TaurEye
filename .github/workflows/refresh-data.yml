@@ -25,7 +25,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 30 # hard cap so a hung pull can never run forever
+    timeout-minutes: 60 # cap; a full refresh legitimately takes ~45 min
     steps:
       - uses: actions/checkout@v4
 
@@ -56,8 +56,8 @@ jobs:
         run: |
           # `timeout` on the VM side so a stuck network fetch can't block forever;
           # `|| true` so we still print the log on timeout/failure.
-          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=4 -i ~/.ssh/id_deploy "$U@$H" \
-            'cd /opt/taureye && timeout 1200 ./refresh.sh; echo "[ci] refresh exit=$?"' || true
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=8 -i ~/.ssh/id_deploy "$U@$H" \
+            'cd /opt/taureye && timeout 3000 ./refresh.sh; echo "[ci] refresh exit=$?"' || true
 
       - name: Show the latest refresh log + published data date
         if: ${{ always() }}
