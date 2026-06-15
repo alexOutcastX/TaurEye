@@ -1,15 +1,22 @@
 name: Refresh data (manual)
 
-# Phone-friendly button: force the nightly EOD refresh on the VM on demand and
-# print the log so you can see whether the data pull actually succeeded.
+# Phone-friendly button to inspect / force the VM EOD refresh.
 #
-# Tap "Run workflow" in the GitHub mobile app / Actions tab. It also pushes the
-# latest exporter code + refresh.sh to the VM first, so fixes take effect.
+#   mode = diagnose (default)  -> read-only: print refresh.log + published
+#                                 data_date. Fast, never hangs. Use this first.
+#   mode = refresh             -> sync exporter + run refresh.sh (time-boxed),
+#                                 then print the log + data_date.
 #
-# Reuses the same VM_HOST / VM_USER / VM_SSH_KEY secrets as the deploy workflow.
+# Reuses the deploy secrets (VM_HOST / VM_USER / VM_SSH_KEY).
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "diagnose (read log only) or refresh (force a pull)"
+        type: choice
+        default: diagnose
+        options: [diagnose, refresh]
 
 concurrency:
   group: refresh-vm
@@ -18,6 +25,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 30 # hard cap so a hung pull can never run forever
     steps:
       - uses: actions/checkout@v4
 
@@ -29,6 +37,7 @@ jobs:
           ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Sync exporter code + refresh.sh to the VM
+        if: ${{ inputs.mode == 'refresh' }}
         env:
           U: ${{ secrets.VM_USER }}
           H: ${{ secrets.VM_HOST }}
@@ -39,22 +48,27 @@ jobs:
           rsync -az -e "ssh -i ~/.ssh/id_deploy" deploy/refresh.sh "$U@$H:/opt/taureye/refresh.sh"
           ssh -i ~/.ssh/id_deploy "$U@$H" 'chmod +x /opt/taureye/refresh.sh'
 
-      - name: Run the refresh on the VM
+      - name: Run the refresh on the VM (time-boxed to 20 min)
+        if: ${{ inputs.mode == 'refresh' }}
         env:
           U: ${{ secrets.VM_USER }}
           H: ${{ secrets.VM_HOST }}
         run: |
-          ssh -i ~/.ssh/id_deploy "$U@$H" 'cd /opt/taureye && ./refresh.sh' || true
+          # `timeout` on the VM side so a stuck network fetch can't block forever;
+          # `|| true` so we still print the log on timeout/failure.
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=4 -i ~/.ssh/id_deploy "$U@$H" \
+            'cd /opt/taureye && timeout 1200 ./refresh.sh; echo "[ci] refresh exit=$?"' || true
 
       - name: Show the latest refresh log + published data date
+        if: ${{ always() }}
         env:
           U: ${{ secrets.VM_USER }}
           H: ${{ secrets.VM_HOST }}
         run: |
-          echo "::group::refresh.log (last 120 lines)"
-          ssh -i ~/.ssh/id_deploy "$U@$H" 'tail -n 120 /opt/taureye/backend/data/refresh.log' || true
+          echo "::group::refresh.log (last 150 lines)"
+          ssh -i ~/.ssh/id_deploy "$U@$H" 'tail -n 150 /opt/taureye/backend/data/refresh.log 2>/dev/null' || echo "(no log)"
           echo "::endgroup::"
           echo "::group::Published data_date (from the served bundle)"
           ssh -i ~/.ssh/id_deploy "$U@$H" \
-            'python3 -c "import json;print(\"data_date =\", json.load(open(\"/usr/share/nginx/html/data/indices.json\")).get(\"data_date\"))"' || true
+            'python3 -c "import json;print(\"data_date =\", json.load(open(\"/usr/share/nginx/html/data/indices.json\")).get(\"data_date\"))" 2>/dev/null' || echo "(could not read indices.json)"
           echo "::endgroup::"
