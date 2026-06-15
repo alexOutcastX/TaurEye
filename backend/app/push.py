@@ -78,14 +78,68 @@ def notify_token(token: str, title: str, body: str, data: dict | None = None) ->
         return False
 
 
+def _read_data_date(bundle_dir: str) -> str | None:
+    """The EOD spine date the exporter stamped onto indices.json (the bundle's
+    freshness signal). Returns None if it can't be read."""
+    import json
+    path = os.path.join(bundle_dir, "indices.json")
+    try:
+        with open(path) as f:
+            return (json.load(f) or {}).get("data_date")
+    except Exception as e:  # noqa: BLE001 — fail soft
+        print(f"[push] couldn't read data_date from {path}: {type(e).__name__}: {e}")
+        return None
+
+
+def notify_eod_if_fresh(bundle_dir: str, state_dir: str | None = None) -> bool:
+    """Send the EOD push ONLY when the bundle's data_date advanced since the last
+    notification.
+
+    The nightly cron republishes the bundle even when the data pull fails ("…
+    republishing anyway"), so an unconditional push would announce "data updated"
+    with no new data — and stays silent on weekends/holidays when the date doesn't
+    move. Gating on data_date makes the notification truthful and carries the date.
+    """
+    state_dir = state_dir or bundle_dir
+    date = _read_data_date(bundle_dir)
+    if not date:
+        print("[push] no data_date in bundle; skipping EOD push")
+        return False
+    state = os.path.join(state_dir, ".last_push_date")
+    last = None
+    try:
+        with open(state) as f:
+            last = f.read().strip()
+    except FileNotFoundError:
+        pass
+    except Exception as e:  # noqa: BLE001
+        print(f"[push] state read failed: {type(e).__name__}: {e}")
+    if last == date:
+        print(f"[push] data_date {date} unchanged since last push; skipping (no fresh data)")
+        return False
+    ok = notify_topic("TaurEye", f"End-of-day data for {date} is in — check your watchlist.",
+                      data={"data_date": date})
+    if ok:
+        try:
+            with open(state, "w") as f:
+                f.write(date)
+        except Exception as e:  # noqa: BLE001
+            print(f"[push] state write failed: {type(e).__name__}: {e}")
+    return ok
+
+
 if __name__ == "__main__":
     import argparse
     p = argparse.ArgumentParser(description="Send a TaurEye push (topic by default).")
     p.add_argument("--token", help="send directly to this device token instead of the topic")
     p.add_argument("--title", default="TaurEye")
     p.add_argument("--body", default="Today's end-of-day data is updated — check your watchlist.")
+    p.add_argument("--eod-if-fresh", metavar="BUNDLE_DIR",
+                   help="send the EOD push only if data_date in BUNDLE_DIR/indices.json advanced")
     args = p.parse_args()
-    if args.token:
+    if args.eod_if_fresh:
+        notify_eod_if_fresh(args.eod_if_fresh)
+    elif args.token:
         notify_token(args.token, args.title, args.body)
     else:
         notify_topic(args.title, args.body)

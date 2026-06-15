@@ -15,10 +15,15 @@ export TAUREYE_PROVIDER=db
 cd /opt/taureye || exit 1
 LOG=/opt/taureye/backend/data/refresh.log
 echo "===== $(date) refresh START =====" >> "$LOG"
-./venv/bin/python -m backend.app.dataengine.run nightly >> "$LOG" 2>&1 || echo "[refresh] nightly FAILED (republishing anyway)" >> "$LOG"
+if ./venv/bin/python -m backend.app.dataengine.run nightly >> "$LOG" 2>&1; then
+  echo "[refresh] nightly OK" >> "$LOG"
+else
+  echo "[refresh] nightly FAILED (republishing existing data anyway)" >> "$LOG"
+fi
 ./venv/bin/python -m backend.app.dataengine.run export --all --gz --out /usr/share/nginx/html/data >> "$LOG" 2>&1 || echo "[refresh] export FAILED" >> "$LOG"
 sudo restorecon -R /usr/share/nginx/html/data >/dev/null 2>&1 || true
-# Broadcast a push that the new EOD data is in (fail-soft: skips if FCM isn't
-# configured, never fails the refresh). Needs the service-account JSON on the VM.
-./venv/bin/python -m backend.app.push >> "$LOG" 2>&1 || echo "[refresh] push notify skipped" >> "$LOG"
+# Broadcast a push that new EOD data is in — ONLY when the bundle's data_date
+# actually advanced (so a failed pull / weekend / holiday doesn't falsely cry
+# "updated"). Fail-soft: skips if FCM isn't configured, never fails the refresh.
+./venv/bin/python -m backend.app.push --eod-if-fresh /usr/share/nginx/html/data >> "$LOG" 2>&1 || echo "[refresh] push notify skipped" >> "$LOG"
 echo "===== $(date) refresh DONE =====" >> "$LOG"
