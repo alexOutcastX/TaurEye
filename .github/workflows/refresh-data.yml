@@ -48,7 +48,7 @@ jobs:
           rsync -az -e "ssh -i ~/.ssh/id_deploy" deploy/refresh.sh "$U@$H:/opt/taureye/refresh.sh"
           ssh -i ~/.ssh/id_deploy "$U@$H" 'chmod +x /opt/taureye/refresh.sh'
 
-      - name: Run the refresh on the VM (time-boxed to 20 min)
+      - name: Run the refresh on the VM (time-boxed to 50 min)
         if: ${{ inputs.mode == 'refresh' }}
         env:
           U: ${{ secrets.VM_USER }}
