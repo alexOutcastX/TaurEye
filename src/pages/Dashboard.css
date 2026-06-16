@@ -35,7 +35,7 @@
 .dash-stat.up .dash-stat-n { color: var(--up); }
 .dash-stat.down .dash-stat-n { color: var(--down); }
 .dash-stat-l { font-size: 12px; color: var(--text-faint); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.03em; }
-.dash-hero-bull { height: 180px; display: flex; align-items: center; justify-content: center; }
+.dash-hero-bull { height: 180px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .dash-bull3d { width: 100%; height: 100%; }
 .dash-error { color: var(--down); font-size: 13px; margin: var(--sp-4) 0; }
 .dash-loading { color: var(--text-muted); padding: var(--sp-6); text-align: center; }
@@ -170,9 +170,14 @@
 }
 
 /* ---- responsive ---- */
-@media (max-width: 860px) {
+/* Stack the hero (bull centered on top) below 1024px so the bull is never
+   squeezed into a side column and clipped by the card edge on phones/tablets. */
+@media (max-width: 1024px) {
   .dash-hero { grid-template-columns: 1fr; }
-  .dash-hero-bull { height: 140px; order: -1; }
+  .dash-hero-bull { height: 150px; order: -1; }
+  .dash-bull3d { width: 100%; max-width: 360px; height: 100%; margin: 0 auto; }
+}
+@media (max-width: 860px) {
   .dash-grid2 { grid-template-columns: 1fr; }
   .dash-hero-copy h1 { font-size: 28px; }
 }
