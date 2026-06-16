@@ -161,6 +161,89 @@ def update_segments() -> dict:
     return counts
 
 
+# NSE sectoral index -> human sector label. Order matters: a stock that appears
+# in several indices is tagged by the FIRST (most specific) match, so e.g. an IT
+# name isn't swallowed by the broad "Financial Services"/"Banking" buckets.
+_SECTOR_INDICES: list[tuple[str, str]] = [
+    ("NIFTY IT", "IT"),
+    ("NIFTY PHARMA", "Pharma"),
+    ("NIFTY HEALTHCARE INDEX", "Healthcare"),
+    ("NIFTY FMCG", "FMCG"),
+    ("NIFTY AUTO", "Automobile"),
+    ("NIFTY METAL", "Metals"),
+    ("NIFTY OIL & GAS", "Oil & Gas"),
+    ("NIFTY ENERGY", "Energy"),
+    ("NIFTY REALTY", "Realty"),
+    ("NIFTY MEDIA", "Media"),
+    ("NIFTY CONSUMER DURABLES", "Consumer Durables"),
+    ("NIFTY INFRASTRUCTURE", "Infrastructure"),
+    ("NIFTY PSU BANK", "PSU Bank"),
+    ("NIFTY PRIVATE BANK", "Banking"),
+    ("NIFTY BANK", "Banking"),
+    ("NIFTY FINANCIAL SERVICES", "Financial Services"),
+]
+
+
+def update_sectors() -> dict:
+    """Populate securities.sector from NSE sectoral-index constituents (free, no
+    paid API). Only fills rows whose sector is currently empty/Unknown, so any
+    richer EODHD/manual classification is preserved. Fail-soft: a blocked index
+    (or no curl_cffi) just contributes nothing and never breaks the nightly run.
+    """
+    init_db()
+    try:
+        from curl_cffi import requests as cr
+    except Exception as e:  # noqa: BLE001
+        log(f"  sectors       SKIP (curl_cffi unavailable: {type(e).__name__})")
+        return {"updated": 0, "indices": 0}
+
+    sym_sector: dict[str, str] = {}
+    n_idx = 0
+    try:
+        s = cr.Session(impersonate="chrome")
+        try:
+            s.get("https://www.nseindia.com", timeout=10)  # prime cookie
+        except Exception:  # noqa: BLE001
+            pass
+        for index_name, label in _SECTOR_INDICES:
+            try:
+                r = s.get(
+                    "https://www.nseindia.com/api/equity-stockIndices",
+                    params={"index": index_name},
+                    headers={"Referer": "https://www.nseindia.com/", "Accept": "application/json"},
+                    timeout=15,
+                )
+                data = r.json().get("data", [])
+            except Exception as e:  # noqa: BLE001
+                log(f"  sectors       {index_name}: {type(e).__name__} (skipped)")
+                continue
+            n_idx += 1
+            for row in data:
+                sym = str(row.get("symbol") or "").strip().upper()
+                if not sym or " " in sym or sym == index_name:
+                    continue  # skip the index summary row / non-tickers
+                sym_sector.setdefault(sym, label)  # first (most specific) wins
+    except Exception as e:  # noqa: BLE001
+        log(f"  sectors       FAIL {type(e).__name__}: {e}")
+        return {"updated": 0, "indices": n_idx}
+
+    if not sym_sector:
+        log(f"  sectors       no constituents fetched ({n_idx} indices reached)")
+        return {"updated": 0, "indices": n_idx}
+
+    updated = 0
+    with session() as conn:
+        for sym, label in sym_sector.items():
+            cur = conn.execute(
+                "UPDATE securities SET sector=?, updated_at=? "
+                "WHERE nse_symbol=? AND (sector IS NULL OR sector='' OR sector='Unknown')",
+                (label, _now(), sym),
+            )
+            updated += cur.rowcount
+    log(f"  sectors       updated={updated} mapped={len(sym_sector)} indices={n_idx}")
+    return {"updated": updated, "indices": n_idx, "mapped": len(sym_sector)}
+
+
 # ---------- stage 2: corporate actions ----------
 def update_corporate_actions(start: "date | None" = None) -> int:
     started = _now()
@@ -343,6 +426,15 @@ def run_nightly(trade_date: date) -> dict:
         log(f"  segments      EQ={seg['EQ']} ETF={seg['ETF']} SME={seg['SME']}")
     except Exception as e:
         log(f"  segments      FAIL  {type(e).__name__}: {e} (segments unchanged)")
+
+    # Sector classification from NSE sectoral-index constituents (free; fills the
+    # gap left by the paid EODHD enrichment so the screener/portfolio aren't full
+    # of "Unknown"). Fail-soft so a blocked NSE call never fails the run.
+    try:
+        sec = update_sectors()
+        log(f"  sectors       updated={sec['updated']} indices={sec['indices']}")
+    except Exception as e:
+        log(f"  sectors       FAIL  {type(e).__name__}: {e} (sectors unchanged)")
 
     # Refresh share counts so market cap stays accurate. The BSE bulk feed is a
     # single call covering the whole universe, so we refresh everything every
