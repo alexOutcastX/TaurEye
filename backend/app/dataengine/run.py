@@ -304,6 +304,7 @@ def main() -> None:
     sub.add_parser("master")
     sub.add_parser("corp-actions")
     sub.add_parser("segments")
+    sub.add_parser("sectors")
     mp = sub.add_parser("marketcap")
     mp.add_argument("--limit", type=int, default=None,
                     help="cap how many symbols to fetch this run (default: all due)")
@@ -373,6 +374,8 @@ def main() -> None:
         print({"corp_actions": ingest.update_corporate_actions()})
     elif args.cmd == "segments":
         print(ingest.update_segments())
+    elif args.cmd == "sectors":
+        print(ingest.update_sectors())
     elif args.cmd == "marketcap":
         from . import marketcap
         print(marketcap.enrich_shares(
