@@ -84,6 +84,26 @@ export function correlation(a: number[], b: number[]): number {
   return cov / (sa * sb);
 }
 
+export function variance(xs: number[], sample = true): number {
+  return std(xs, sample) ** 2;
+}
+
+export function covariance(a: number[], b: number[], sample = true): number {
+  const n = Math.min(a.length, b.length);
+  if (n < 2) return 0;
+  const ma = mean(a.slice(0, n));
+  const mb = mean(b.slice(0, n));
+  let c = 0;
+  for (let i = 0; i < n; i++) c += (a[i] - ma) * (b[i] - mb);
+  return c / (n - (sample ? 1 : 0));
+}
+
+/** Beta of an asset/portfolio vs the market return series. */
+export function beta(asset: number[], market: number[]): number {
+  const v = variance(market);
+  return v > 0 ? covariance(asset, market) / v : 0;
+}
+
 /** Herfindahl–Hirschman concentration of weights (1/N..1; higher = concentrated). */
 export function hhi(weights: number[]): number {
   return weights.reduce((s, w) => s + w * w, 0);

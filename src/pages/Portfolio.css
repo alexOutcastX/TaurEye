@@ -130,3 +130,16 @@
 .pf-ac-sym { font-weight: 600; font-size: 13px; color: var(--accent); }
 .pf-ac-name { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pf-ac-x { font-size: 10.5px; color: var(--text-faint); }
+
+/* performance vs market chart */
+.pf-legend { float: right; display: inline-flex; gap: 12px; font-size: 12px; font-weight: 400; }
+.pf-leg { display: inline-flex; align-items: center; gap: 5px; }
+.pf-leg::before { content: ""; width: 14px; height: 3px; border-radius: 2px; }
+.pf-leg.port { color: var(--accent); }
+.pf-leg.port::before { background: var(--accent); }
+.pf-leg.bench { color: var(--text-muted); }
+.pf-leg.bench::before { background: var(--text-muted); }
+.pf-chart { width: 100%; height: 170px; display: block; }
+.pf-chart-zero { stroke: var(--border-strong, #2c313c); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-dasharray: 3 3; }
+.pf-chart-port { fill: none; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.pf-chart-bench { fill: none; stroke: var(--text-muted); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; opacity: 0.8; }

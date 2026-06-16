@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
 import { hhi, zScores } from "../lib/portfolioMath";
-import { computeRisk, type RiskResult } from "../lib/portfolioData";
+import { computeRisk, loadBenchmark, type RiskResult } from "../lib/portfolioData";
 import {
   addShares,
   createPortfolio,
@@ -52,6 +52,7 @@ export default function Portfolio() {
   const [activeId, setActiveId] = useState<string>(getPortfolios()[0]?.id ?? "default");
   const [risk, setRisk] = useState<RiskResult | null>(null);
   const [riskBusy, setRiskBusy] = useState(false);
+  const [bench, setBench] = useState<Map<string, number> | null>(null);
 
   // add-holding form
   const [addSym, setAddSym] = useState("");
@@ -143,6 +144,16 @@ export default function Portfolio() {
     };
   }, [rows]);
 
+  // ---- benchmark (cap-weighted broad market), loaded once after metrics ----
+  useEffect(() => {
+    if (!metricsArr.length) return;
+    let alive = true;
+    loadBenchmark(metricsArr).then((m) => alive && setBench(m));
+    return () => {
+      alive = false;
+    };
+  }, [metricsArr]);
+
   // ---- risk (async, from candle history) ----
   useEffect(() => {
     let alive = true;
@@ -152,15 +163,15 @@ export default function Portfolio() {
       return;
     }
     setRiskBusy(true);
-    computeRisk(held)
+    computeRisk(held, bench ?? undefined)
       .then((res) => alive && setRisk(res))
       .finally(() => alive && setRiskBusy(false));
     return () => {
       alive = false;
     };
-    // recompute when the set of symbols or their weights change materially
+    // recompute when holdings/weights or the benchmark change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows.map((r) => `${r.pos.symbol}:${r.weight.toFixed(4)}`).join("|")]);
+  }, [rows.map((r) => `${r.pos.symbol}:${r.weight.toFixed(4)}`).join("|"), bench?.size ?? 0]);
 
   // ---- allocation by sector ----
   const sectors = useMemo(() => {
@@ -563,10 +574,21 @@ export default function Portfolio() {
                     <RiskStat label="1-day VaR (95%)" value={`${(risk.var95 * 100).toFixed(2)}%`} sub={rupee(risk.var95 * totals.mv)} />
                     <RiskStat label="Expected shortfall (CVaR)" value={`${(risk.cvar95 * 100).toFixed(2)}%`} />
                     <RiskStat label="Max drawdown" value={`${(risk.maxDD * 100).toFixed(1)}%`} />
+                    <RiskStat
+                      label="Beta (vs market)"
+                      value={risk.beta != null ? risk.beta.toFixed(2) : "—"}
+                    />
+                    <RiskStat
+                      label="Tracking error"
+                      value={risk.trackingError != null ? `${(risk.trackingError * 100).toFixed(1)}%` : "—"}
+                    />
                     <RiskStat label="Best day" value={`+${(risk.best * 100).toFixed(2)}%`} tone="up" />
                     <RiskStat label="Worst day" value={`${(risk.worst * 100).toFixed(2)}%`} tone="down" />
                   </div>
-                  <p className="pf-foot">Historical, from {risk.days} trading days of overlapping EOD history.</p>
+                  <p className="pf-foot">
+                    Historical, from {risk.days} trading days of overlapping EOD history. Beta/tracking error vs a
+                    cap-weighted broad-market basket.
+                  </p>
                 </>
               ) : riskBusy ? (
                 <p className="pf-muted">Computing risk from price history…</p>
@@ -575,6 +597,24 @@ export default function Portfolio() {
               )}
             </div>
           </div>
+
+          {/* performance vs market */}
+          {risk?.series && risk.series.length > 2 && (
+            <div className="pf-card">
+              <h2 className="pf-card-title">
+                Performance vs market
+                <span className="pf-legend">
+                  <span className="pf-leg port">Portfolio {fmtPct(risk.series[risk.series.length - 1].port)}</span>
+                  <span className="pf-leg bench">Market {fmtPct(risk.series[risk.series.length - 1].bench)}</span>
+                </span>
+              </h2>
+              <PnlChart series={risk.series} />
+              <p className="pf-foot">
+                Cumulative return over the overlapping window vs a cap-weighted basket of the largest stocks
+                (a broad-market proxy). Equal-weighted by market value at each point.
+              </p>
+            </div>
+          )}
 
           {/* factor tilt */}
           <div className="pf-card">
@@ -639,6 +679,28 @@ function Stat({
       <span className={`pf-stat-v ${tone ?? ""}`}>{value}</span>
       {extra && <span className={`pf-stat-x ${tone ?? ""}`}>{extra}</span>}
     </div>
+  );
+}
+
+function PnlChart({ series }: { series: { date: string; port: number; bench: number }[] }) {
+  const W = 600;
+  const H = 170;
+  const pad = 8;
+  const n = series.length;
+  const all = series.flatMap((p) => [p.port, p.bench]);
+  const min = Math.min(...all, 0);
+  const max = Math.max(...all, 0);
+  const span = max - min || 1;
+  const x = (i: number) => pad + (i / (n - 1)) * (W - 2 * pad);
+  const y = (v: number) => pad + (1 - (v - min) / span) * (H - 2 * pad);
+  const path = (key: "port" | "bench") =>
+    series.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="pf-chart" preserveAspectRatio="none" role="img" aria-label="Cumulative return vs market">
+      <line x1={pad} x2={W - pad} y1={y(0)} y2={y(0)} className="pf-chart-zero" />
+      <path d={path("bench")} className="pf-chart-bench" />
+      <path d={path("port")} className="pf-chart-port" />
+    </svg>
   );
 }
 
