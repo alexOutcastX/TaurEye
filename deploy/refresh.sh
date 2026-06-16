@@ -14,6 +14,15 @@ export TAUREYE_DB_PATH=/opt/taureye/backend/data/market.db
 export TAUREYE_PROVIDER=db
 cd /opt/taureye || exit 1
 LOG=/opt/taureye/backend/data/refresh.log
+# Single-writer guard: SQLite allows only one writer, so two overlapping
+# refreshes (e.g. the cron and a manual run) collide with "database is locked".
+# Hold an exclusive lock for the whole run; if another refresh holds it, wait up
+# to 50 min for it to finish, then bail rather than run concurrently.
+exec 9>/opt/taureye/backend/data/refresh.lock
+if ! flock -w 3000 9; then
+  echo "===== $(date) refresh SKIPPED (another refresh is still running) =====" >> "$LOG"
+  exit 0
+fi
 echo "===== $(date) refresh START =====" >> "$LOG"
 if ./venv/bin/python -m backend.app.dataengine.run nightly >> "$LOG" 2>&1; then
   echo "[refresh] nightly OK" >> "$LOG"
