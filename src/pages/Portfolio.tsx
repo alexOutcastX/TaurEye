@@ -212,6 +212,31 @@ export default function Portfolio() {
     });
   }, [metricsArr, rows]);
 
+  // ---- return attribution (contribution to total P&L) ----
+  const attribution = useMemo(() => {
+    const items = rows.map((r) => ({ symbol: r.pos.symbol, pnl: r.totalPnl, sector: r.sector }));
+    const maxAbs = Math.max(1, ...items.map((i) => Math.abs(i.pnl)));
+    const secMap = new Map<string, number>();
+    for (const i of items) secMap.set(i.sector, (secMap.get(i.sector) ?? 0) + i.pnl);
+    return {
+      byHolding: [...items].sort((a, b) => b.pnl - a.pnl),
+      maxAbs,
+      bySector: [...secMap.entries()]
+        .map(([name, pnl]) => ({ name, pnl }))
+        .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl)),
+    };
+  }, [rows]);
+
+  // ---- risk contribution (share of portfolio volatility) ----
+  const riskAttr = useMemo(() => {
+    const rc = risk?.riskContrib ?? [];
+    const wmap = new Map(rows.map((r) => [r.pos.symbol, r.weight]));
+    const items = rc
+      .map((x) => ({ symbol: x.symbol, pct: x.pct, weight: wmap.get(x.symbol) ?? 0 }))
+      .sort((a, b) => b.pct - a.pct);
+    return { items, max: Math.max(0.0001, ...items.map((i) => i.pct)) };
+  }, [risk, rows]);
+
   // ---- symbol autocomplete (client-side over the loaded universe) ----
   const suggestions = useMemo(() => {
     const q = addSym.trim().toUpperCase();
@@ -615,6 +640,66 @@ export default function Portfolio() {
               </p>
             </div>
           )}
+
+          {/* attribution */}
+          <div className="pf-grid2">
+            <div className="pf-card">
+              <h2 className="pf-card-title">
+                Return attribution <span className="pf-vs">contribution to P&amp;L</span>
+              </h2>
+              <div className="pf-factors pf-attr">
+                {attribution.byHolding.map((h) => (
+                  <div className="pf-factor" key={h.symbol}>
+                    <span className="pf-factor-name">{h.symbol}</span>
+                    <span className="pf-factor-track">
+                      <span className="pf-factor-zero" />
+                      <span
+                        className={`pf-factor-fill ${h.pnl >= 0 ? "pos" : "neg"}`}
+                        style={{
+                          width: `${(Math.abs(h.pnl) / attribution.maxAbs) * 50}%`,
+                          left: h.pnl >= 0 ? "50%" : `${50 - (Math.abs(h.pnl) / attribution.maxAbs) * 50}%`,
+                        }}
+                      />
+                    </span>
+                    <span className={`pf-factor-val ${signClass(h.pnl)}`}>
+                      {h.pnl >= 0 ? "+" : ""}
+                      {fmtInt(Math.round(h.pnl))}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="pf-foot">₹ profit/loss each holding contributes to the portfolio's total P&amp;L.</p>
+            </div>
+
+            <div className="pf-card">
+              <h2 className="pf-card-title">
+                Risk contribution <span className="pf-vs">share of volatility</span>
+              </h2>
+              {risk?.riskContrib ? (
+                <div className="pf-alloc">
+                  {riskAttr.items.map((it) => (
+                    <div className="pf-alloc-row" key={it.symbol}>
+                      <span className="pf-alloc-name">
+                        {it.symbol} <span className="pf-wt">· {(it.weight * 100).toFixed(0)}% wt</span>
+                      </span>
+                      <span className="pf-alloc-bar">
+                        <span style={{ width: `${Math.min(100, (it.pct / riskAttr.max) * 100)}%` }} />
+                      </span>
+                      <span className="pf-alloc-pct">{(it.pct * 100).toFixed(0)}%</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="pf-muted">
+                  {riskBusy ? "Computing…" : "Add holdings with price history to see risk contribution."}
+                </p>
+              )}
+              <p className="pf-foot">
+                Each holding's share of total portfolio volatility. A high risk share at a low weight signals
+                concentrated risk.
+              </p>
+            </div>
+          </div>
 
           {/* factor tilt */}
           <div className="pf-card">

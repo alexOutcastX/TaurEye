@@ -143,3 +143,7 @@
 .pf-chart-zero { stroke: var(--border-strong, #2c313c); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-dasharray: 3 3; }
 .pf-chart-port { fill: none; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
 .pf-chart-bench { fill: none; stroke: var(--text-muted); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; opacity: 0.8; }
+
+/* attribution */
+.pf-attr .pf-factor { grid-template-columns: 92px 1fr 72px; }
+.pf-wt { color: var(--text-faint); font-size: 11px; }
