@@ -65,6 +65,18 @@ CREATE TABLE IF NOT EXISTS corporate_actions (
     PRIMARY KEY (isin, ex_date, kind)
 );
 
+-- Cash dividends, kept SEPARATE from corporate_actions so they never feed the
+-- price-adjustment factor (adjust.py reads corporate_actions only). amount is
+-- ₹ per share on the ex_date.
+CREATE TABLE IF NOT EXISTS dividends (
+    isin        TEXT NOT NULL,
+    ex_date     TEXT NOT NULL,
+    amount      REAL NOT NULL,
+    detail      TEXT,
+    source      TEXT,
+    PRIMARY KEY (isin, ex_date)
+);
+
 CREATE TABLE IF NOT EXISTS quarantine (
     isin        TEXT,
     date        TEXT,

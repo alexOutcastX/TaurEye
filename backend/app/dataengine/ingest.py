@@ -280,6 +280,36 @@ def update_corporate_actions(start: "date | None" = None) -> int:
     return len(actions)
 
 
+def update_dividends(start: "date | None" = None) -> dict:
+    """Ingest cash dividends from the NSE corp-action feed into the SEPARATE
+    `dividends` table (kept out of corporate_actions so price adjustment is never
+    affected). Resolves to the canonical ISIN by trading symbol, like CAs."""
+    init_db()
+    divs = sources.nse_dividends(start=start)
+    upserted = 0
+    with session() as conn:
+        sym2isin = {
+            row["nse_symbol"]: row["isin"]
+            for row in conn.execute(
+                "SELECT nse_symbol, isin FROM securities WHERE nse_symbol IS NOT NULL"
+            ).fetchall()
+        }
+        known = {r["isin"] for r in conn.execute("SELECT isin FROM securities").fetchall()}
+        for d in divs:
+            isin = sym2isin.get(d["symbol"]) or (d["isin"] if d["isin"] in known else "")
+            if not isin:
+                continue
+            conn.execute(
+                """INSERT INTO dividends(isin,ex_date,amount,detail,source)
+                   VALUES (?,?,?,?,?)
+                   ON CONFLICT(isin,ex_date) DO UPDATE SET
+                     amount=excluded.amount, detail=excluded.detail""",
+                (isin, d["ex_date"], d["amount"], d["detail"], "NSE"),
+            )
+            upserted += 1
+    return {"parsed": len(divs), "upserted": upserted}
+
+
 # ---------- stage 3: EOD prices ----------
 def _fetch_bhav(name: str, fn, trade_date: date) -> list[PriceRow]:
     """Fetch one exchange's bhavcopy, returning [] (not raising) on any failure
@@ -407,6 +437,12 @@ def run_nightly(trade_date: date) -> dict:
         log(f"  corp_actions  count={cas}")
     except Exception as e:
         log(f"  corp_actions  FAIL  {type(e).__name__}: {e} (skipping CA refresh)")
+
+    try:
+        dv = update_dividends()
+        log(f"  dividends     parsed={dv['parsed']} upserted={dv['upserted']}")
+    except Exception as e:
+        log(f"  dividends     FAIL  {type(e).__name__}: {e} (skipping dividends)")
 
     # ingest_eod already degrades to single-source / empty internally.
     eod = ingest_eod(trade_date)

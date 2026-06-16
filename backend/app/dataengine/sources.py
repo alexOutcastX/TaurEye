@@ -380,23 +380,36 @@ def _parse_ca_rows(rows: list[dict]) -> list[CorpAction]:
     return out
 
 
-def nse_corp_actions(start: date | None = None) -> list[CorpAction]:
-    """Fetch NSE corporate actions covering [start .. today+60d].
+# Dividend cash amount from an NSE corp-action subject. The face-value clause
+# ("Of Rs 10/- Each") is stripped first so it isn't mistaken for the dividend.
+# Pure-percentage dividends ("Dividend - 50%") are skipped (need face value).
+_DIV_FV_RE = re.compile(r"\bof\s+(?:rs|re|inr|₹)\.?\s*\d+(?:\.\d+)?\s*/?\s*-?\s*each\b", re.I)
+_DIV_AMT_RE = re.compile(r"(?:rs|re|inr|₹)\.?\s*(\d+(?:\.\d+)?)", re.I)
 
-    Called without `start`, it spans the last ~460 days (enough for a normal
-    nightly run). For a multi-year backfill, pass the earliest price date so
-    historical splits/bonuses are captured and the old history adjusts correctly.
-    The feed caps long date ranges, so the span is fetched in <=365-day windows
-    and de-duplicated. Past windows cache cleanly, so re-runs are cheap.
-    """
+
+def _parse_dividend(subject: str) -> float | None:
+    s = (subject or "").strip()
+    if "dividend" not in s.lower():
+        return None
+    cleaned = _DIV_FV_RE.sub(" ", s)  # drop the face-value clause
+    m = _DIV_AMT_RE.search(cleaned)
+    if not m:
+        return None
+    try:
+        amt = float(m.group(1))
+    except ValueError:
+        return None
+    return amt if 0 < amt <= 100000 else None
+
+
+def _ca_window_rows(start: date | None):
+    """Yield (win_start, raw_rows) for each <=365-day NSE corp-action window.
+    Shared by nse_corp_actions and nse_dividends; the http cache makes the second
+    caller free (same URLs / cache_name)."""
     from datetime import date as _date, timedelta
     today = _date.today()
     end = today + timedelta(days=60)
-    begin = start or (today - timedelta(days=460))
-
-    out: list[CorpAction] = []
-    seen: set[tuple] = set()
-    win_start = begin
+    win_start = start or (today - timedelta(days=460))
     while win_start <= end:
         win_end = min(win_start + timedelta(days=365), end)
         url = NSE_CORP_ACTIONS.format(
@@ -413,10 +426,51 @@ def nse_corp_actions(start: date | None = None) -> list[CorpAction]:
             rows = data if isinstance(data, list) else data.get("data", [])
         except Exception:
             rows = []
+        yield win_start, rows
+        win_start = win_end + timedelta(days=1)
+
+
+def nse_dividends(start: date | None = None) -> list[dict]:
+    """Cash dividends parsed from the same NSE corp-action feed (split/bonus go
+    to nse_corp_actions). Returns dicts: isin, symbol, ex_date, amount, detail."""
+    out: list[dict] = []
+    seen: set[tuple] = set()
+    for _, rows in _ca_window_rows(start):
+        for item in rows:
+            subject = (item.get("subject") or "").strip()
+            if "dividend" not in subject.lower():
+                continue
+            amt = _parse_dividend(subject)
+            if amt is None:
+                continue
+            ex = _parse_ex_date(item.get("exDate") or item.get("ex_date"))
+            isin = (item.get("isin") or "").strip()
+            symbol = (item.get("symbol") or "").strip()
+            if not ex or (not isin and not symbol):
+                continue
+            key = (isin, symbol, ex)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({"isin": isin, "symbol": symbol, "ex_date": ex, "amount": amt, "detail": subject})
+    return out
+
+
+def nse_corp_actions(start: date | None = None) -> list[CorpAction]:
+    """Fetch NSE corporate actions (split/bonus) covering [start .. today+60d].
+
+    Called without `start`, it spans the last ~460 days (enough for a normal
+    nightly run). For a multi-year backfill, pass the earliest price date so
+    historical splits/bonuses are captured and the old history adjusts correctly.
+    The feed caps long date ranges, so the span is fetched in <=365-day windows
+    and de-duplicated. Past windows cache cleanly, so re-runs are cheap.
+    """
+    out: list[CorpAction] = []
+    seen: set[tuple] = set()
+    for _, rows in _ca_window_rows(start):
         for ca in _parse_ca_rows(rows):
             key = (ca.isin, ca.symbol, ca.ex_date, ca.kind)
             if key not in seen:
                 seen.add(key)
                 out.append(ca)
-        win_start = win_end + timedelta(days=1)
     return out

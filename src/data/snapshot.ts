@@ -56,7 +56,32 @@ interface CandleFile {
 
 let metricsCache: Promise<MetricsBundle> | null = null;
 let fundamentalsCache: Promise<FundamentalsBundle> | null = null;
+let dividendsCache: Promise<Map<string, DividendEvent[]>> | null = null;
 const candleCache = new Map<string, Promise<Candle[]>>();
+
+export interface DividendEvent {
+  date: string; // ex-date (ISO)
+  amount: number; // ₹ per share
+}
+
+/** Per-symbol cash dividends, for portfolio total-return. Optional file: absent
+ *  until a refresh publishes it -> empty map (fail-soft, never throws). */
+export function localDividends(): Promise<Map<string, DividendEvent[]>> {
+  if (!dividendsCache) {
+    dividendsCache = (async () => {
+      type Raw = { dividends?: Record<string, [string, number][]> };
+      const data =
+        (await tryFetch<Raw>(dataUrl("dividends.json"))) ??
+        (await tryFetch<Raw>(bundledUrl("dividends.json")));
+      const map = new Map<string, DividendEvent[]>();
+      for (const [sym, arr] of Object.entries(data?.dividends ?? {})) {
+        map.set(sym, (arr || []).map(([date, amount]) => ({ date, amount })));
+      }
+      return map;
+    })();
+  }
+  return dividendsCache;
+}
 
 async function tryFetch<T>(url: string): Promise<T | null> {
   try {

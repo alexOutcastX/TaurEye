@@ -37,7 +37,7 @@ non-advisory**, not a broking/demat account and not real money.
 | Latest price, sector, market cap, ATR%, RSI, MAs, 52w | `metrics.json` | ✅ have |
 | Per-symbol daily OHLCV history (~260 bars, CA-adjusted) | `candles/<SYM>.json` | ✅ have |
 | Entry price/date seed | `WatchItem.addedPrice/addedAt` | ✅ have (partial) |
-| Dividends (cash/share) | **not ingested** — `_parse_ca_rows` handles only split/bonus | 🔴 **gap — pipeline captures no dividends** |
+| Dividends (cash/share) | parsed from NSE announcements → `dividends` table → `dividends.json` | ✅ have (cash payouts; % skipped) |
 | Splits / bonus | spine `corp_actions` (prices already adjusted) | ✅ have (price-adjusted) |
 | **Benchmark series (NIFTY/sector index history)** | indices.json is a snapshot only | 🔴 **gap — needs an index candle export** |
 | Per-stock fundamentals (EPS → P/E; ROE) | `funda/*.json` (EPS, profit, promoter) | 🟡 P/E derivable; ROE needs equity |
@@ -208,13 +208,13 @@ cache in the existing session cache, and memoize the return matrix. Covariance o
   benchmark, since the spine has no index history), factor tilt.
 - **Phase 3 — Attribution ✅ DONE:** return attribution (contribution to P&L) and risk
   attribution (per-holding share of volatility from the covariance matrix).
-- **Phase 4 — Polish/monetize:** CSV import/export ✅, multi-portfolio compare ✅,
-  Pro tags on advanced cards ✅. **Dividends / total-return — DEFERRED:** the data
-  pipeline does not ingest dividends at all (`_parse_ca_rows` handles only split/bonus;
-  the `corp_actions.ratio` column is a price-adjustment factor, not cash/share). A
-  trustworthy total-return needs a NEW clean dividend-amount source + a separate
-  dividends table (must not feed price adjustment) + a per-symbol export — a dedicated
-  data-pipeline effort, not a quick parse. TWR/XIRR also pending dated lots.
+- **Phase 4 — Polish/monetize ✅ DONE:** CSV import/export, multi-portfolio compare,
+  Pro tags on advanced cards, and **dividends / total-return** — cash dividends are
+  parsed from NSE announcements into a SEPARATE `dividends` table (kept out of price
+  adjustment), exported as `dividends.json`, and the portfolio shows estimated
+  dividends + total return (price P&L + dividends since each entry date). Pure-%
+  dividends are skipped (need face value); TWR/XIRR still pending dated lots.
+  Note: dividend data populates on the next VM refresh.
 
 ---
 

@@ -303,6 +303,7 @@ def main() -> None:
                     help="trading days of history to pull (default 300 ≈ 14 months)")
     sub.add_parser("master")
     sub.add_parser("corp-actions")
+    sub.add_parser("dividends")
     sub.add_parser("segments")
     sub.add_parser("sectors")
     mp = sub.add_parser("marketcap")
@@ -372,6 +373,8 @@ def main() -> None:
         print({"securities": ingest.update_master()})
     elif args.cmd == "corp-actions":
         print({"corp_actions": ingest.update_corporate_actions()})
+    elif args.cmd == "dividends":
+        print(ingest.update_dividends())
     elif args.cmd == "segments":
         print(ingest.update_segments())
     elif args.cmd == "sectors":
