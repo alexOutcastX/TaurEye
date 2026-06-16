@@ -37,7 +37,8 @@ non-advisory**, not a broking/demat account and not real money.
 | Latest price, sector, market cap, ATR%, RSI, MAs, 52w | `metrics.json` | ✅ have |
 | Per-symbol daily OHLCV history (~260 bars, CA-adjusted) | `candles/<SYM>.json` | ✅ have |
 | Entry price/date seed | `WatchItem.addedPrice/addedAt` | ✅ have (partial) |
-| Dividends / splits | spine `corp_actions` (prices already adjusted) | 🟡 partial — not exported per-symbol |
+| Dividends (cash/share) | **not ingested** — `_parse_ca_rows` handles only split/bonus | 🔴 **gap — pipeline captures no dividends** |
+| Splits / bonus | spine `corp_actions` (prices already adjusted) | ✅ have (price-adjusted) |
 | **Benchmark series (NIFTY/sector index history)** | indices.json is a snapshot only | 🔴 **gap — needs an index candle export** |
 | Per-stock fundamentals (EPS → P/E; ROE) | `funda/*.json` (EPS, profit, promoter) | 🟡 P/E derivable; ROE needs equity |
 
@@ -199,15 +200,21 @@ cache in the existing session cache, and memoize the return matrix. Covariance o
 
 ## 7. Phasing
 
-- **Phase 1 — Tracker (MVP, ~no backend):** lots/txn ledger, valuation, day & total
-  P&L (realized/unrealized), weights, sector allocation, concentration. Seed from
-  `addedPrice`. Local-first + cloud table.
-- **Phase 2 — Risk:** candle return matrix → volatility, β (needs index export),
-  drawdown, historical VaR/CVaR, correlation heatmap, TWR/XIRR.
-- **Phase 3 — Factors & attribution:** universe factor z-scores, portfolio tilt,
-  return & risk attribution, benchmark-relative.
-- **Phase 4 — Polish/monetize:** CSV import, dividends/total-return, multi-portfolio
-  compare, **Pro-gated** advanced analytics (factors/attribution as a paid tier).
+- **Phase 1 — Tracker ✅ DONE:** positions (qty + weighted avg cost), valuation, day &
+  total P&L, weights, sector allocation, concentration (HHI/top), autocomplete, trade
+  dates. Seed from a watchlist. Local-first.
+- **Phase 2 — Risk ✅ DONE:** candle return matrix → volatility, drawdown, historical
+  VaR/CVaR, **beta + tracking error + NAV-vs-market chart** (cap-weighted broad-market
+  benchmark, since the spine has no index history), factor tilt.
+- **Phase 3 — Attribution ✅ DONE:** return attribution (contribution to P&L) and risk
+  attribution (per-holding share of volatility from the covariance matrix).
+- **Phase 4 — Polish/monetize:** CSV import/export ✅, multi-portfolio compare ✅,
+  Pro tags on advanced cards ✅. **Dividends / total-return — DEFERRED:** the data
+  pipeline does not ingest dividends at all (`_parse_ca_rows` handles only split/bonus;
+  the `corp_actions.ratio` column is a price-adjustment factor, not cash/share). A
+  trustworthy total-return needs a NEW clean dividend-amount source + a separate
+  dividends table (must not feed price adjustment) + a per-symbol export — a dedicated
+  data-pipeline effort, not a quick parse. TWR/XIRR also pending dated lots.
 
 ---
 
