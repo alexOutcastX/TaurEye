@@ -19,6 +19,7 @@ import {
 } from "../lib/portfolio";
 import { getWatchlists } from "../lib/watchlist";
 import type { Metrics } from "../api/types";
+import type { DividendEvent } from "../data/snapshot";
 import "./Portfolio.css";
 
 interface Row {
@@ -53,6 +54,7 @@ export default function Portfolio() {
   const [risk, setRisk] = useState<RiskResult | null>(null);
   const [riskBusy, setRiskBusy] = useState(false);
   const [bench, setBench] = useState<Map<string, number> | null>(null);
+  const [divs, setDivs] = useState<Map<string, DividendEvent[]>>(new Map());
 
   // add-holding form
   const [addSym, setAddSym] = useState("");
@@ -72,7 +74,7 @@ export default function Portfolio() {
     let alive = true;
     (async () => {
       try {
-        const [idx, screen] = await Promise.all([
+        const [idx, screen, dividends] = await Promise.all([
           api.indices(),
           api.screen({
             filters: [],
@@ -83,10 +85,12 @@ export default function Portfolio() {
             sort_dir: "desc",
             limit: 100000,
           }),
+          api.dividends(),
         ]);
         if (!alive) return;
         setDataDate(idx.data_date ?? idx.generated_at ?? null);
         setMetricsArr(screen.results);
+        setDivs(dividends);
       } finally {
         if (alive) setLoading(false);
       }
@@ -155,6 +159,26 @@ export default function Portfolio() {
       alive = false;
     };
   }, [metricsArr]);
+
+  // ---- dividends → total return (₹ income since entry date × qty) ----
+  const divInfo = useMemo(() => {
+    let total = 0;
+    for (const r of rows) {
+      const evs = divs.get(r.pos.symbol);
+      if (!evs?.length) continue;
+      const since = r.pos.addedAt ? r.pos.addedAt.slice(0, 10) : null;
+      let perShare = 0;
+      for (const e of evs) if (!since || e.date >= since) perShare += e.amount;
+      total += perShare * r.pos.qty;
+    }
+    const totalReturn = totals.totalPnl + total;
+    return {
+      total,
+      totalReturn,
+      totalReturnPct: totals.invested > 0 ? (totalReturn / totals.invested) * 100 : 0,
+      has: divs.size > 0,
+    };
+  }, [rows, divs, totals]);
 
   // ---- risk (async, from candle history) ----
   useEffect(() => {
@@ -477,6 +501,21 @@ export default function Portfolio() {
           tone={signClass(totals.totalPnl)}
           extra={fmtPct(totals.totalPct)}
         />
+        {divInfo.has && (
+          <Stat
+            label="Dividends (est.)"
+            value={`+${rupee(divInfo.total)}`}
+            tone={divInfo.total > 0 ? "up" : undefined}
+          />
+        )}
+        {divInfo.has && (
+          <Stat
+            label="Total return"
+            value={`${divInfo.totalReturn >= 0 ? "+" : ""}${rupee(divInfo.totalReturn)}`}
+            tone={signClass(divInfo.totalReturn)}
+            extra={fmtPct(divInfo.totalReturnPct)}
+          />
+        )}
         <Stat
           label="Volatility (ann.)"
           value={risk ? `${(risk.annVol * 100).toFixed(1)}%` : riskBusy ? "…" : "—"}
@@ -865,8 +904,9 @@ export default function Portfolio() {
 
       <p className="pf-disclaimer">
         Portfolio tracking is <strong>informational and hypothetical</strong> — based on end-of-day prices, not a
-        demat/broking account, and <strong>not investment advice</strong>. Figures may be delayed or inaccurate;
-        verify against official sources.
+        demat/broking account, and <strong>not investment advice</strong>. Dividends are <strong>estimated</strong>
+        from public NSE announcements (cash payouts only). Figures may be delayed or inaccurate; verify against
+        official sources.
       </p>
     </section>
   );

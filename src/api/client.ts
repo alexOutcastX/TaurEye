@@ -13,6 +13,7 @@ import { LOCAL_DATA } from "../data/source";
 import { supabase } from "../lib/supabase";
 import {
   localCandles,
+  localDividends,
   localFields,
   localHealth,
   localIndices,
@@ -20,6 +21,7 @@ import {
   localScreen,
   localSearch,
   localSegments,
+  type DividendEvent,
 } from "../data/snapshot";
 import {
   localDeleteScreen,
@@ -149,6 +151,8 @@ export const api = {
   fields: () => (LOCAL_DATA ? localFields() : req<FieldDef[]>("/fields")),
   segments: () => (LOCAL_DATA ? localSegments() : req<SegmentInfo[]>("/segments")),
   indices: () => (LOCAL_DATA ? localIndices() : req<IndicesResponse>("/indices")),
+  dividends: (): Promise<Map<string, DividendEvent[]>> =>
+    LOCAL_DATA ? localDividends() : Promise.resolve(new Map()),
   searchSecurities: (q: string, limit = 8) =>
     LOCAL_DATA
       ? localSearch(q, limit)

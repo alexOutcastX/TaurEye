@@ -293,6 +293,34 @@ def export_indices(out: Path, *, gz: bool) -> dict:
     return {"file": str(path), "count": n, "raw": raw, "gz": gzb}
 
 
+def export_dividends(out: Path, *, gz: bool, years: int = 3) -> dict:
+    """Per-symbol cash dividends (₹/share by ex_date) so the portfolio can show
+    total return. Sparse, so one consolidated file keyed by NSE symbol."""
+    from datetime import date, timedelta
+    cutoff = (date.today() - timedelta(days=365 * years)).isoformat()
+    by_sym: dict[str, list] = {}
+    try:
+        with connect() as conn:
+            rows = conn.execute(
+                """SELECT s.nse_symbol AS sym, d.ex_date AS ex, d.amount AS amt
+                   FROM dividends d JOIN securities s ON s.isin = d.isin
+                   WHERE s.nse_symbol IS NOT NULL AND d.ex_date >= ?
+                   ORDER BY s.nse_symbol, d.ex_date""",
+                (cutoff,),
+            ).fetchall()
+        for r in rows:
+            by_sym.setdefault(r["sym"], []).append([r["ex"], round(r["amt"], 4)])
+    except Exception as e:  # noqa: BLE001
+        print(f"[export] dividends: FAIL {type(e).__name__}: {e} (writing empty)")
+    payload = {"generated_at": _now(), "dividends": by_sym}
+    path = out / "dividends.json"
+    raw, gzb = _write(path, payload, gz=gz)
+    n = sum(len(v) for v in by_sym.values())
+    print(f"[export] dividends: {n} events across {len(by_sym)} symbols -> {path}"
+          f"  ({raw} B raw, {gzb} B gz)")
+    return {"file": str(path), "count": n, "raw": raw, "gz": gzb}
+
+
 def write_manifest(out: Path, files: dict, *, window: int, gz: bool) -> dict:
     """Write manifest.json describing the published bundle.
 
@@ -421,6 +449,7 @@ def cmd_export(out: str | None, *, window: int, gz: bool,
         files["fundamentals"] = export_fundamentals(out_dir, gz=gz)
     if metrics:
         files["metrics"] = export_metrics(out_dir, gz=gz)
+        files["dividends"] = export_dividends(out_dir, gz=gz)
     if indices:
         files["indices"] = export_indices(out_dir, gz=gz)
     if ohlc:
