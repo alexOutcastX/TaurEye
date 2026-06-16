@@ -17,6 +17,7 @@ import Watchlist from "./pages/Watchlist";
 import Saved from "./pages/Saved";
 import Wallet from "./pages/Wallet";
 import Portfolio from "./pages/Portfolio";
+import Calculators from "./pages/Calculators";
 import Refer from "./pages/Refer";
 import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
@@ -74,6 +75,7 @@ export default function App() {
         <Route path="alerts" element={<Alerts />} />
         <Route path="watchlist" element={<Watchlist />} />
         <Route path="portfolio" element={<Portfolio />} />
+        <Route path="calculators" element={<Calculators />} />
         <Route path="saved" element={<Saved />} />
         <Route path="wallet" element={<Wallet />} />
         <Route path="refer" element={<Refer />} />
