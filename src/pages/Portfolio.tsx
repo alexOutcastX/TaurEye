@@ -59,6 +59,8 @@ export default function Portfolio() {
   const [addCost, setAddCost] = useState("");
   const [addDate, setAddDate] = useState("");
   const [addErr, setAddErr] = useState<string | null>(null);
+  const [symOpen, setSymOpen] = useState(false);
+  const [symIdx, setSymIdx] = useState(0);
   const [importWl, setImportWl] = useState("");
 
   useEffect(() => onPortfolioChange(() => setPortfolios(getPortfolios())), []);
@@ -199,6 +201,54 @@ export default function Portfolio() {
     });
   }, [metricsArr, rows]);
 
+  // ---- symbol autocomplete (client-side over the loaded universe) ----
+  const suggestions = useMemo(() => {
+    const q = addSym.trim().toUpperCase();
+    if (!q) return [] as Metrics[];
+    const starts: Metrics[] = [];
+    const contains: Metrics[] = [];
+    const seen = new Set<string>();
+    for (const m of metricsArr) {
+      const sym = m.symbol.toUpperCase();
+      if (seen.has(sym)) continue;
+      const name = (m.name || "").toUpperCase();
+      if (sym.startsWith(q)) {
+        starts.push(m);
+        seen.add(sym);
+      } else if (sym.includes(q) || name.includes(q)) {
+        contains.push(m);
+        seen.add(sym);
+      }
+      if (starts.length >= 8) break;
+    }
+    return [...starts, ...contains].slice(0, 8);
+  }, [addSym, metricsArr]);
+
+  const pickSym = (m: Metrics) => {
+    setAddSym(m.symbol);
+    setSymOpen(false);
+    setAddErr(null);
+  };
+
+  const onSymKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!symOpen || !suggestions.length) {
+      if (e.key === "Enter") onAdd();
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSymIdx((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSymIdx((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      pickSym(suggestions[Math.min(symIdx, suggestions.length - 1)]);
+    } else if (e.key === "Escape") {
+      setSymOpen(false);
+    }
+  };
+
   // ---- mutations ----
   const onAdd = () => {
     setAddErr(null);
@@ -219,6 +269,7 @@ export default function Portfolio() {
     setAddQty("");
     setAddCost("");
     setAddDate("");
+    setSymOpen(false);
   };
 
   const commit = (r: Row, patch: Partial<Position>) =>
@@ -413,12 +464,42 @@ export default function Portfolio() {
 
             {/* add holding */}
             <div className="pf-add">
-              <input
-                className="pf-in sym"
-                placeholder="Symbol (e.g. RELIANCE)"
-                value={addSym}
-                onChange={(e) => setAddSym(e.target.value)}
-              />
+              <div className="pf-ac">
+                <input
+                  className="pf-in sym"
+                  placeholder="Symbol (e.g. RELIANCE)"
+                  value={addSym}
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(e) => {
+                    setAddSym(e.target.value);
+                    setSymOpen(true);
+                    setSymIdx(0);
+                  }}
+                  onFocus={() => setSymOpen(true)}
+                  onBlur={() => window.setTimeout(() => setSymOpen(false), 120)}
+                  onKeyDown={onSymKey}
+                />
+                {symOpen && suggestions.length > 0 && (
+                  <ul className="pf-ac-list">
+                    {suggestions.map((m, i) => (
+                      <li
+                        key={`${m.symbol}:${m.exchange}`}
+                        className={i === symIdx ? "active" : ""}
+                        onMouseEnter={() => setSymIdx(i)}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          pickSym(m);
+                        }}
+                      >
+                        <span className="pf-ac-sym">{m.symbol}</span>
+                        <span className="pf-ac-name">{m.name}</span>
+                        <span className="pf-ac-x">{m.exchange}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <input
                 className="pf-in"
                 type="number"
