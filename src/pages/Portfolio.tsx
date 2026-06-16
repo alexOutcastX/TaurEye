@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
@@ -63,6 +63,8 @@ export default function Portfolio() {
   const [symOpen, setSymOpen] = useState(false);
   const [symIdx, setSymIdx] = useState(0);
   const [importWl, setImportWl] = useState("");
+  const [csvMsg, setCsvMsg] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => onPortfolioChange(() => setPortfolios(getPortfolios())), []);
 
@@ -324,6 +326,72 @@ export default function Portfolio() {
     setImportWl("");
   };
 
+  // ---- CSV import / export ----
+  const onExportCsv = () => {
+    if (!active) return;
+    const header = "symbol,quantity,avg_cost,date";
+    const body = active.positions
+      .map((p) => `${p.symbol},${p.qty},${p.avgCost},${p.addedAt ? p.addedAt.slice(0, 10) : ""}`)
+      .join("\n");
+    const blob = new Blob([`${header}\n${body}\n`], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${active.name.replace(/[^\w-]+/g, "_")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const onImportCsv = async (file: File) => {
+    setCsvMsg(null);
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    let added = 0;
+    let skipped = 0;
+    for (const line of lines) {
+      const cells = line.split(",").map((c) => c.trim());
+      const sym = (cells[0] || "").toUpperCase();
+      if (!sym || sym === "SYMBOL") continue; // header / blank
+      const m = metricsMap.get(sym);
+      const qty = Number(cells[1]);
+      const cost = cells[2] === "" || cells[2] == null ? m?.close ?? NaN : Number(cells[2]);
+      if (!m || !(qty > 0) || !(cost >= 0)) {
+        skipped++;
+        continue;
+      }
+      addShares(active.id, { symbol: sym, name: m.name, exchange: m.exchange }, qty, cost, cells[3] || undefined);
+      added++;
+    }
+    setCsvMsg(`Imported ${added} holding(s)${skipped ? `, skipped ${skipped}` : ""}.`);
+  };
+
+  // ---- multi-portfolio compare (cheap: from metrics, no candle fetches) ----
+  const compare = useMemo(
+    () =>
+      portfolios.map((p) => {
+        let mv = 0;
+        let inv = 0;
+        let day = 0;
+        for (const pos of p.positions) {
+          const m = metricsMap.get(pos.symbol);
+          const ltp = m?.close ?? pos.avgCost;
+          mv += pos.qty * ltp;
+          inv += pos.qty * pos.avgCost;
+          day += pos.qty * (m?.change_abs ?? 0);
+        }
+        return {
+          id: p.id,
+          name: p.name,
+          n: p.positions.length,
+          mv,
+          day,
+          pnl: mv - inv,
+          pnlPct: inv > 0 ? ((mv - inv) / inv) * 100 : 0,
+        };
+      }),
+    [portfolios, metricsMap],
+  );
+
   const watchlists = getWatchlists();
 
   return (
@@ -372,8 +440,26 @@ export default function Portfolio() {
               Delete
             </button>
           )}
+          <button className="pf-btn" onClick={onExportCsv} title="Download holdings as CSV">
+            ↓ CSV
+          </button>
+          <button className="pf-btn" onClick={() => fileRef.current?.click()} title="Import holdings from CSV">
+            ↑ CSV
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv,text/csv"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void onImportCsv(f);
+              e.target.value = "";
+            }}
+          />
         </div>
       </header>
+      {csvMsg && <p className="pf-csvmsg">{csvMsg}</p>}
 
       {/* ---- summary ---- */}
       <div className="pf-summary">
@@ -402,6 +488,47 @@ export default function Portfolio() {
           extra={risk ? `${(risk.var95 * 100).toFixed(2)}%` : undefined}
         />
       </div>
+
+      {compare.length > 1 && (
+        <div className="pf-card">
+          <h2 className="pf-card-title">Compare portfolios</h2>
+          <div className="pf-table-wrap">
+            <table className="pf-table">
+              <thead>
+                <tr>
+                  <th>Portfolio</th>
+                  <th className="num">Holdings</th>
+                  <th className="num">Value</th>
+                  <th className="num">Day P&L</th>
+                  <th className="num">Total P&L</th>
+                </tr>
+              </thead>
+              <tbody>
+                {compare.map((c) => (
+                  <tr key={c.id} className={c.id === active?.id ? "pf-active-row" : ""}>
+                    <td>
+                      <button className="pf-sym" onClick={() => setActiveId(c.id)}>
+                        {c.name}
+                      </button>
+                    </td>
+                    <td className="num mono">{c.n}</td>
+                    <td className="num mono">{rupee(c.mv)}</td>
+                    <td className={`num mono ${signClass(c.day)}`}>
+                      {c.day >= 0 ? "+" : ""}
+                      {fmtInt(Math.round(c.day))}
+                    </td>
+                    <td className={`num mono ${signClass(c.pnl)}`}>
+                      {c.pnl >= 0 ? "+" : ""}
+                      {fmtInt(Math.round(c.pnl))}
+                      <span className="pf-pnlpct">{fmtPct(c.pnlPct)}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {loading && rows.length === 0 ? (
         <p className="pf-empty">Loading market data…</p>
@@ -591,7 +718,7 @@ export default function Portfolio() {
 
             {/* risk */}
             <div className="pf-card">
-              <h2 className="pf-card-title">Risk</h2>
+              <h2 className="pf-card-title">Risk <ProTag /></h2>
               {risk ? (
                 <>
                   <div className="pf-risk">
@@ -645,7 +772,7 @@ export default function Portfolio() {
           <div className="pf-grid2">
             <div className="pf-card">
               <h2 className="pf-card-title">
-                Return attribution <span className="pf-vs">contribution to P&amp;L</span>
+                Return attribution <span className="pf-vs">contribution to P&amp;L</span> <ProTag />
               </h2>
               <div className="pf-factors pf-attr">
                 {attribution.byHolding.map((h) => (
@@ -673,7 +800,7 @@ export default function Portfolio() {
 
             <div className="pf-card">
               <h2 className="pf-card-title">
-                Risk contribution <span className="pf-vs">share of volatility</span>
+                Risk contribution <span className="pf-vs">share of volatility</span> <ProTag />
               </h2>
               {risk?.riskContrib ? (
                 <div className="pf-alloc">
@@ -703,7 +830,7 @@ export default function Portfolio() {
 
           {/* factor tilt */}
           <div className="pf-card">
-            <h2 className="pf-card-title">Factor tilt <span className="pf-vs">vs. universe</span></h2>
+            <h2 className="pf-card-title">Factor tilt <span className="pf-vs">vs. universe</span> <ProTag /></h2>
             <div className="pf-factors">
               {factors.map((f) => {
                 const pct = Math.max(-100, Math.min(100, (f.value / 2) * 100));
@@ -786,6 +913,14 @@ function PnlChart({ series }: { series: { date: string; port: number; bench: num
       <path d={path("bench")} className="pf-chart-bench" />
       <path d={path("port")} className="pf-chart-port" />
     </svg>
+  );
+}
+
+function ProTag() {
+  return (
+    <span className="pf-pro" title="Advanced analytics — free during preview, a Pro feature at launch">
+      Pro
+    </span>
   );
 }
 
