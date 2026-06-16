@@ -13,21 +13,27 @@ const num = (s: string) => {
 
 type CalcKey =
   | "sip"
+  | "swp"
   | "lumpsum"
   | "cagr"
   | "goal"
+  | "fdrd"
   | "position"
   | "rr"
-  | "brokerage";
+  | "brokerage"
+  | "fno";
 
 const CALCS: { key: CalcKey; label: string; group: "Investing" | "Trading" }[] = [
   { key: "sip", label: "SIP", group: "Investing" },
+  { key: "swp", label: "SWP", group: "Investing" },
   { key: "lumpsum", label: "Lumpsum", group: "Investing" },
   { key: "cagr", label: "CAGR / returns", group: "Investing" },
   { key: "goal", label: "Goal planner", group: "Investing" },
+  { key: "fdrd", label: "FD / RD", group: "Investing" },
   { key: "position", label: "Position size", group: "Trading" },
   { key: "rr", label: "Risk : reward", group: "Trading" },
   { key: "brokerage", label: "Brokerage & charges", group: "Trading" },
+  { key: "fno", label: "F&O breakeven", group: "Trading" },
 ];
 
 export default function Calculators() {
@@ -53,12 +59,15 @@ export default function Calculators() {
 
       <div className="calc-body">
         {active === "sip" && <Sip />}
+        {active === "swp" && <Swp />}
         {active === "lumpsum" && <Lumpsum />}
         {active === "cagr" && <Cagr />}
         {active === "goal" && <Goal />}
+        {active === "fdrd" && <FdRd />}
         {active === "position" && <Position />}
         {active === "rr" && <RiskReward />}
         {active === "brokerage" && <Brokerage />}
+        {active === "fno" && <Fno />}
       </div>
 
       <p className="calc-disclaimer">
@@ -154,6 +163,56 @@ function Sip() {
           <Result label="Future value" value={inr(r.fv)} big tone="up" />
           <Result label="Invested" value={inr(r.invested)} />
           <Result label="Estimated gains" value={inr(r.gains)} tone="up" />
+        </>
+      }
+    />
+  );
+}
+
+// ---------------- SWP (systematic withdrawal) ----------------
+function Swp() {
+  const [corpus, setCorpus] = useState("1000000");
+  const [withdraw, setWithdraw] = useState("8000");
+  const [rate, setRate] = useState("8");
+  const [years, setYears] = useState("20");
+  const r = useMemo(() => {
+    const P = num(corpus);
+    const W = num(withdraw);
+    const i = num(rate) / 100 / 12;
+    const N = Math.round(num(years) * 12);
+    let bal = P;
+    let withdrawn = 0;
+    let depletedAt = 0;
+    for (let m = 1; m <= N; m++) {
+      bal = bal * (1 + i) - W;
+      if (bal <= 0) {
+        withdrawn += W + bal; // last withdrawal is partial
+        bal = 0;
+        depletedAt = m;
+        break;
+      }
+      withdrawn += W;
+    }
+    return { endBal: bal, withdrawn, depletedAt, N };
+  }, [corpus, withdraw, rate, years]);
+  const duration = r.depletedAt
+    ? `Depletes in ${Math.floor(r.depletedAt / 12)}y ${r.depletedAt % 12}m`
+    : `Lasts the full ${num(years)}y`;
+  return (
+    <Layout
+      inputs={
+        <>
+          <Field label="Total investment (corpus)" value={corpus} onChange={setCorpus} suffix="₹" />
+          <Field label="Monthly withdrawal" value={withdraw} onChange={setWithdraw} suffix="₹" />
+          <Field label="Expected return (p.a.)" value={rate} onChange={setRate} suffix="%" step="0.1" />
+          <Field label="Period" value={years} onChange={setYears} suffix="yrs" />
+        </>
+      }
+      results={
+        <>
+          <Result label="Balance at end" value={inr(r.endBal)} big tone={r.endBal > 0 ? "up" : "down"} />
+          <Result label="Total withdrawn" value={inr(r.withdrawn)} />
+          <Result label="Corpus duration" value={duration} tone={r.depletedAt ? "down" : "up"} />
         </>
       }
     />
@@ -256,6 +315,58 @@ function Goal() {
   );
 }
 
+// ---------------- FD / RD ----------------
+function FdRd() {
+  const [mode, setMode] = useState("fd");
+  const [amt, setAmt] = useState("100000");
+  const [rate, setRate] = useState("7");
+  const [years, setYears] = useState("5");
+  const r = useMemo(() => {
+    const A = num(amt);
+    const rr = num(rate) / 100;
+    const y = num(years);
+    if (mode === "fd") {
+      const m = A * Math.pow(1 + rr / 4, 4 * y); // quarterly compounding
+      return { maturity: m, invested: A, interest: m - A };
+    }
+    // RD: monthly deposits, interest accrued monthly (≈ bank quarterly)
+    const months = Math.round(y * 12);
+    const i = rr / 12;
+    let bal = 0;
+    for (let m = 0; m < months; m++) bal = (bal + A) * (1 + i);
+    return { maturity: bal, invested: A * months, interest: bal - A * months };
+  }, [mode, amt, rate, years]);
+  return (
+    <Layout
+      inputs={
+        <>
+          <div className="calc-field">
+            <span className="calc-field-l">Type</span>
+            <Seg
+              options={[
+                ["fd", "Fixed (FD)"],
+                ["rd", "Recurring (RD)"],
+              ]}
+              value={mode}
+              onChange={setMode}
+            />
+          </div>
+          <Field label={mode === "fd" ? "Deposit amount" : "Monthly deposit"} value={amt} onChange={setAmt} suffix="₹" />
+          <Field label="Interest rate (p.a.)" value={rate} onChange={setRate} suffix="%" step="0.1" />
+          <Field label="Period" value={years} onChange={setYears} suffix="yrs" />
+        </>
+      }
+      results={
+        <>
+          <Result label="Maturity value" value={inr(r.maturity)} big tone="up" />
+          <Result label="Invested" value={inr(r.invested)} />
+          <Result label="Interest earned" value={inr(r.interest)} tone="up" />
+        </>
+      }
+    />
+  );
+}
+
 // ---------------- Position size (risk-based) ----------------
 function Position() {
   const [capital, setCapital] = useState("500000");
@@ -328,6 +439,75 @@ function RiskReward() {
           <Result label="Risk : reward" value={Number.isFinite(r.ratio) ? `1 : ${r.ratio.toFixed(2)}` : "—"} big />
           <Result label="Potential profit" value={`${inr(r.rewardAmt)} (${pct(r.gainPct)})`} tone="up" />
           <Result label="Potential loss" value={`${inr(r.lossAmt)} (${pct(r.lossPct)})`} tone="down" />
+        </>
+      }
+    />
+  );
+}
+
+// ---------------- F&O option breakeven ----------------
+function Fno() {
+  const [type, setType] = useState("call");
+  const [action, setAction] = useState("buy");
+  const [strike, setStrike] = useState("22000");
+  const [premium, setPremium] = useState("150");
+  const [lot, setLot] = useState("75");
+  const r = useMemo(() => {
+    const k = num(strike);
+    const p = num(premium);
+    const q = num(lot);
+    const breakeven = type === "call" ? k + p : Math.max(0, k - p);
+    const outlay = p * q;
+    const isBuy = action === "buy";
+    let maxProfit: string;
+    let maxLoss: string;
+    if (type === "call") {
+      maxProfit = isBuy ? "Unlimited" : inr(outlay);
+      maxLoss = isBuy ? inr(outlay) : "Unlimited";
+    } else {
+      const cap = (k - p) * q; // put intrinsic floor at spot 0
+      maxProfit = isBuy ? inr(cap) : inr(outlay);
+      maxLoss = isBuy ? inr(outlay) : inr(cap);
+    }
+    return { breakeven, outlay, maxProfit, maxLoss, isBuy };
+  }, [type, action, strike, premium, lot]);
+  return (
+    <Layout
+      inputs={
+        <>
+          <div className="calc-field">
+            <span className="calc-field-l">Option</span>
+            <Seg
+              options={[
+                ["call", "Call"],
+                ["put", "Put"],
+              ]}
+              value={type}
+              onChange={setType}
+            />
+          </div>
+          <div className="calc-field">
+            <span className="calc-field-l">Position</span>
+            <Seg
+              options={[
+                ["buy", "Buy"],
+                ["sell", "Sell / write"],
+              ]}
+              value={action}
+              onChange={setAction}
+            />
+          </div>
+          <Field label="Strike price" value={strike} onChange={setStrike} suffix="₹" />
+          <Field label="Premium" value={premium} onChange={setPremium} suffix="₹" step="0.05" />
+          <Field label="Lot size (qty)" value={lot} onChange={setLot} />
+        </>
+      }
+      results={
+        <>
+          <Result label="Breakeven (spot)" value={inr(r.breakeven, 2)} big />
+          <Result label="Premium outlay" value={inr(r.outlay, 2)} tone={r.isBuy ? "down" : "up"} />
+          <Result label="Max profit" value={r.maxProfit} tone="up" />
+          <Result label="Max loss" value={r.maxLoss} tone="down" />
         </>
       }
     />
