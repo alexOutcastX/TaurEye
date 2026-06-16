@@ -16,6 +16,7 @@ const NAV = [
   { to: "/app/chart", label: "Chart", icon: ChartIcon },
   { to: "/app/indices", label: "Indices", icon: GlobeIcon },
   { to: "/app/watchlist", label: "Watchlist", icon: StarIcon },
+  { to: "/app/portfolio", label: "Portfolio", icon: BriefcaseIcon },
   { to: "/app/saved", label: "Saved Screens", icon: BookmarkIcon },
   { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
   { to: "/app/refer", label: "Refer & Earn", icon: GiftIcon },
@@ -83,6 +84,14 @@ export default function AppShell() {
 }
 
 /* ---- inline icons (stroke = currentColor) ---- */
+function BriefcaseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18" strokeLinecap="round" />
+    </svg>
+  );
+}
 function GridIcon() {
   return (
     <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2">
