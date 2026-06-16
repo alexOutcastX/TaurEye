@@ -36,6 +36,13 @@ interface Row {
 
 const rupee = (n: number) => `₹${fmtNum(n, n >= 100000 || n <= -100000 ? 0 : 2)}`;
 
+function fmtDay(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? ""
+    : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
+}
+
 export default function Portfolio() {
   const nav = useNavigate();
   const [metricsArr, setMetricsArr] = useState<Metrics[]>([]);
@@ -50,6 +57,7 @@ export default function Portfolio() {
   const [addSym, setAddSym] = useState("");
   const [addQty, setAddQty] = useState("");
   const [addCost, setAddCost] = useState("");
+  const [addDate, setAddDate] = useState("");
   const [addErr, setAddErr] = useState<string | null>(null);
   const [importWl, setImportWl] = useState("");
 
@@ -206,10 +214,11 @@ export default function Portfolio() {
       setAddErr("Enter a positive quantity and a valid cost.");
       return;
     }
-    addShares(active.id, { symbol: sym, name: m.name, exchange: m.exchange }, qty, cost);
+    addShares(active.id, { symbol: sym, name: m.name, exchange: m.exchange }, qty, cost, addDate || undefined);
     setAddSym("");
     setAddQty("");
     setAddCost("");
+    setAddDate("");
   };
 
   const commit = (r: Row, patch: Partial<Position>) =>
@@ -355,7 +364,10 @@ export default function Portfolio() {
                         <button className="pf-sym" onClick={() => openChart(r)}>
                           {r.pos.symbol}
                         </button>
-                        <span className="pf-sec">{r.sector}</span>
+                        <span className="pf-sec">
+                          {r.sector}
+                          {r.pos.addedAt ? ` · since ${fmtDay(r.pos.addedAt)}` : ""}
+                        </span>
                       </td>
                       <td className="num">
                         <input
@@ -420,6 +432,14 @@ export default function Portfolio() {
                 placeholder="Avg cost (blank = LTP)"
                 value={addCost}
                 onChange={(e) => setAddCost(e.target.value)}
+              />
+              <input
+                className="pf-in date"
+                type="date"
+                title="Trade date (optional)"
+                max={dataDate ?? undefined}
+                value={addDate}
+                onChange={(e) => setAddDate(e.target.value)}
               />
               <button className="pf-btn" onClick={onAdd}>
                 Add

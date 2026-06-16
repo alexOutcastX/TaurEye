@@ -96,11 +96,14 @@ export function upsertPosition(id: string, pos: Position): void {
 }
 
 /** Add shares to a holding, folding into the weighted average cost. */
+/** Add shares to a holding, folding into the weighted average cost. `date` (a
+ *  YYYY-MM-DD trade date) is used as the entry date when creating a new holding. */
 export function addShares(
   id: string,
   item: { symbol: string; name: string; exchange: string },
   qty: number,
   price: number,
+  date?: string,
 ): void {
   if (qty <= 0 || price < 0) return;
   const list = read();
@@ -112,7 +115,8 @@ export function addShares(
     cur.avgCost = totalQty > 0 ? (cur.qty * cur.avgCost + qty * price) / totalQty : price;
     cur.qty = totalQty;
   } else {
-    p.positions.push({ ...item, qty, avgCost: price, addedAt: new Date().toISOString() });
+    const addedAt = date ? new Date(date).toISOString() : new Date().toISOString();
+    p.positions.push({ ...item, qty, avgCost: price, addedAt });
   }
   write(list);
 }

@@ -112,3 +112,4 @@
 @media (max-width: 860px) {
   .pf-grid2 { grid-template-columns: 1fr; }
 }
+.pf-in.date { width: 140px; text-align: left; color-scheme: dark; }
