@@ -84,7 +84,8 @@ export function localDividends(): Promise<Map<string, DividendEvent[]>> {
 }
 
 export interface StockReport {
-  text: string;
+  report?: string; // full markdown report
+  analysis?: string; // short commentary (chart "AI analysis")
   disclaimer?: string;
   generated_at?: string;
 }

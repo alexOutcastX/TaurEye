@@ -108,10 +108,35 @@ def build_report(m: dict) -> dict:
     if vv:
         parts.append("**Volume & volatility.** " + vv.strip())
 
+    # ---- short analysis (2-3 sentences) for the chart's "AI analysis" slot ----
+    a = []
+    t200 = "above" if _num(m.get("pct_above_sma200")) and m["pct_above_sma200"] >= 0 else "below"
+    head = f"{name} is trading {t200} its 200-DMA"
+    if _flag(m, "golden_cross"):
+        head += " (golden cross)"
+    elif _flag(m, "death_cross"):
+        head += " (death cross)"
+    a.append(head)
+    if _num(rsi):
+        a.append(f"RSI {_f(rsi, 0)} ({'oversold' if rsi < 30 else 'overbought' if rsi > 70 else 'neutral'})")
+    if _num(mh):
+        a.append("MACD " + ("positive" if mh >= 0 else "negative"))
+    analysis = ", ".join(a) + "."
+    extra = []
+    if _flag(m, "new_high_52w"):
+        extra.append("at a new 52-week high")
+    elif _num(dh):
+        extra.append(f"{_f(abs(dh))}% off its 52-week high")
+    if _num(rv):
+        extra.append(f"on {_f(rv)}× average volume")
+    if extra:
+        analysis += " It is " + " ".join(extra) + "."
+
     return {
         "symbol": sym,
         "name": name,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "text": "\n\n".join(parts),
+        "report": "\n\n".join(parts),
+        "analysis": analysis,
         "disclaimer": DISCLAIMER,
     }

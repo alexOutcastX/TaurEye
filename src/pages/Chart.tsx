@@ -409,7 +409,7 @@ export default function Chart() {
     setAiBusy(true);
     setAi({ text: null, note: null });
     try {
-      const res = await api.aiAnalysis(symbol, info ?? undefined);
+      const res = await api.aiAnalysis(symbol);
       if (res.text) setAi({ text: res.text, note: res.disclaimer });
       else if (!res.configured)
         setAi({ text: null, note: "AI analysis isn't configured yet (add an LLM API key on the server)." });
@@ -427,11 +427,10 @@ export default function Chart() {
   // (Print -> Save as PDF). Credit-gated like AI analysis (free in preview).
   const runReport = async () => {
     if (!symbol || !info || reportBusy) return;
-    // Charged server-side by the ai-report Edge Function — no client-side debit.
+    // Report comes from the nightly pre-generated bundle — ₹0, no backend.
     setReportBusy(true);
     try {
-      const pats = patterns.map((p) => ({ label: p.label, detail: p.detail ?? null }));
-      const res = await buildAiReport(symbol, info, pats);
+      const res = await buildAiReport(symbol);
       if (res.report) {
         setReport(res.report);
       } else if (!res.configured) {

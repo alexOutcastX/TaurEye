@@ -113,7 +113,7 @@ export default function Watchlist() {
         setView({ m, data: { aiText: null } });
         return;
       }
-      const res = await buildAiReport(w.symbol, m);
+      const res = await buildAiReport(w.symbol);
       if (res.report) setView({ m, data: res.report });
       else if (!res.configured) setMsg("AI report isn't configured yet (deploy the ai-report function).");
       else if (res.error === "insufficient_credits") setMsg("Not enough credits for an AI report.");
