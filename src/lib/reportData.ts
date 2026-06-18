@@ -63,6 +63,17 @@ export async function buildAiReport(
   patterns?: { label: string; detail: string | null }[],
 ): Promise<ReportResult> {
   const corpActions = await fetchCorpActions(symbol);
+
+  // Prefer the nightly pre-generated report (instant, ₹0). Only fall back to the
+  // paid AI Edge Function for symbols without a cached file.
+  const cached = await api.stockReport(symbol).catch(() => null);
+  if (cached?.text) {
+    return {
+      configured: true,
+      report: { aiText: cached.text, aiDisclaimer: cached.disclaimer ?? null, corpActions },
+    };
+  }
+
   const pats = patterns ?? (await patternsFor(symbol));
   // Don't feed placeholder values to the model (it would echo "Unknown").
   const facts = { ...info, sector: info.sector === "Unknown" ? undefined : info.sector };

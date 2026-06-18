@@ -293,6 +293,33 @@ def export_indices(out: Path, *, gz: bool) -> dict:
     return {"file": str(path), "count": n, "raw": raw, "gz": gzb}
 
 
+def export_reports(out: Path, *, gz: bool, top_n: int | None = None) -> dict:
+    """Per-stock templated reports (ZERO LLM cost) → reports/<SYMBOL>.json, read
+    from the just-written metrics.json so computed indicators are reused. Served
+    on demand like candles; the ai-report Edge Function is the fallback for any
+    symbol without a cached file. top_n caps to the largest caps (None = all EQ)."""
+    import json
+    from .report import build_report
+    rdir = out / "reports"
+    rdir.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(out / "metrics.json") as f:
+            rows = json.load(f).get("metrics") or []
+    except Exception as e:  # noqa: BLE001
+        print(f"[export] reports: FAIL reading metrics.json: {type(e).__name__}: {e}")
+        return {"dir": str(rdir), "count": 0}
+    eq = [m for m in rows if (m.get("segment") or "EQ") == "EQ" and m.get("symbol")]
+    if top_n:
+        eq.sort(key=lambda m: (m.get("market_cap_cr") or 0), reverse=True)
+        eq = eq[:top_n]
+    written = 0
+    for m in eq:
+        _write(rdir / f"{m['symbol']}.json", build_report(m), gz=gz)
+        written += 1
+    print(f"[export] reports: {written} templated reports -> {rdir}")
+    return {"dir": str(rdir), "count": written}
+
+
 def export_dividends(out: Path, *, gz: bool, years: int = 3) -> dict:
     """Per-symbol cash dividends (₹/share by ex_date) so the portfolio can show
     total return. Sparse, so one consolidated file keyed by NSE symbol."""
@@ -450,6 +477,7 @@ def cmd_export(out: str | None, *, window: int, gz: bool,
     if metrics:
         files["metrics"] = export_metrics(out_dir, gz=gz)
         files["dividends"] = export_dividends(out_dir, gz=gz)
+        files["reports"] = export_reports(out_dir, gz=gz)
     if indices:
         files["indices"] = export_indices(out_dir, gz=gz)
     if ohlc:
