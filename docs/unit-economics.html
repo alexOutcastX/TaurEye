@@ -64,7 +64,8 @@
       <div class="f"><label>Report price (credits)</label><input id="repCr" value="5"></div>
       <div class="f"><label>₹ per credit (bulk)</label><input id="crPrice" value="0.85"></div>
       <div class="f"><label>Paying conversion % <span class="hint">(of excess demand)</span></label><input id="conv" value="5"></div>
-      <div class="f"><label>Ad ARPU ₹ / active user / mo</label><input id="ad" value="8.7"></div>
+      <div class="f"><label>Banner ARPU ₹ / free user / mo</label><input id="banner" value="8.7"></div>
+      <div class="f"><label>Rewarded eCPM ₹ <span class="hint">(1 ad / free report)</span></label><input id="rwd" value="80"></div>
       <div class="f"><label>Affiliate ₹ / user / mo</label><input id="aff" value="0"></div>
       <div class="f"><label>Fixed infra ($ / mo)</label><input id="infra" value="4000"></div>
       <div class="f"><label>Payment fee %</label><input id="fee" value="2"></div>
@@ -107,10 +108,10 @@ function calc(){
   const dorm=100-N('pLite')-N('pMed')-N('pHeavy');
   $('pDorm').textContent=dorm.toFixed(0)+'%';
   const llm=N('llm'), free=N('free'), charge=N('repCr')*N('crPrice');
-  const conv=N('conv')/100, adArpu=N('ad'), aff=N('aff');
+  const conv=N('conv')/100, bannerArpu=N('banner'), rwdView=N('rwd')/1000, aff=N('aff');
   const infra=N('infra')*fx, fee=N('fee')/100;
 
-  let totLLM=0, repRev=0, freeLLM=0, slopeRev=0, slopeLLM=0, tbody='';
+  let totLLM=0, repRev=0, freeLLM=0, slopeRev=0, slopeLLM=0, freeReports=0, payerSlope=0, tbody='';
   const activeUsers=users*(N('pLite')+N('pMed')+N('pHeavy'))/100;
   tiers.forEach(t=>{
     const u=users*t.pct/100;
@@ -119,13 +120,20 @@ function calc(){
     const tllm=u*done*llm, trev=u*paid*charge;
     totLLM+=tllm; repRev+=trev;
     freeLLM+=u*fr*llm;            // fixed free-report LLM (no revenue)
-    slopeRev+=u*ex*charge;        // per unit conv (0..1)
+    freeReports+=u*fr;           // for rewarded ads (1 ad / free report)
+    slopeRev+=u*ex*charge;       // per unit conv (0..1)
     slopeLLM+=u*ex*llm;
+    if(ex>0) payerSlope+=u;      // users who become payers as conv rises
     tbody+=`<tr><td>${t.n}</td><td>${Math.round(u).toLocaleString('en-IN')}</td><td>${Math.round(u*done).toLocaleString('en-IN')}</td><td>${Math.round(u*paid).toLocaleString('en-IN')}</td><td>${fmt(tllm)}</td><td>${fmt(trev)}</td></tr>`;
   });
   $('tbl').querySelector('tbody').innerHTML=tbody;
 
-  const adRev=activeUsers*adArpu, affRev=users*aff;
+  // Ads: banner on FREE (non-paying) active users; rewarded once per FREE report.
+  const payerUsers=payerSlope*conv;
+  const freeActive=Math.max(0,activeUsers-payerUsers);
+  const bannerRev=bannerArpu*freeActive;
+  const rewardRev=freeReports*rwdView;
+  const adRev=bannerRev+rewardRev, affRev=users*aff;
   const grossRev=repRev+adRev+affRev;
   const fees=repRev*fee;
   const totCost=totLLM+infra+fees;
@@ -136,11 +144,12 @@ function calc(){
   $('net').textContent=fmt(net);
   $('net').className='v '+(net>=0?'up':'down');
 
-  $('bd').innerHTML=`Revenue = reports ${fmt(repRev)} + ads ${fmt(adRev)} + affiliate ${fmt(affRev)} &nbsp;·&nbsp; Cost = LLM ${fmt(totLLM)} (of which free giveaway ${fmt(freeLLM)}) + infra ${fmt(infra)} + fees ${fmt(fees)}`;
+  $('bd').innerHTML=`Revenue = reports ${fmt(repRev)} + banner ${fmt(bannerRev)} + rewarded ${fmt(rewardRev)} + affiliate ${fmt(affRev)} &nbsp;·&nbsp; Cost = LLM ${fmt(totLLM)} (free giveaway ${fmt(freeLLM)}) + infra ${fmt(infra)} + fees ${fmt(fees)}`;
 
-  // break-even paying conversion: net(c)=c*(slopeRev-slopeLLM-slopeRev*fee) + (adRev+affRev-freeLLM-infra)=0
-  const slope=slopeRev-slopeLLM-slopeRev*fee;
-  const fixedPart=adRev+affRev-freeLLM-infra;
+  // break-even paying conversion. net(c) is linear in c:
+  //   reports/paidLLM/fees rise with c; banner falls (payers leave the ad pool).
+  const slope=slopeRev-slopeLLM-slopeRev*fee-bannerArpu*payerSlope;
+  const fixedPart=bannerArpu*activeUsers+rewardRev+affRev-freeLLM-infra;
   let beTxt;
   if(slope<=0){ beTxt='⚠️ Each paid report loses money (charge ≤ LLM cost) — no conversion can break even. Raise the credit price.'; }
   else{
