@@ -3,10 +3,8 @@
 // without opening the chart. Keeps the corporate-actions fetch + AI-report call
 // in one place (was previously inlined in Chart only).
 
-import { api, aiReport } from "../api/client";
+import { api } from "../api/client";
 import { dataUrl } from "../data/source";
-import { detectPatterns } from "./patterns";
-import type { Metrics } from "../api/types";
 import type { ReportData } from "../components/ReportView";
 
 export interface CorpAction {
@@ -27,25 +25,6 @@ export async function fetchCorpActions(symbol: string): Promise<CorpAction[] | n
   return null;
 }
 
-/** Detect chart patterns from the symbol's candles (best-effort; [] on failure). */
-async function patternsFor(symbol: string): Promise<{ label: string; detail: string | null }[]> {
-  try {
-    const candles = await api.candles(symbol, 400);
-    const bars = candles.map((c) => ({
-      time: c.date,
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
-      volume: c.volume,
-    }));
-    if (bars.length < 30) return [];
-    return detectPatterns(bars).patterns.map((p) => ({ label: p.label, detail: p.detail ?? null }));
-  } catch {
-    return [];
-  }
-}
-
 export interface ReportResult {
   report?: ReportData;
   configured: boolean;
@@ -53,33 +32,22 @@ export interface ReportResult {
 }
 
 /**
- * Build the structured AI report for a symbol. `patterns` may be supplied (the
- * Chart already has them); otherwise they're detected from candles. Returns a
- * ReportData ready to hand to <ReportView>, or an error/unconfigured flag.
+ * Build the structured report for a symbol from the nightly pre-generated bundle
+ * (templated, ₹0, no backend), returning a ReportData ready for <ReportView>.
  */
-export async function buildAiReport(
-  symbol: string,
-  info: Metrics,
-  patterns?: { label: string; detail: string | null }[],
-): Promise<ReportResult> {
+export async function buildAiReport(symbol: string): Promise<ReportResult> {
   const corpActions = await fetchCorpActions(symbol);
 
-  // Prefer the nightly pre-generated report (instant, ₹0). Only fall back to the
-  // paid AI Edge Function for symbols without a cached file.
+  // Reports are served entirely from the NIGHTLY pre-generated bundle
+  // (reports/<SYMBOL>.json): templated, refreshed each night from new EOD data,
+  // ₹0 — no Edge Functions, no Anthropic. Until tonight's first publish we show a
+  // friendly note instead of calling any backend.
   const cached = await api.stockReport(symbol).catch(() => null);
-  if (cached?.text) {
-    return {
-      configured: true,
-      report: { aiText: cached.text, aiDisclaimer: cached.disclaimer ?? null, corpActions },
-    };
-  }
-
-  const pats = patterns ?? (await patternsFor(symbol));
-  // Don't feed placeholder values to the model (it would echo "Unknown").
-  const facts = { ...info, sector: info.sector === "Unknown" ? undefined : info.sector };
-  const res = await aiReport(symbol, facts, pats, corpActions);
-  if (res.text) {
-    return { configured: res.configured, report: { aiText: res.text, aiDisclaimer: res.disclaimer, corpActions } };
-  }
-  return { configured: res.configured, error: res.error };
+  const aiText =
+    cached?.report ??
+    "This report is generated nightly from end-of-day data — it will appear after the next refresh.";
+  return {
+    configured: true,
+    report: { aiText, aiDisclaimer: cached?.disclaimer ?? null, corpActions },
+  };
 }

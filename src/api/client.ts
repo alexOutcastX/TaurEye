@@ -10,7 +10,6 @@ import type {
   SegmentInfo,
 } from "./types";
 import { LOCAL_DATA } from "../data/source";
-import { supabase } from "../lib/supabase";
 import {
   localCandles,
   localDividends,
@@ -30,7 +29,6 @@ import {
   localListScreens,
   localSaveScreen,
 } from "../data/localScreens";
-import { emitCreditsChange } from "../lib/credits";
 
 // In the browser dev server this is empty -> "/api/..." goes through the Vite
 // proxy. In the packaged mobile (APK) build there is no proxy, so set
@@ -108,37 +106,20 @@ const AI_OFFLINE: AiResult = {
     "It is unavailable in offline mode.",
 };
 
-// In the static build, AI has no backend — it runs in Supabase Edge Functions
-// (LLM key server-side, credits charged there). When Supabase isn't configured
-// we degrade to the offline message. `facts` is the factual metrics snapshot the
-// page already holds, passed so the functions needn't refetch.
-async function invokeAi(fn: string, body: Record<string, unknown>): Promise<AiResult> {
-  if (!supabase) return AI_OFFLINE;
-  const { data, error } = await supabase.functions.invoke<AiResult>(fn, { body });
-  // The function charges (and may refund) credits server-side, so the client's
-  // cached balance is now stale. Notify the wallet/badge to re-pull — otherwise
-  // the persistent top-bar CreditsBadge only refreshes on the next explicit
-  // client-side mutation (e.g. a daily claim).
-  emitCreditsChange();
-  if (error || !data) {
-    return { configured: true, text: null, error: error?.message ?? "ai_failed", disclaimer: AI_OFFLINE.disclaimer };
-  }
-  return data;
+// AI is served from the NIGHTLY pre-generated bundle (reports/<SYMBOL>.json):
+// templated, refreshed every night from new EOD data, ₹0 — no Edge Functions, no
+// Anthropic. Until tonight's first publish (or for a symbol with no file) we show
+// a friendly "available after the next refresh" note rather than calling a backend.
+const AI_PENDING = "Analysis is generated nightly from end-of-day data — it will appear after the next refresh.";
+
+async function localAiAnalysis(symbol: string): Promise<AiResult> {
+  const rep = await localStockReport(symbol);
+  return {
+    configured: true,
+    text: rep?.analysis ?? AI_PENDING,
+    disclaimer: rep?.disclaimer ?? AI_OFFLINE.disclaimer,
+  };
 }
-
-const localAiAnalysis = (symbol: string, facts?: unknown) =>
-  invokeAi("ai-analysis", { symbol, facts });
-
-/** Structured multi-section AI report (markdown) — `ai-report` Edge Function. */
-export const aiReport = (
-  symbol: string,
-  facts?: unknown,
-  patterns?: unknown,
-  corpActions?: unknown,
-): Promise<AiResult> =>
-  LOCAL_DATA
-    ? invokeAi("ai-report", { symbol, facts, patterns, corpActions })
-    : Promise.resolve(AI_OFFLINE);
 
 // When LOCAL_DATA is on, the read endpoints are served from the published JSON
 // bundle (see data/snapshot.ts) and saved screens live in localStorage — so the
@@ -165,9 +146,9 @@ export const api = {
     LOCAL_DATA
       ? localMetrics(symbol)
       : req<Metrics>(`/metrics/${encodeURIComponent(symbol)}`),
-  aiAnalysis: (symbol: string, facts?: unknown) =>
+  aiAnalysis: (symbol: string) =>
     LOCAL_DATA
-      ? localAiAnalysis(symbol, facts)
+      ? localAiAnalysis(symbol)
       : req<AiResult>(`/ai/analysis/${encodeURIComponent(symbol)}`),
   candles: (symbol: string, limit = 260) =>
     LOCAL_DATA
