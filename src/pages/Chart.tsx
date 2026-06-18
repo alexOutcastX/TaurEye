@@ -33,6 +33,8 @@ import {
 } from "../lib/watchlist";
 import WatchlistMenu from "../components/WatchlistMenu";
 import { addAlert, alertsForSymbol, onAlertsChange, removeAlert, type AlertOp } from "../lib/alerts";
+import { useCredits } from "../lib/useCredits";
+import { COSTS } from "../lib/economy";
 import "./Chart.css";
 
 type TF = "D" | "W" | "M";
@@ -134,6 +136,7 @@ function cssVar(name: string, fallback: string): string {
 
 export default function Chart() {
   const nav = useNavigate();
+  const { spend } = useCredits();
   const [params] = useSearchParams();
   const symbol = params.get("symbol") ?? "";
   const name = params.get("name") ?? "";
@@ -404,18 +407,18 @@ export default function Chart() {
 
   const runAi = async () => {
     if (!symbol || aiBusy) return;
-    // Credits are charged SERVER-SIDE by the ai-analysis Edge Function (the single
-    // source of truth) — do NOT debit client-side here or it double-bills.
+    // The analysis itself is free (nightly cache), but credits still gate access.
+    const charge = await spend("ai_analysis", COSTS.aiAnalysis);
+    if (!charge.ok) {
+      setAi({ text: null, note: charge.error === "insufficient" ? "Not enough credits for AI analysis." : "Couldn't process credits." });
+      return;
+    }
     setAiBusy(true);
     setAi({ text: null, note: null });
     try {
       const res = await api.aiAnalysis(symbol);
       if (res.text) setAi({ text: res.text, note: res.disclaimer });
-      else if (!res.configured)
-        setAi({ text: null, note: "AI analysis isn't configured yet (add an LLM API key on the server)." });
-      else if (res.error === "insufficient_credits")
-        setAi({ text: null, note: "Not enough credits for AI analysis." });
-      else setAi({ text: null, note: res.error ? `AI error: ${res.error}` : "AI returned no text." });
+      else setAi({ text: null, note: res.error ? `Analysis: ${res.error}` : "Analysis unavailable." });
     } catch (e) {
       setAi({ text: null, note: String(e) });
     } finally {
@@ -427,19 +430,17 @@ export default function Chart() {
   // (Print -> Save as PDF). Credit-gated like AI analysis (free in preview).
   const runReport = async () => {
     if (!symbol || !info || reportBusy) return;
-    // Report comes from the nightly pre-generated bundle — ₹0, no backend.
+    // Report content is free (nightly cache), but credits still gate access.
+    const charge = await spend("advanced_report", COSTS.advancedReport);
+    if (!charge.ok) {
+      setAi({ text: null, note: charge.error === "insufficient" ? "Not enough credits for an AI report." : "Couldn't process credits." });
+      return;
+    }
     setReportBusy(true);
     try {
       const res = await buildAiReport(symbol);
-      if (res.report) {
-        setReport(res.report);
-      } else if (!res.configured) {
-        setAi({ text: null, note: "AI report isn't configured yet (deploy the ai-report function)." });
-      } else if (res.error === "insufficient_credits") {
-        setAi({ text: null, note: "Not enough credits for an AI report." });
-      } else {
-        setAi({ text: null, note: res.error ? `Report error: ${res.error}` : "Report unavailable." });
-      }
+      if (res.report) setReport(res.report);
+      else setAi({ text: null, note: res.error ? `Report: ${res.error}` : "Report unavailable." });
     } finally {
       setReportBusy(false);
     }

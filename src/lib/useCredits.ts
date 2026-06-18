@@ -9,6 +9,7 @@ import {
   listLedger,
   myBalance,
   onCreditsChange,
+  spendCredits,
   type LedgerRow,
 } from "./credits";
 import {
@@ -19,6 +20,7 @@ import {
   getBalance as localBalance,
   getLedger as localLedger,
   onEconomyChange,
+  spend as localSpend,
 } from "./economy";
 
 function localRows(): LedgerRow[] {
@@ -49,6 +51,21 @@ export function useCredits() {
 
   useEffect(() => (cloud ? onCreditsChange(reload) : onEconomyChange(reload)), [cloud, reload]);
 
+  // Charge credits for a premium action. Cloud users hit the secure spend_credits
+  // RPC; guests use the local economy. Returns {ok}, with error:"insufficient"
+  // when the balance is short. cost<=0 is always free.
+  const spend = useCallback(
+    async (reason: string, cost: number): Promise<{ ok: boolean; error?: string }> => {
+      if (cost <= 0) return { ok: true };
+      if (cloud) {
+        const r = await spendCredits(reason, cost);
+        return r.ok ? { ok: true } : { ok: false, error: r.error };
+      }
+      return localSpend(reason, cost) ? { ok: true } : { ok: false, error: "insufficient" };
+    },
+    [cloud],
+  );
+
   // Returns null on success, or a user-facing message on failure.
   const claim = useCallback(async (): Promise<string | null> => {
     if (cloud) {
@@ -64,6 +81,7 @@ export function useCredits() {
     balance,
     ledger,
     claim,
+    spend,
     // Show a number when on the cloud wallet, or locally once the economy is on.
     showBalance: cloud || ECONOMY_ENABLED,
     // Cloud claimability is enforced server-side; we let the click report it.
