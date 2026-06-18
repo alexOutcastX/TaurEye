@@ -215,6 +215,53 @@ el.append(blist([
     "<b>Single-VM / Oracle reclamation</b> holding user money; and <b>SEBI / GST</b> exposure as revenue starts.",
 ]))
 
+# Appendix A — Zero-cost bootstrap mode
+el.append(P("Appendix A — ₹0 Bootstrap Mode", h1))
+el.append(P("Truly ₹0 is achievable on <b>cash</b> — paid for in founder time, feature/quality compromises, and "
+            "scaling ceilings. The method: max free tiers, self-host the rest on the Always-Free VM, and kill the "
+            "<b>only real COGS (the LLM)</b>. Use this to launch &amp; validate, then graduate to the paid stack once "
+            "revenue covers it.", body))
+zero_rows = [
+    ("Cost today", "₹0 replacement", "Trade-off"),
+    ("LLM (Anthropic)", "Templated/rule-based analysis from existing metrics &amp; patterns; or a free-tier LLM (Gemini / Groq / Cloudflare Workers AI) with caps", "No frontier AI; free LLM is rate-limited"),
+    ("Supabase Pro ($25)", "Free tier + a free daily cron pinger to dodge the 7-day pause", "500MB / 50k MAU cap; no backups"),
+    ("Domain + TLS", "Cloudflare Pages → free *.pages.dev + HTTPS + CDN", "Unbranded URL (also fixes HTTP + single-VM SPOF)"),
+    ("VM serving", "VM runs pipeline only; bundle → Cloudflare R2 free (10GB, zero egress)", "Static-only on the free host"),
+    ("Apple $99 + Play $25", "PWA (manifest already shipped) — install to home screen", "No store discovery; iOS push limited; APK via F-Droid/sideload"),
+    ("SMTP", "Supabase built-in / Brevo free (300/day) / Resend free (3k/mo)", "Rate-limited at scale"),
+    ("Razorpay / FCM / CI / monitoring", "Per-txn only · FCM free · public-repo Actions · Uptime Kuma self-host / Sentry free", "—"),
+]
+data = [[P(c, hdr) for c in zero_rows[0]]]
+for a,b,c in zero_rows[1:]:
+    data.append([P(a, cellb), P(b, cell), P(c, cell)])
+el.append(table(data, [110, 230, 172]))
+el.append(P("<b>Result: ₹0 recurring cash</b> = Always-Free VM (pipeline) + Cloudflare Pages/R2 (frontend) + "
+            "Supabase free + templated/free-tier AI.", body))
+
+el.append(P("Making AI ₹0 (pick one)", h2))
+el.append(blist([
+    "<b>Templated analysis (truly ₹0, recommended):</b> generate the report deterministically from metrics you already compute. No tokens, no limits.",
+    "<b>Free-tier LLM (₹0, capped):</b> route AI through Gemini/Groq/Cloudflare Workers AI free quotas, N calls/user/day. Real LLM, rate-limited, quality &lt; Claude.",
+    "<b>Hybrid:</b> templated by default + one free 'AI polish' call/user/day.",
+]))
+el.append(P("₹0-cost revenue (bootstrap still earns)", h2))
+el.append(blist([
+    "<b>Ads</b> — AdSense (PWA/web) / AdMob (APK): zero cost, pure profit.",
+    "<b>Broker affiliate</b> — ₹300–500/demat signup, near-100% margin. Switch on day one.",
+    "Skip credits/Razorpay initially (complexity + per-txn fee) — monetise on ads + affiliate while validating.",
+]))
+el.append(P("CFO caveats — what ₹0 actually costs", h2))
+el.append(blist([
+    "<b>Founder time</b> (the real bill): self-host + ops ≈ hours/week.",
+    "<b>Reliability/DR:</b> Always-Free reclamation + no backups = you own the risk.",
+    "<b>Ceilings:</b> free tiers cap ~thousands of active users / 500MB before you must pay.",
+    "<b>Brand/trust:</b> *.pages.dev + PWA + templated AI look less premium.",
+    "<b>Still not zero if you earn:</b> GST registration + basic legal are unavoidable (regulatory, not tooling).",
+]))
+el.append(P("<b>Recommendation:</b> bootstrap to product-market fit on ₹0 (Cloudflare Pages + Supabase free + "
+            "templated AI + ads/affiliate); the moment revenue clears ~₹5k/mo, graduate to branded domain → "
+            "Supabase Pro → cached Claude. Spend <i>earned</i> money on the premium stack, not pre-revenue cash.", body))
+
 el.append(rule())
 el.append(P("Prepared as an internal CFO review. Figures are indicative planning estimates at conservative assumptions; "
             "verify current vendor pricing and validate conversion/eCPM with live data before committing spend.", small))
