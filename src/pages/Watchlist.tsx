@@ -16,6 +16,8 @@ import {
 import { buildAiReport } from "../lib/reportData";
 import ReportView, { type ReportData } from "../components/ReportView";
 import type { Metrics } from "../api/types";
+import { useCredits } from "../lib/useCredits";
+import { COSTS } from "../lib/economy";
 import "./Watchlist.css";
 
 interface Quote {
@@ -29,6 +31,7 @@ type Busy = { symbol: string; kind: "report" | "ai" } | null;
 
 export default function Watchlist() {
   const nav = useNavigate();
+  const { spend } = useCredits();
   const [lists, setLists] = useState<WL[]>(getWatchlists());
   const [activeId, setActiveId] = useState<string>(lists[0]?.id ?? "default");
   const [quotes, setQuotes] = useState<Record<string, Quote | null>>({});
@@ -104,8 +107,14 @@ export default function Watchlist() {
   const openReport = async (w: WatchItem, kind: "report" | "ai") => {
     if (busy) return;
     setMsg(null);
-    // The AI report is charged server-side by the ai-report Edge Function — no
-    // client-side debit here (avoids double-billing once charging is on).
+    // The AI report content is free (nightly cache), but credits still gate it.
+    if (kind === "ai") {
+      const charge = await spend("advanced_report", COSTS.advancedReport);
+      if (!charge.ok) {
+        setMsg(charge.error === "insufficient" ? "Not enough credits for an AI report." : "Couldn't process credits.");
+        return;
+      }
+    }
     setBusy({ symbol: w.symbol, kind });
     try {
       const m = await api.metrics(w.symbol);
@@ -115,9 +124,7 @@ export default function Watchlist() {
       }
       const res = await buildAiReport(w.symbol);
       if (res.report) setView({ m, data: res.report });
-      else if (!res.configured) setMsg("AI report isn't configured yet (deploy the ai-report function).");
-      else if (res.error === "insufficient_credits") setMsg("Not enough credits for an AI report.");
-      else setMsg(res.error ? `Report error: ${res.error}` : "Report unavailable.");
+      else setMsg(res.error ? `Report: ${res.error}` : "Report unavailable.");
     } catch (e) {
       setMsg(String(e));
     } finally {
