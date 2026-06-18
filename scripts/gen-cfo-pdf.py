@@ -136,8 +136,39 @@ el.append(table(data, [300, 212]))
 el.append(P("Without rewarded-gating the same base case is <b>−₹2.0L/mo</b> (break-even ~6%). The rewarded ad on each "
             "free report is what flips it positive. Model is configurable in docs/unit-economics.html.", small))
 
+# 4b. Pro-forma after the plan
+el.append(P("5. Pro-forma — after the cost-down / revenue-up plan", h1))
+el.append(P("Same 1M-user base, with the plan implemented: AI output cached (LLM decouples from scale), broker "
+            "affiliate live, Pro at 1% penetration (₹999/yr, ad-free), and ad mediation lifting eCPMs.", body))
+pf_rows = [
+    ("Monthly P&L line", "Base case", "After plan"),
+    ("Report revenue (paid)", "₹12.75 L", "₹12.75 L"),
+    ("Banner ads (free users)", "₹25.88 L", "₹31.63 L"),
+    ("Rewarded ads", "₹4.00 L", "₹5.00 L"),
+    ("Interstitial ads", "—", "₹3.00 L"),
+    ("Broker affiliate", "—", "₹5.00 L"),
+    ("Pro subscriptions (1%)", "—", "₹8.33 L"),
+    ("TOTAL REVENUE", "₹42.63 L", "₹65.70 L"),
+    ("LLM cost", "(₹37.10 L)", "(₹2.40 L)  cached"),
+    ("Fixed infra", "(₹3.52 L)", "(₹3.50 L)"),
+    ("Payment fees", "(₹0.26 L)", "(₹0.42 L)"),
+    ("NET / month", "+₹1.76 L", "+₹59.4 L"),
+    ("NET / year", "+₹21.1 L", "+₹7.1 Cr"),
+]
+data = [[P(c, hdr) for c in pf_rows[0]]]
+for a,b,c in pf_rows[1:]:
+    emph = a in ("TOTAL REVENUE","NET / month","NET / year")
+    av = cellb if emph else cell
+    bv = cellr if "(" in b else (cellg if "+" in b or "TOTAL" in a else av)
+    cv = cellr if "(" in c else (cellg if "+" in c or "TOTAL" in a else cellb)
+    data.append([P(a, cellb if emph else cell), P(b, av), P(c, cv)])
+el.append(table(data, [200, 156, 156]))
+el.append(P("Swing drivers: <b>AI caching cuts LLM ₹37.1L → ₹2.4L (+₹34.7L to net)</b>; affiliate + Pro + ad uplift "
+            "add ~₹23L revenue. Gross margin rises from ~13% to ~90% as the only real COGS collapses. Pro-forma — "
+            "assumes the plan executes (caching shipped, 3% affiliate take-up over time, 1% Pro, eCPM uplift).", small))
+
 # 5. Cost-down plan
-el.append(P("5. Cost minimisation plan (ranked by impact)", h1))
+el.append(P("6. Cost minimisation plan (ranked by impact)", h1))
 el.append(blist([
     "<b>Cache AI output per stock, per day (₹0 to build, ~80% LLM cut).</b> Stock reports are factual + EOD — identical "
     "for all users that day. Generate once, serve to all, still charge a credit. LLM cost <b>decouples from user count</b> "
@@ -149,7 +180,7 @@ el.append(blist([
 ]))
 
 # 6. Revenue-up plan
-el.append(P("6. Revenue maximisation plan (ranked by ROI)", h1))
+el.append(P("7. Revenue maximisation plan (ranked by ROI)", h1))
 el.append(blist([
     "<b>Broker affiliate — today.</b> Paste Angel/Upstox/Dhan URLs. ₹300–500/signup; ~₹1.2 Cr one-time at 3% of 1M. Pure margin.",
     "<b>Optimise the ad stack.</b> Banner (free) + rewarded-per-report + interstitial; AdMob mediation + a 2nd network to lift eCPM 20–40%.",
@@ -159,7 +190,7 @@ el.append(blist([
 ]))
 
 # 7. 90-day plan
-el.append(P("7. 90-day sequence", h1))
+el.append(P("8. 90-day sequence", h1))
 plan_rows = [
     ("Phase", "Actions", "Cost", "Impact"),
     ("0 — now", "Broker links · rewarded-gate AI · free=5 · AI caching · prune logs", "₹0", "Flips to profit; caps LLM; +₹1.2Cr affiliate ceiling"),
@@ -172,11 +203,11 @@ for a,b,c,d in plan_rows[1:]:
 el.append(table(data, [62, 226, 70, 154]))
 
 # 8. KPIs + risks
-el.append(P("8. KPIs &amp; guardrails", h1))
+el.append(P("9. KPIs &amp; guardrails", h1))
 el.append(P("Track monthly: gross margin/report · <b>LLM ₹/active user</b> · paying conversion % · ad ARPU (free user) · "
             "revenue concentration (no stream &gt;50%) · <b>CAC vs LTV (target ≥3:1)</b> · Supabase MAU · cash runway. "
             "<b>Hard guardrail:</b> never let credit price fall below LLM cost (the model flags this).", body))
-el.append(P("9. Key risks", h1))
+el.append(P("10. Key risks", h1))
 el.append(blist([
     "<b>Ad concentration + India's low/volatile eCPM</b> — one eCPM crash and the base case goes negative.",
     "<b>Conversion is unproven</b> — 0 paying users today; the whole plan rides on reaching ~4%.",
