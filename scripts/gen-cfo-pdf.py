@@ -289,6 +289,39 @@ el.append(P("<b>Recommendation:</b> bootstrap to product-market fit on ₹0 (Clo
             "templated AI + ads/affiliate); the moment revenue clears ~₹5k/mo, graduate to branded domain → "
             "Supabase Pro → cached Claude. Spend <i>earned</i> money on the premium stack, not pre-revenue cash.", body))
 
+# Appendix B — Free / local AI for cached reports
+el.append(P("Appendix B — Free / Local AI for Cached Reports (extra cost-down)", h1))
+el.append(P("Cached reports are generated <b>once per stock per day in the nightly pipeline</b> — a batch, offline "
+            "job with <b>no per-user latency</b>. That means you don't need a fast, always-on, scalable endpoint; "
+            "you just grind through N stocks overnight. This is the ideal case for a <b>free or local model</b>, "
+            "taking the §6 caching lever from ~₹2.4L/mo down to <b>≈ ₹0 LLM cost</b>.", body))
+ai_rows = [
+    ("Option", "Cost", "Quality", "Throughput reality"),
+    ("Local GPU PC you own (Ollama + Qwen2.5-7B / Llama-3.1-8B)", "₹0 (electricity)", "Good", "RTX 3060+ ~30–60 tok/s → ALL 5,800 reports in a few hours. Best true-₹0 path."),
+    ("Free API tier (Gemini Flash / Groq / Cloudflare Workers AI)", "₹0 in limits", "Best", "~1–2k reports/day free per provider → cover top stocks; spread across providers for more."),
+    ("Local on Oracle Always-Free ARM VM (CPU, no GPU)", "₹0", "OK", "~8–15 tok/s → ~60–90s/report → only ~200–300 stocks/night before saturation."),
+]
+data = [[P(c, hdr) for c in ai_rows[0]]]
+for a,b,c,d in ai_rows[1:]:
+    data.append([P(a, cellb), P(b, cell), P(c, cell), P(d, cell)])
+el.append(table(data, [150, 70, 56, 236]))
+el.append(P("Throughput math &amp; the hybrid pattern", h2))
+el.append(blist([
+    "5,800 stocks on the free ARM CPU ≈ <b>120+ hours</b> (won't finish overnight). Top ~250 ≈ <b>4–6 hrs</b> (fits). GPU / free API → full universe nightly.",
+    "<b>Recommended hybrid:</b> generate the <b>top ~200–500 stocks with a real (local/free) model</b>; <b>template the long tail</b> from metrics + patterns.ts (already ₹0). Users mostly view the popular names.",
+]))
+el.append(P("Commercially-free models &amp; guardrails", h2))
+el.append(blist([
+    "<b>Free for commercial use:</b> Qwen2.5 / Mistral (Apache-2.0, safest), Llama 3.x (free under 700M MAU), Gemma 2 (Gemma terms). Run via Ollama or llama.cpp.",
+    "<b>Constrain to summarise facts, not invent them</b> — feed the precomputed metrics/patterns and forbid new numbers (the ai-report function already does this). Small models hallucinate more, so this matters.",
+    "<b>Keep the templated fallback + SEBI disclaimer</b> — factual, non-advisory, no targets/recommendations.",
+]))
+el.append(P("Pipeline fit", h2))
+el.append(P("Add a nightly step in backend/app/dataengine: after export → for the top-N symbols call local Ollama "
+            "(or a free API) → write reports/&lt;SYMBOL&gt;.json → ship in the bundle / push to Cloudflare R2 → served "
+            "from CDN at <b>₹0 marginal cost</b>. The existing ai-report Edge Function becomes the on-demand fallback "
+            "for non-cached stocks. <b>Net effect: the LLM line collapses to near ₹0 at any scale.</b>", body))
+
 el.append(rule())
 el.append(P("Prepared as an internal CFO review. Figures are indicative planning estimates at conservative assumptions; "
             "verify current vendor pricing and validate conversion/eCPM with live data before committing spend.", small))
