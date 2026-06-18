@@ -83,6 +83,25 @@ export function localDividends(): Promise<Map<string, DividendEvent[]>> {
   return dividendsCache;
 }
 
+export interface StockReport {
+  text: string;
+  disclaimer?: string;
+  generated_at?: string;
+}
+
+const reportCache = new Map<string, Promise<StockReport | null>>();
+
+/** Pre-generated templated report for a symbol (nightly, ₹0). null if not
+ *  published for this symbol — the caller falls back to the live AI function. */
+export function localStockReport(symbol: string): Promise<StockReport | null> {
+  let p = reportCache.get(symbol);
+  if (!p) {
+    p = tryFetch<StockReport>(dataUrl(`reports/${encodeURIComponent(symbol)}.json`));
+    reportCache.set(symbol, p);
+  }
+  return p;
+}
+
 async function tryFetch<T>(url: string): Promise<T | null> {
   try {
     const res = await fetch(url, { cache: "no-cache" });

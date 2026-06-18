@@ -21,7 +21,9 @@ import {
   localScreen,
   localSearch,
   localSegments,
+  localStockReport,
   type DividendEvent,
+  type StockReport,
 } from "../data/snapshot";
 import {
   localDeleteScreen,
@@ -153,6 +155,8 @@ export const api = {
   indices: () => (LOCAL_DATA ? localIndices() : req<IndicesResponse>("/indices")),
   dividends: (): Promise<Map<string, DividendEvent[]>> =>
     LOCAL_DATA ? localDividends() : Promise.resolve(new Map()),
+  stockReport: (symbol: string): Promise<StockReport | null> =>
+    LOCAL_DATA ? localStockReport(symbol) : Promise.resolve(null),
   searchSecurities: (q: string, limit = 8) =>
     LOCAL_DATA
       ? localSearch(q, limit)
