@@ -250,6 +250,33 @@ el.append(blist([
     "<b>Broker affiliate</b> — ₹300–500/demat signup, near-100% margin. Switch on day one.",
     "Skip credits/Razorpay initially (complexity + per-txn fee) — monetise on ads + affiliate while validating.",
 ]))
+el.append(P("Bootstrap unit economics (1M users, ₹0 cash)", h2))
+el.append(P("Templated AI (₹0 COGS), free infra, no credits/Razorpay — monetised purely on ads + affiliate. "
+            "All active users are free (no paid tier), so every report is ad-gated.", body))
+bs_rows = [
+    ("Monthly P&L", "₹ / month"),
+    ("Banner ads (300k free active × ₹8.7)", "₹26.10 L"),
+    ("Rewarded ads (11M reports × ₹0.08)", "₹8.80 L"),
+    ("Interstitial ads", "₹3.00 L"),
+    ("Broker affiliate", "₹5.00 L"),
+    ("TOTAL REVENUE", "₹42.90 L"),
+    ("LLM cost (templated / free-tier AI)", "₹0"),
+    ("Infra (self-host on Always-Free VM + Cloudflare)", "₹0 cash"),
+    ("Payment fees (no payments)", "₹0"),
+    ("NET / month (cash)", "+₹42.90 L"),
+    ("NET / year (cash)", "+₹5.15 Cr"),
+]
+data = [[P(bs_rows[0][0], hdr), P(bs_rows[0][1], hdr)]]
+for a,b in bs_rows[1:]:
+    emph = a.startswith("TOTAL") or a.startswith("NET")
+    bv = cellg if ("+" in b or a.startswith("TOTAL")) else cellb
+    data.append([P(a, cellb if emph else cell), P(b, bv)])
+el.append(table(data, [320, 192]))
+el.append(P("vs base case +₹1.76L/mo and after-plan +₹59.4L/mo. Bootstrap nets less than the full paid plan "
+            "(no credit/Pro revenue, ~99%-margin Claude) but at <b>₹0 cash</b> — paid instead in ops time, free-tier "
+            "ceilings (self-host needed past ~thousands of actives) and reliability risk. Rewarded-before-every-report "
+            "is aggressive UX; trim it and rewarded revenue falls proportionally.", small))
+
 el.append(P("CFO caveats — what ₹0 actually costs", h2))
 el.append(blist([
     "<b>Founder time</b> (the real bill): self-host + ops ≈ hours/week.",
