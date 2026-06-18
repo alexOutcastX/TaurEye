@@ -25,6 +25,18 @@
 // auth behave exactly as before, so the existing hosted path is untouched.
 export const LOCAL_DATA = import.meta.env.VITE_DATA_SOURCE === "local";
 
+// AI delivery mode — selected at build time so the two transition deployments
+// share one codebase (see docs/TWO-VERSIONS.md):
+//   'cache' (default) — AI analysis/reports are served ONLY from the nightly
+//      pre-generated bundle (reports/<SYMBOL>.json): ₹0, no Edge Functions, no
+//      Anthropic. This is the self-hosted / cost-zero build.
+//   'live' — same nightly cache first, but symbols WITHOUT a cached file fall
+//      back to the Supabase Edge Functions (ai-analysis / ai-report → Anthropic).
+//      This is the pre-self-hosting "Oracle VM + Cloud Supabase + Anthropic" build.
+// Anything other than the literal "live" is treated as "cache" (fail-safe to ₹0).
+export const AI_MODE = import.meta.env.VITE_AI_MODE === "live" ? "live" : "cache";
+export const AI_LIVE = AI_MODE === "live";
+
 // The copy of the bundle that ships INSIDE the app (Vite copies public/data/ into
 // dist/). Always available, even with no network — used as the offline fallback.
 export const BUNDLED_BASE = `${import.meta.env.BASE_URL}data`;

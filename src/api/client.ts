@@ -9,7 +9,9 @@ import type {
   Security,
   SegmentInfo,
 } from "./types";
-import { LOCAL_DATA } from "../data/source";
+import { AI_LIVE, LOCAL_DATA } from "../data/source";
+import { supabase } from "../lib/supabase";
+import { emitCreditsChange } from "../lib/credits";
 import {
   localCandles,
   localDividends,
@@ -112,11 +114,42 @@ const AI_OFFLINE: AiResult = {
 // a friendly "available after the next refresh" note rather than calling a backend.
 const AI_PENDING = "Analysis is generated nightly from end-of-day data — it will appear after the next refresh.";
 
+// LIVE mode only: call a Supabase Edge Function (LLM key + credit charge live
+// server-side). Used as the fallback for symbols without a cached file in the
+// "Oracle VM + Cloud Supabase + Anthropic" build. In CACHE mode this is never
+// reached (AI_LIVE is false), so the cost-zero build makes no Anthropic call.
+async function invokeAi(fn: string, body: Record<string, unknown>): Promise<AiResult> {
+  if (!supabase) return AI_OFFLINE;
+  const { data, error } = await supabase.functions.invoke<AiResult>(fn, { body });
+  // The function may charge/refund credits server-side, so the client's cached
+  // balance is now stale — nudge the wallet/badge to re-pull.
+  emitCreditsChange();
+  if (error || !data) {
+    return { configured: true, text: null, error: error?.message ?? "ai_failed", disclaimer: AI_OFFLINE.disclaimer };
+  }
+  return data;
+}
+
+/** Structured multi-section AI report (markdown) — `ai-report` Edge Function (LIVE mode). */
+export const aiReport = (
+  symbol: string,
+  facts?: unknown,
+  patterns?: unknown,
+  corpActions?: unknown,
+): Promise<AiResult> =>
+  AI_LIVE ? invokeAi("ai-report", { symbol, facts, patterns, corpActions }) : Promise.resolve(AI_OFFLINE);
+
+// Prefer the nightly cache (instant, ₹0). In LIVE mode, fall back to the
+// ai-analysis Edge Function for symbols that have no cached analysis yet.
 async function localAiAnalysis(symbol: string): Promise<AiResult> {
   const rep = await localStockReport(symbol);
+  if (rep?.analysis) {
+    return { configured: true, text: rep.analysis, disclaimer: rep.disclaimer ?? AI_OFFLINE.disclaimer };
+  }
+  if (AI_LIVE) return invokeAi("ai-analysis", { symbol });
   return {
     configured: true,
-    text: rep?.analysis ?? AI_PENDING,
+    text: AI_PENDING,
     disclaimer: rep?.disclaimer ?? AI_OFFLINE.disclaimer,
   };
 }
