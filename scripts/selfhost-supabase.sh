@@ -76,6 +76,7 @@ setenv DASHBOARD_PASSWORD "$DASH_PASS"
 setenv SITE_URL "http://localhost:5174"
 setenv API_EXTERNAL_URL "$API_URL"
 setenv SUPABASE_PUBLIC_URL "$API_URL"
+setenv ENABLE_EMAIL_AUTOCONFIRM "true"   # local dev: sign in works without SMTP
 
 # ---- bring it up ----
 say "docker compose pull (first run downloads images)"
