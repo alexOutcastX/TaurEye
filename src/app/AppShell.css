@@ -4,7 +4,7 @@
   height: 100%;
 }
 
-/* ---- Top bar ---- */
+/* ---- Top bar: a full-width glossy BLACK bar ---- */
 .topbar {
   display: flex;
   align-items: center;
@@ -18,28 +18,50 @@
   padding-left: max(var(--sp-5), env(safe-area-inset-left, 0px));
   padding-right: max(var(--sp-5), env(safe-area-inset-right, 0px));
   box-sizing: content-box;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  /* Glossy black, full width. Pinned to the dark design tokens so the ENTIRE
+     bar (and the controls on it) looks identical on the light AND dark themes —
+     the white theme used to wash the branding out. --accent is left untouched
+     so the brand green (wordmark, credits) still shows. */
+  background: linear-gradient(180deg, #1c222d 0%, #0b0e13 60%, #06080b 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 14px rgba(0, 0, 0, 0.4);
+  --surface: #11141a;
+  --surface-2: #161a22;
+  --elevated: #1b212b;
+  --border: #232a35;
+  --border-strong: #2f3845;
+  --text: #eef1f5;
+  --text-muted: #9aa4b2;
+  --text-faint: #6b7480;
 }
 
-/* Glossy black frame around the hamburger + logo + wordmark. Pinned to dark
-   surface colours (and a forced light --text) so the branding reads identically
-   on the light AND dark themes — the white theme used to wash the logo out. */
+/* Sign out — pinned to the right corner of the glossy bar. */
+.signout-btn {
+  order: 4;
+  flex: none;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #cfd6df;
+  border-radius: var(--r-sm);
+  padding: 7px 14px;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.signout-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* The hamburger + logo + wordmark, grouped at the LEFT corner of the glossy
+   bar. No frame of its own — the whole bar is the glossy black surface now. */
 .brand-cluster {
+  order: 0;
   display: flex;
   align-items: center;
   gap: 8px;
   flex: none;
-  padding: 5px 12px 5px 6px;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #232a35 0%, #0c1016 58%, #05070a 100%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.55),
-    0 2px 10px rgba(0, 0, 0, 0.35);
-  /* keep the "Taur" wordmark light on the black frame regardless of theme */
-  --text: #eef1f5;
 }
 
 .topbar-brand {
@@ -205,15 +227,18 @@
   }
   .topbar-brand { border-right: none; padding-right: 0; }
 
-  /* Header rows: row1 = [hamburger] brand (+ account controls), row2 = the
-     full-width search, row3 = nothing (nav is a fixed drawer). */
-  .topbar-brand { order: 1; }
-  .scrip-search { order: 3; width: 100%; flex: 1 1 100%; margin-left: 0; }
+  /* Header rows on the glossy bar:
+     row1 = [hamburger + brand] ............ [Sign out]
+     row2 = account controls (home, alerts, theme, credits, user)
+     row3 = full-width search.  (nav is a fixed drawer.) */
+  .signout-btn { order: 1; margin-left: auto; }
   .topbar-right {
     order: 2;
-    margin-left: auto;
+    width: 100%;
+    margin-left: 0;
     gap: var(--sp-3);
   }
+  .scrip-search { order: 3; width: 100%; flex: 1 1 100%; margin-left: 0; }
   .search { width: 100%; }
 
   /* The nav becomes a left off-canvas drawer: slid out by default, slid in

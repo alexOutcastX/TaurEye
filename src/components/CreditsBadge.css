@@ -13,5 +13,18 @@
   white-space: nowrap;
 }
 .credits-badge:hover { border-color: var(--accent, #18c98c); }
-.credits-coin { color: var(--accent, #18c98c); font-size: 12px; }
-.credits-val { font-variant-numeric: tabular-nums; }
+.credits-coin {
+  color: var(--accent, #18c98c);
+  font-size: 12px;
+  /* soft pulsing glow on the diamond */
+  animation: credits-glow 2.4s ease-in-out infinite;
+}
+@keyframes credits-glow {
+  0%, 100% { text-shadow: 0 0 2px rgba(24, 201, 140, 0.45); }
+  50% { text-shadow: 0 0 8px rgba(24, 201, 140, 0.95), 0 0 14px rgba(24, 201, 140, 0.5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .credits-coin { animation: none; }
+}
+.credits-val { font-variant-numeric: tabular-nums; display: inline-flex; align-items: baseline; gap: 2px; }
+.credits-cur { color: var(--text-muted, #9aa4b2); font-weight: 600; }
