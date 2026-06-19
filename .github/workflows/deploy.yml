@@ -43,6 +43,9 @@ jobs:
         env:
           VITE_DATA_SOURCE: "local" # screener/charts read the static JSON bundle
           VITE_DATA_BASE: "" # empty -> same-origin /data (nginx serves the nightly export)
+          # AI delivery: 'cache' (default, ₹0) or 'live' (Anthropic Edge Function
+          # fallback). Set the repo variable AI_MODE=live for the legacy build.
+          VITE_AI_MODE: ${{ vars.AI_MODE }}
           VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

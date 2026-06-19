@@ -53,6 +53,33 @@
 
 .ico { width: 18px; height: 18px; flex: none; }
 
+/* Hamburger toggle + drawer backdrop: desktop hides both (the top bar is the
+   horizontal nav). They light up only under the mobile media query below. */
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text);
+}
+.nav-toggle:hover { background: var(--elevated); }
+.nav-toggle .ico { width: 22px; height: 22px; }
+
+.nav-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  -webkit-tap-highlight-color: transparent;
+}
+
 .topbar-right {
   margin-left: auto;
   order: 2;
@@ -119,6 +146,9 @@
 
 /* ---- Responsive ---- */
 @media (max-width: 980px) {
+  /* Show the hamburger; the nav now lives in a hideable left drawer. */
+  .nav-toggle { display: inline-flex; order: 0; }
+
   .topbar {
     height: auto;
     flex-wrap: wrap;
@@ -131,21 +161,12 @@
     padding-right: max(var(--sp-4), env(safe-area-inset-right, 0px));
   }
   .topbar-brand { border-right: none; padding-right: 0; }
-  /* Nav takes its own full-width row and WRAPS, so every destination stays
-     visible and tappable. (Previously it was a hidden-scrollbar horizontal
-     strip, which left Saved/Wallet/Refer off-screen and undiscoverable.) */
-  .topnav {
-    order: 2;
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  /* mobile order: row1 = brand + search (search top-right, opposite brand),
-     row2 = nav, row3 = account controls. Stops the search from being crammed
-     into the icon row (where it overlapped the alerts bell). */
+
+  /* Header rows: row1 = [hamburger] brand + search; row2 = account controls.
+     The nav is removed from the header flow (fixed drawer), so it no longer
+     takes a row of its own. */
   .topbar-brand { order: 1; }
   .scrip-search { order: 2; margin-left: auto; flex: 0 0 auto; width: min(56vw, 260px); }
-  .topnav { order: 3; }
   .topbar-right {
     order: 4;
     width: 100%;
@@ -153,6 +174,37 @@
     gap: var(--sp-3);
   }
   .search { width: 100%; }
+
+  /* The nav becomes a left off-canvas drawer: slid out by default, slid in
+     when .open. Fixed to the viewport so it overlays the page; scrolls if the
+     destinations don't fit. */
+  .topnav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 60;
+    height: 100%;
+    width: min(82vw, 300px);
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow-y: auto;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    box-shadow: 2px 0 18px rgba(0, 0, 0, 0.28);
+    /* clear the camera cutout / status bar and the left gesture inset */
+    padding: calc(env(safe-area-inset-top, 0px) + var(--sp-4)) var(--sp-3)
+      max(var(--sp-4), env(safe-area-inset-bottom, 0px));
+    padding-left: max(var(--sp-3), env(safe-area-inset-left, 0px));
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+  }
+  .topnav.open { transform: translateX(0); }
+  /* full-width, comfortably tall rows inside the drawer */
+  .topnav .nav-item { width: 100%; padding: 11px 12px; }
+
+  .nav-backdrop.show { display: block; }
 }
 @media (max-width: 480px) {
   .nav-item { padding: 6px 9px; gap: 6px; }

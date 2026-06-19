@@ -82,3 +82,6 @@ id_ed25519*
 
 # stray preview screenshots (root-level PNGs are never project assets)
 /*.png
+
+# self-hosted Supabase stack (clone + secrets) created by scripts/selfhost-supabase.sh
+selfhost/
