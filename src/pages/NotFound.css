@@ -30,7 +30,7 @@
   padding: 10px 18px;
   border-radius: var(--r-sm, 8px);
   background: var(--accent);
-  color: #04130d;
+  color: var(--on-accent);
   font-weight: 600;
   text-decoration: none;
 }

@@ -36,7 +36,7 @@
   color: var(--text-muted); border-radius: var(--r-sm); padding: 5px 12px; font-size: 12px;
 }
 .tf-group button:hover { color: var(--text); border-color: var(--border-strong); }
-.tf-group button.active { background: var(--accent); color: #04130d; border-color: var(--accent); font-weight: 600; }
+.tf-group button.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
 
 .ma-group { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .ma-label { color: var(--text-faint); font-size: 12px; margin-right: 2px; }
@@ -199,7 +199,7 @@
 .alert-bar input { width: 110px; }
 .alert-add {
   background: var(--accent);
-  color: #04130d;
+  color: var(--on-accent);
   font-weight: 600;
   border: none;
   border-radius: var(--r-sm);
@@ -245,4 +245,4 @@
   cursor: pointer;
 }
 .draw-toggle:hover { color: var(--text); border-color: var(--border-strong); }
-.draw-toggle.on { background: var(--accent); color: #04130d; border-color: var(--accent); font-weight: 600; }
+.draw-toggle.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
