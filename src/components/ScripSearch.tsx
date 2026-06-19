@@ -18,10 +18,10 @@ export default function ScripSearch() {
   const [loading, setLoading] = useState(false);
   const boxRef = useRef<HTMLDivElement | null>(null);
 
-  // Debounced search.
+  // Debounced search. Needs ≥3 characters (keeps lookups meaningful and cheap).
   useEffect(() => {
     const term = q.trim();
-    if (term.length < 1) {
+    if (term.length < 3) {
       setResults([]);
       setOpen(false);
       return;
@@ -83,7 +83,7 @@ export default function ScripSearch() {
       <div className="search">
         <SearchIcon />
         <input
-          placeholder="Search stocks"
+          placeholder="Search stocks (min. 3 chars)"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => results.length && setOpen(true)}

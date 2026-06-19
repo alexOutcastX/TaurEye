@@ -32,6 +32,19 @@ function emit(patch: Partial<OtaStatus>): void {
   for (const l of listeners) l(status);
 }
 
+// The check usually resolves in milliseconds, so "Checking for updates…" would
+// flash past unseen. Hold the *terminal* states (up-to-date / ready / failed)
+// until the checking phase has been visible for at least this long, so the user
+// actually sees the sequence. Downloading states are emitted immediately.
+const MIN_CHECK_MS = 1400;
+let checkStart = 0;
+
+function settle(patch: Partial<OtaStatus>): void {
+  const wait = Math.max(0, MIN_CHECK_MS - (Date.now() - checkStart));
+  if (wait === 0) emit(patch);
+  else setTimeout(() => emit(patch), wait);
+}
+
 export function getOtaStatus(): OtaStatus {
   return status;
 }
@@ -67,6 +80,7 @@ let started = false;
 export function initOta(): void {
   if (started || !Capacitor.isNativePlatform()) return;
   started = true;
+  checkStart = Date.now();
   emit({ state: "checking" });
 
   CapacitorUpdater.addListener("updateAvailable", (e) => {
@@ -80,16 +94,16 @@ export function initOta(): void {
     });
   });
   CapacitorUpdater.addListener("downloadComplete", (e) => {
-    emit({ state: "ready", percent: 100, version: e.bundle.version });
+    settle({ state: "ready", percent: 100, version: e.bundle.version });
   });
   CapacitorUpdater.addListener("noNeedUpdate", () => {
-    emit({ state: "uptodate" });
+    settle({ state: "uptodate" });
   });
   CapacitorUpdater.addListener("downloadFailed", () => {
-    emit({ state: "failed" });
+    settle({ state: "failed" });
   });
   CapacitorUpdater.addListener("updateFailed", () => {
-    emit({ state: "failed" });
+    settle({ state: "failed" });
   });
 }
 
@@ -102,6 +116,7 @@ export function initOta(): void {
  */
 export async function checkForUpdate(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
+  checkStart = Date.now();
   emit({ state: "checking", percent: 0 });
   try {
     const [latest, cur] = await Promise.all([
@@ -112,8 +127,8 @@ export async function checkForUpdate(): Promise<void> {
     const noNew = /no new version/i.test(latest?.message ?? "");
     const newer =
       !!latest?.version && latest.version !== curVer && latest.version !== "builtin" && !noNew;
-    emit(newer ? { state: "ready", version: latest.version } : { state: "uptodate" });
+    settle(newer ? { state: "ready", version: latest.version } : { state: "uptodate" });
   } catch {
-    emit({ state: "idle" }); // a failed check must not stall startup
+    settle({ state: "idle" }); // a failed check must not stall startup
   }
 }

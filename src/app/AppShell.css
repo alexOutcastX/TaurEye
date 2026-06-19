@@ -162,15 +162,13 @@
   }
   .topbar-brand { border-right: none; padding-right: 0; }
 
-  /* Header rows: row1 = [hamburger] brand + search; row2 = account controls.
-     The nav is removed from the header flow (fixed drawer), so it no longer
-     takes a row of its own. */
+  /* Header rows: row1 = [hamburger] brand (+ account controls), row2 = the
+     full-width search, row3 = nothing (nav is a fixed drawer). */
   .topbar-brand { order: 1; }
-  .scrip-search { order: 2; margin-left: auto; flex: 0 0 auto; width: min(56vw, 260px); }
+  .scrip-search { order: 3; width: 100%; flex: 1 1 100%; margin-left: 0; }
   .topbar-right {
-    order: 4;
-    width: 100%;
-    margin-left: 0;
+    order: 2;
+    margin-left: auto;
     gap: var(--sp-3);
   }
   .search { width: 100%; }

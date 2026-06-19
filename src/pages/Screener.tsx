@@ -33,21 +33,11 @@ const OPS: { value: Operator; label: string }[] = [
   { value: "between", label: "between" },
 ];
 
-// Columns offered by the always-visible Sort control (mirrors the table columns).
-// On mobile the results table scrolls horizontally and sits far down the page, so
-// tapping the right-side header cells to sort is awkward — this makes sorting by
-// any column reliable with a single tap, no scrolling required.
-const SORT_COLS: { key: string; label: string }[] = [
-  { key: "market_cap_cr", label: "Market Cap" },
-  { key: "close", label: "LTP" },
-  { key: "change_pct", label: "% Change" },
-  { key: "volume", label: "Volume" },
-  { key: "rel_volume", label: "Rel Volume" },
-  { key: "rsi_14", label: "RSI" },
-  { key: "pct_above_sma50", label: "% vs 50 DMA" },
-  { key: "dist_52w_high_pct", label: "From 52w High" },
-  { key: "symbol", label: "Symbol" },
-];
+// Preset scans grouped by their category, for the collapsible multi-select.
+const PRESET_GROUPS = PRESETS.reduce<Record<string, Preset[]>>((acc, p) => {
+  (acc[p.group] ??= []).push(p);
+  return acc;
+}, {});
 
 // Client-side sort of the loaded results. Keeps the displayed order a pure
 // function of (column, direction) so tapping a header/changing the control
@@ -77,7 +67,8 @@ const DEFAULT_REQ: ScreenRequest = {
   logic: "AND",
   exchange: null,
   query: "",
-  sort_by: "market_cap_cr",
+  // Default sort: last traded price, high → low.
+  sort_by: "close",
   sort_dir: "desc",
   // No result cap — the screener returns every match and the table paginates.
   // (Kept in the request shape for the legacy live-API branch; local ignores it.)
@@ -109,6 +100,10 @@ export default function Screener() {
   const [, setWatchTick] = useState(0);
   const [nlText, setNlText] = useState("");
   const [nlMsg, setNlMsg] = useState<string | null>(null);
+  // Preset scans: a collapsible dropdown the user can pick MULTIPLE from (their
+  // filters combine with AND). `presetsOpen` toggles the panel.
+  const [presetsOpen, setPresetsOpen] = useState(false);
+  const [selectedPresets, setSelectedPresets] = useState<Set<string>>(new Set());
   // Row "report" opens the in-app report view (metrics only — AI report lives
   // on the Chart page). No popup windows anywhere.
   const [reportFor, setReportFor] = useState<Metrics | null>(null);
@@ -277,12 +272,31 @@ export default function Screener() {
     setNlMsg(r === "copied" ? "Share link copied — anyone opening it sees this exact screen." : "Couldn't copy the link.");
   };
 
-  // Apply a preset from the library: replaces filters/sort and runs immediately.
-  const applyPreset = (p: Preset) => {
-    const next = { ...p.request, exchange: req.exchange, segments: req.segments };
-    setReq(next);
-    setNlMsg(`Preset: ${p.name} — ${p.desc}.`);
-    run(next);
+  // Toggle a preset in/out of the selection. The combined filters of every
+  // selected preset are applied together (AND across them), so users can stack
+  // scans — e.g. "Above 200-DMA" + "RSI below 30". Keeps the active sort/exchange.
+  const togglePreset = (p: Preset) => {
+    const next = new Set(selectedPresets);
+    if (next.has(p.id)) next.delete(p.id);
+    else next.add(p.id);
+    setSelectedPresets(next);
+    const chosen = PRESETS.filter((x) => next.has(x.id));
+    const filters = chosen.flatMap((x) => x.request.filters);
+    const nextReq: ScreenRequest = { ...req, filters, logic: "AND" };
+    setReq(nextReq);
+    run(nextReq);
+    setNlMsg(
+      chosen.length
+        ? `Presets: ${chosen.map((x) => x.name).join(" + ")}`
+        : "Presets cleared — showing the full universe.",
+    );
+  };
+  const clearPresets = () => {
+    setSelectedPresets(new Set());
+    const nextReq: ScreenRequest = { ...req, filters: [] };
+    setReq(nextReq);
+    run(nextReq);
+    setNlMsg("Presets cleared — showing the full universe.");
   };
 
   return (
@@ -321,20 +335,45 @@ export default function Screener() {
         {nlMsg && <p className="nl-msg">{nlMsg}</p>}
 
         <div className="presets">
-          <span className="presets-label">Preset scans</span>
-          <div className="presets-row">
-            {PRESETS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className="preset-chip"
-                onClick={() => applyPreset(p)}
-                title={p.desc}
-              >
-                {p.name}
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            className="presets-toggle"
+            onClick={() => setPresetsOpen((v) => !v)}
+            aria-expanded={presetsOpen}
+          >
+            <span>Preset scans</span>
+            {selectedPresets.size > 0 && (
+              <span className="presets-badge">{selectedPresets.size}</span>
+            )}
+            <span className="presets-caret">{presetsOpen ? "▴" : "▾"}</span>
+          </button>
+          {presetsOpen && (
+            <div className="presets-panel">
+              {Object.entries(PRESET_GROUPS).map(([g, items]) => (
+                <div className="presets-grp" key={g}>
+                  <span className="presets-grp-label">{g}</span>
+                  <div className="presets-row">
+                    {items.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={`preset-chip${selectedPresets.has(p.id) ? " on" : ""}`}
+                        onClick={() => togglePreset(p)}
+                        title={p.desc}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {selectedPresets.size > 0 && (
+                <button type="button" className="presets-clear" onClick={clearPresets}>
+                  Clear {selectedPresets.size} preset{selectedPresets.size === 1 ? "" : "s"}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="panel-controls">
@@ -357,35 +396,6 @@ export default function Screener() {
               onChange={(e) => update({ query: e.target.value })}
             />
           </label>
-          <label className="ctl">
-            <span>Match</span>
-            <select value={req.logic} onChange={(e) => update({ logic: e.target.value as Logic })}>
-              <option value="AND">All filters</option>
-              <option value="OR">Any filter</option>
-            </select>
-          </label>
-          <label className="ctl">
-            <span>Sort by</span>
-            <select
-              value={req.sort_by}
-              onChange={(e) => applySort(e.target.value, req.sort_dir)}
-            >
-              {SORT_COLS.map((c) => (
-                <option key={c.key} value={c.key}>{c.label}</option>
-              ))}
-            </select>
-          </label>
-          <div className="ctl">
-            <span>Order</span>
-            <button
-              type="button"
-              className="sort-dir"
-              onClick={() => applySort(req.sort_by, req.sort_dir === "desc" ? "asc" : "desc")}
-              title="Toggle sort direction"
-            >
-              {req.sort_dir === "desc" ? "High → Low ▾" : "Low → High ▴"}
-            </button>
-          </div>
           {segs.length > 1 && (
             <div className="ctl seg-ctl">
               <span>Segments</span>
@@ -412,23 +422,40 @@ export default function Screener() {
             return (
               <div className="filter-block" key={i}>
               <div className="filter-row">
-                <select
-                  className="f-field"
-                  value={f.field}
-                  onChange={(e) => setFilter(i, { field: e.target.value })}
-                >
-                  {Object.entries(groups).map(([g, fs]) => (
-                    <optgroup key={g} label={g}>
-                      {fs.map((fo) => (
-                        <option key={fo.key} value={fo.key}>{fo.label}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                <span className="f-field-wrap">
+                  <select
+                    className="f-field"
+                    value={f.field}
+                    onChange={(e) => setFilter(i, { field: e.target.value })}
+                  >
+                    {Object.entries(groups).map(([g, fs]) => (
+                      <optgroup key={g} label={g}>
+                        {fs.map((fo) => (
+                          <option key={fo.key} value={fo.key}>{fo.label}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  {fd?.desc && (
+                    <span
+                      className="f-info"
+                      tabIndex={0}
+                      role="note"
+                      aria-label={`About ${fd.label}: ${fd.desc}`}
+                    >
+                      i
+                      <span className="f-info-pop" role="tooltip">{fd.desc}</span>
+                    </span>
+                  )}
+                </span>
                 <select
                   className="f-op"
                   value={f.op}
-                  onChange={(e) => setFilter(i, { op: e.target.value as Operator })}
+                  onChange={(e) => {
+                    const op = e.target.value as Operator;
+                    // "between" owns value2, so it can't also carry a join condition.
+                    setFilter(i, op === "between" ? { op, join: null } : { op });
+                  }}
                 >
                   {OPS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -448,12 +475,47 @@ export default function Screener() {
                     onChange={(e) => setFilter(i, { value2: Number(e.target.value) })}
                   />
                 )}
+                {/* Optional second condition on the SAME field. Defaults to none.
+                    Hidden for "between" (already a range). */}
+                {f.op !== "between" && (
+                  <select
+                    className="f-join"
+                    value={f.join ?? ""}
+                    title="Add a second condition on this field"
+                    onChange={(e) => {
+                      const j = e.target.value as Logic | "";
+                      setFilter(i, j ? { join: j, op2: f.op2 ?? "lt" } : { join: null });
+                    }}
+                  >
+                    <option value="">—</option>
+                    <option value="AND">AND</option>
+                    <option value="OR">OR</option>
+                  </select>
+                )}
+                {f.op !== "between" && f.join && (
+                  <>
+                    <select
+                      className="f-op"
+                      value={f.op2 ?? "lt"}
+                      onChange={(e) => setFilter(i, { op2: e.target.value as Operator })}
+                    >
+                      {OPS.filter((o) => o.value !== "between").map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      className="f-val mono"
+                      type="number"
+                      value={f.value2 ?? 0}
+                      onChange={(e) => setFilter(i, { value2: Number(e.target.value) })}
+                    />
+                  </>
+                )}
                 <span className="f-unit">{fd?.unit ?? ""}</span>
                 <button className="f-del" onClick={() => removeFilter(i)} title="Remove">
                   ✕
                 </button>
               </div>
-              {fd?.desc && <p className="f-hint">{fd.desc}</p>}
               </div>
             );
           })}

@@ -14,7 +14,7 @@ const NAV = [
   { to: "/app/dashboard", label: "Dashboard", icon: GridIcon },
   { to: "/app/screener", label: "Screener", icon: FilterIcon },
   { to: "/app/chart", label: "Chart", icon: ChartIcon },
-  { to: "/app/indices", label: "Indices", icon: GlobeIcon },
+  { to: "/app/indices", label: "Indices & FX", icon: GlobeIcon },
   { to: "/app/watchlist", label: "Watchlist", icon: StarIcon },
   { to: "/app/portfolio", label: "Portfolio", icon: BriefcaseIcon },
   { to: "/app/calculators", label: "Calculators", icon: CalcIcon },
