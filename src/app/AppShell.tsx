@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { initPush } from "../lib/push";
@@ -26,13 +26,28 @@ const NAV = [
 export default function AppShell() {
   const { user, signOut } = useAuth();
   const nav = useNavigate();
+  // On mobile the nav collapses into a hideable left drawer; this toggles it.
+  // (Desktop ignores it — the drawer styles only apply under the mobile media
+  // query, so the horizontal top bar is unchanged on wide screens.)
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Register for remote push once on native startup (no-op on web / unconfigured).
   useEffect(() => {
     void initPush((path) => nav(path));
   }, [nav]);
 
+  // Close the drawer on Escape for keyboard/back-friendly dismissal.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
   const handleSignOut = () => {
+    setMenuOpen(false);
     signOut();
     nav("/login");
   };
@@ -40,11 +55,22 @@ export default function AppShell() {
   return (
     <div className="shell">
       <header className="topbar">
+        {/* hamburger — visible only on mobile (CSS); toggles the left drawer */}
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          <MenuIcon open={menuOpen} />
+        </button>
+
         <div className="topbar-brand">
           <Logo size={24} />
         </div>
 
-        <nav className="topnav">
+        <nav className={"topnav" + (menuOpen ? " open" : "")}>
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
@@ -52,6 +78,7 @@ export default function AppShell() {
               className={({ isActive }) =>
                 "nav-item" + (isActive ? " active" : "")
               }
+              onClick={() => setMenuOpen(false)}
             >
               <Icon />
               <span>{label}</span>
@@ -75,6 +102,16 @@ export default function AppShell() {
         <ScripSearch />
       </header>
 
+      {/* Dimmed backdrop behind the mobile drawer; tap to close. Hidden on
+          desktop (display:none unless the mobile query + .show apply). */}
+      <button
+        type="button"
+        className={"nav-backdrop" + (menuOpen ? " show" : "")}
+        aria-hidden="true"
+        tabIndex={-1}
+        onClick={() => setMenuOpen(false)}
+      />
+
       <IndexTicker />
 
       <main className="content">
@@ -85,6 +122,13 @@ export default function AppShell() {
 }
 
 /* ---- inline icons (stroke = currentColor) ---- */
+function MenuIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      {open ? <path d="M6 6l12 12M18 6 6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+    </svg>
+  );
+}
 function CalcIcon() {
   return (
     <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2">
