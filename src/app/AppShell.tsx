@@ -74,6 +74,11 @@ export default function AppShell() {
           </div>
         </div>
 
+        {/* Sign out pinned to the right corner of the glossy bar (brand at left). */}
+        <button type="button" className="signout-btn" onClick={handleSignOut}>
+          Sign out
+        </button>
+
         <nav className={"topnav" + (menuOpen ? " open" : "")}>
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink
@@ -107,9 +112,6 @@ export default function AppShell() {
             <span className="avatar">{(user?.name ?? "G")[0].toUpperCase()}</span>
             {user?.name ?? "Guest"}
           </span>
-          <button className="link-btn" onClick={handleSignOut}>
-            Sign out
-          </button>
         </div>
 
         <ScripSearch />

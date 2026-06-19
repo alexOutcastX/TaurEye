@@ -11,6 +11,10 @@
 
 export const ECONOMY_ENABLED = true;
 
+// Currency symbol shown next to a credit balance. PLACEHOLDER — change this one
+// constant to finalise the credits currency mark everywhere it's displayed.
+export const CREDIT_SYMBOL = "₸";
+
 // Credits charged to use premium features (sinks).
 // NOTE: aiAnalysis is charged SERVER-SIDE by the ai-analysis Edge Function once
 // cloud credits are on — don't also debit it client-side then (avoid double bill).
