@@ -19,6 +19,7 @@ import Wallet from "./pages/Wallet";
 import Portfolio from "./pages/Portfolio";
 import Calculators from "./pages/Calculators";
 import Refer from "./pages/Refer";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
 
@@ -79,6 +80,7 @@ export default function App() {
         <Route path="saved" element={<Saved />} />
         <Route path="wallet" element={<Wallet />} />
         <Route path="refer" element={<Refer />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
 
         <Route path="*" element={<NotFound />} />
