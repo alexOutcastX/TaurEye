@@ -208,6 +208,10 @@
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   overflow: auto;
+  /* Bound the height so the table scrolls INSIDE this box — that keeps the
+     sticky sort bar (thead) pinned and always visible while paging through the
+     scrip list, instead of it scrolling away with the page. */
+  max-height: calc(100dvh - 140px);
   -webkit-overflow-scrolling: touch;   /* momentum scroll on iOS */
   background: var(--surface);
 }
@@ -359,15 +363,50 @@ table.results { width: 100%; border-collapse: collapse; font-size: 13px; }
   color: var(--text-muted);
 }
 
-/* ---- preset scan library ---- */
+/* ---- preset scan library (collapsible, multi-select) ---- */
 .presets { margin: 10px 0 4px; }
-.presets-label {
-  display: block;
+.presets-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--r-sm);
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.presets-toggle:hover { border-color: var(--border-strong); color: var(--text); }
+.presets-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #04130d;
   font-size: 11px;
+  font-weight: 700;
+}
+.presets-caret { color: var(--text-faint); font-size: 11px; }
+.presets-panel {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.presets-grp { display: flex; flex-direction: column; gap: 6px; }
+.presets-grp-label {
+  font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-faint);
-  margin-bottom: 6px;
 }
 .presets-row {
   display: flex;
@@ -382,9 +421,78 @@ table.results { width: 100%; border-collapse: collapse; font-size: 13px; }
   padding: 5px 11px;
   font-size: 12px;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 .preset-chip:hover {
   border-color: var(--accent);
   color: var(--accent);
 }
+.preset-chip.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--elevated);
+  font-weight: 600;
+}
+.preset-chip.on::before { content: "✓ "; }
+.presets-clear {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--r-sm);
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.presets-clear:hover { border-color: var(--down); color: var(--down); }
+
+/* ---- filter field info (ⓘ hover popover) + AND/OR second condition ---- */
+.f-field-wrap { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 200px; }
+.f-field-wrap .f-field { flex: 1; min-width: 0; }
+.f-info {
+  position: relative;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  color: var(--text-faint);
+  font-size: 11px;
+  font-style: italic;
+  font-family: var(--font-serif, Georgia, serif);
+  cursor: help;
+  user-select: none;
+}
+.f-info:hover, .f-info:focus-visible { color: var(--accent); border-color: var(--accent); outline: none; }
+.f-info-pop {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  width: max(220px, 16vw);
+  max-width: 320px;
+  padding: 9px 11px;
+  background: var(--elevated, #1a1f29);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  font-style: normal;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.12s, transform 0.12s, visibility 0.12s;
+  pointer-events: none;
+}
+.f-info:hover .f-info-pop, .f-info:focus-visible .f-info-pop {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.f-join { width: 64px; flex: none; }

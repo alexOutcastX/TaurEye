@@ -9,6 +9,7 @@ import type {
   FieldDef,
   Filter,
   Metrics,
+  Operator,
   ScreenRequest,
   ScreenResponse,
 } from "../api/types";
@@ -19,8 +20,32 @@ function valueOf(m: Metrics, key: string): MetricValue {
   return (m as unknown as Record<string, MetricValue>)[key];
 }
 
+// One comparison of a numeric metric value against an operator + operand(s).
+function compare(n: number, op: Operator, a: number, b?: number | null): boolean {
+  switch (op) {
+    case "gt":
+      return n > a;
+    case "gte":
+      return n >= a;
+    case "lt":
+      return n < a;
+    case "lte":
+      return n <= a;
+    case "eq":
+      return n === a;
+    case "between": {
+      const other = b ?? a;
+      return Math.min(a, other) <= n && n <= Math.max(a, other);
+    }
+    default:
+      return true;
+  }
+}
+
 // Mirror screener._passes: unknown field => keep (ignored); null value can't
-// satisfy a numeric comparison => drop.
+// satisfy a numeric comparison => drop. A filter may carry a SECOND condition on
+// the same field (`join` AND/OR with `op2`/`value2`) — e.g. price >100 AND <2000,
+// or RSI <30 OR >70.
 function passes(m: Metrics, f: Filter, fieldKeys: Set<string>): boolean {
   if (!fieldKeys.has(f.field)) return true;
   const v = valueOf(m, f.field);
@@ -30,26 +55,12 @@ function passes(m: Metrics, f: Filter, fieldKeys: Set<string>): boolean {
   // comparisons are all false — i.e. it can't satisfy the filter, which mirrors
   // the backend dropping values that can't meet a numeric comparison.
   const n = typeof v === "number" ? v : Number(v);
-  switch (f.op) {
-    case "gt":
-      return n > f.value;
-    case "gte":
-      return n >= f.value;
-    case "lt":
-      return n < f.value;
-    case "lte":
-      return n <= f.value;
-    case "eq":
-      return n === f.value;
-    case "between": {
-      const other = f.value2 ?? f.value;
-      const lo = Math.min(f.value, other);
-      const hi = Math.max(f.value, other);
-      return lo <= n && n <= hi;
-    }
-    default:
-      return true;
+  const primary = compare(n, f.op, f.value, f.value2);
+  if (f.join && f.op2) {
+    const secondary = compare(n, f.op2, f.value2 ?? f.value);
+    return f.join === "AND" ? primary && secondary : primary || secondary;
   }
+  return primary;
 }
 
 export function runScreen(

@@ -4,14 +4,44 @@ import type { IndexQuote, IndicesResponse } from "../api/types";
 import { fmtNum, fmtPct, fmtStamp, signClass } from "../lib/format";
 import "./GlobalIndices.css";
 
-type Cat = "domestic" | "international" | "currency";
+type Cat = "domestic" | "international" | "currency" | "depository";
+
+const TABS: { cat: Cat; label: string; sub?: string; empty: string }[] = [
+  {
+    cat: "domestic",
+    label: "Domestic indices",
+    sub: "India (NSE / BSE)",
+    empty: "Domestic indices will appear after the next data refresh.",
+  },
+  {
+    cat: "international",
+    label: "Global indices",
+    empty: "Global indices will appear after the next data refresh.",
+  },
+  {
+    cat: "currency",
+    label: "Currency",
+    empty: "Currency rates will appear after the next data refresh.",
+  },
+  {
+    cat: "depository",
+    label: "Depository Receipts",
+    sub: "Indian ADRs / GDRs",
+    empty: "Indian depository receipts will appear after the next data refresh.",
+  },
+];
 
 // Domestic = India. Used only as a fallback when the data doesn't carry a
-// `category` yet (older bundles). Once the exporter tags each index, that wins.
+// `category` yet (older bundles). Once the exporter tags each quote, that wins.
 const DOMESTIC_KEYS = new Set(["NIFTY", "BANKNIFTY", "SENSEX", "INDIAVIX"]);
 
 function categoryOf(q: IndexQuote): Cat {
-  if (q.category === "domestic" || q.category === "international" || q.category === "currency")
+  if (
+    q.category === "domestic" ||
+    q.category === "international" ||
+    q.category === "currency" ||
+    q.category === "depository"
+  )
     return q.category;
   if (q.key === "USDINR" || /\b\w{3}\/\w{3}\b/.test(q.label)) return "currency";
   if (DOMESTIC_KEYS.has(q.key) || /\b(nifty|sensex|india|bse)\b/i.test(q.label)) return "domestic";
@@ -21,6 +51,7 @@ function categoryOf(q: IndexQuote): Cat {
 export default function GlobalIndices() {
   const [data, setData] = useState<IndicesResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<Cat>("domestic");
 
   useEffect(() => {
     let alive = true;
@@ -39,81 +70,87 @@ export default function GlobalIndices() {
   }, []);
 
   const groups = useMemo(() => {
-    const g: Record<Cat, IndexQuote[]> = { domestic: [], international: [], currency: [] };
+    const g: Record<Cat, IndexQuote[]> = {
+      domestic: [],
+      international: [],
+      currency: [],
+      depository: [],
+    };
     for (const q of data?.indices ?? []) g[categoryOf(q)].push(q);
     return g;
   }, [data]);
 
-  const freshness = data
-    ? [
-        data.data_date ? `As of ${data.data_date}` : null,
-        fmtStamp(data.generated_at ?? data.as_of) ? `updated ${fmtStamp(data.generated_at ?? data.as_of)}` : null,
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : "";
+  // Per-tab "last updated": the newest market date among that tab's quotes
+  // (markets close at different times), falling back to the bundle's stamp.
+  const lastUpdated = (items: IndexQuote[]): string => {
+    const dates = items.map((q) => q.data_date).filter((d): d is string => !!d);
+    if (dates.length) return `Last updated ${dates.sort().at(-1)}`;
+    if (data?.data_date) return `Last updated ${data.data_date}`;
+    const s = fmtStamp(data?.generated_at ?? data?.as_of);
+    return s ? `Updated ${s}` : "";
+  };
+
+  const active = TABS.find((t) => t.cat === tab)!;
+  const items = groups[tab];
 
   return (
     <section className="gidx">
       <header className="gidx-head">
-        <h1>Global Indices</h1>
-        {freshness && <span className="gidx-asof">{freshness}</span>}
+        <h1>Indices, Forex &amp; DRs</h1>
       </header>
 
-      {loading && !data && <p className="gidx-note">Loading indices…</p>}
+      <div className="gidx-tabs" role="tablist">
+        {TABS.map((t) => (
+          <button
+            key={t.cat}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.cat}
+            className={`gidx-tab${tab === t.cat ? " on" : ""}`}
+            onClick={() => setTab(t.cat)}
+          >
+            {t.label}
+            <span className="gidx-tab-count">{groups[t.cat].length}</span>
+          </button>
+        ))}
+      </div>
 
-      <Group title="Domestic" subtitle="India" items={groups.domestic} />
-      <Group
-        title="International"
-        items={groups.international}
-        empty="International indices will appear after the next data refresh."
-      />
-      {groups.currency.length > 0 && <Group title="Currencies" items={groups.currency} />}
+      <div className="gidx-panel" role="tabpanel">
+        <div className="gidx-panel-head">
+          {active.sub && <span className="gidx-panel-sub">{active.sub}</span>}
+          <span className="gidx-asof">{lastUpdated(items)}</span>
+        </div>
+
+        {loading && !data ? (
+          <p className="gidx-empty">Loading…</p>
+        ) : items.length === 0 ? (
+          <p className="gidx-empty">{active.empty}</p>
+        ) : (
+          <div className="gidx-grid">
+            {items.map((q) => (
+              <div className="gidx-card" key={q.key}>
+                <div className="gidx-card-top">
+                  <span className="gidx-label">{q.label}</span>
+                  {q.country && <span className="gidx-country">{q.country}</span>}
+                </div>
+                <span className="gidx-value">{q.value != null ? fmtNum(q.value) : "—"}</span>
+                {q.change_pct != null && (
+                  <span className={`gidx-chg ${signClass(q.change_pct)}`}>
+                    {fmtPct(q.change_pct)}
+                  </span>
+                )}
+                {q.data_date && <span className="gidx-date">EOD {q.data_date}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <p className="gidx-disclaimer">
-        Factual end-of-day / delayed index levels for information only — not investment
-        advice. Figures may be delayed or contain errors; verify with the exchange.
+        Factual end-of-day / delayed index, currency and depository-receipt levels for
+        information only — not investment advice. Figures may be delayed or contain errors;
+        verify with the respective exchange.
       </p>
     </section>
-  );
-}
-
-function Group({
-  title,
-  subtitle,
-  items,
-  empty,
-}: {
-  title: string;
-  subtitle?: string;
-  items: IndexQuote[];
-  empty?: string;
-}) {
-  return (
-    <div className="gidx-group">
-      <h2 className="gidx-group-title">
-        {title}
-        {subtitle && <span className="gidx-group-sub">{subtitle}</span>}
-        <span className="gidx-count">{items.length}</span>
-      </h2>
-      {items.length === 0 ? (
-        <p className="gidx-empty">{empty ?? "No data."}</p>
-      ) : (
-        <div className="gidx-grid">
-          {items.map((q) => (
-            <div className="gidx-card" key={q.key}>
-              <div className="gidx-card-top">
-                <span className="gidx-label">{q.label}</span>
-                {q.country && <span className="gidx-country">{q.country}</span>}
-              </div>
-              <span className="gidx-value">{q.value != null ? fmtNum(q.value) : "—"}</span>
-              {q.change_pct != null && (
-                <span className={`gidx-chg ${signClass(q.change_pct)}`}>{fmtPct(q.change_pct)}</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }

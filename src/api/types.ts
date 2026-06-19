@@ -59,9 +59,12 @@ export interface IndexQuote {
   label: string;
   value: number | null;
   change_pct: number | null;
-  // Optional grouping for the Global Indices page (added by the exporter).
-  category?: "domestic" | "international" | "currency" | null;
+  // Optional grouping for the Indices/Forex/DR page (added by the exporter).
+  category?: "domestic" | "international" | "currency" | "depository" | null;
   country?: string | null;
+  // EOD / last-update date for THIS instrument's own market ("YYYY-MM-DD").
+  // Lets each tab show its own "last updated" (markets close at different times).
+  data_date?: string | null;
 }
 
 export interface IndicesResponse {
@@ -96,7 +99,12 @@ export interface Filter {
   field: string;
   op: Operator;
   value: number;
+  // Upper bound for `op:"between"`, AND the second value when `join` is set.
   value2?: number | null;
+  // Optional SECOND condition on the same field, combined with the first by
+  // `join`. e.g. Price >100 AND <2000, or RSI <30 OR >70. null/absent = single.
+  join?: Logic | null;
+  op2?: Operator;
 }
 
 export interface ScreenRequest {
