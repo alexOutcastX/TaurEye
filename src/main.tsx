@@ -10,9 +10,13 @@ import { AuthProvider } from "./auth/AuthContext";
 import { initOta } from "./lib/ota";
 import { initAdMob, showBanner } from "./lib/ads";
 import { applyTheme, getTheme } from "./lib/theme";
+import { applySettings } from "./lib/settings";
 
-// Apply the saved light/dark theme before first paint (avoids a flash).
+// Apply the saved light/dark theme before first paint (avoids a flash), then
+// layer any saved colour overrides (screener scrip colour, gains/losses, accent)
+// on top — unset values fall back to the theme default.
 applyTheme(getTheme());
+applySettings();
 
 // Capgo over-the-air updates (native only). With autoUpdate on, the plugin
 // downloads a new web bundle in the background and swaps it in on the next

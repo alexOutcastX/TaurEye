@@ -11,7 +11,6 @@ import AlertsBell from "../components/AlertsBell";
 import "./AppShell.css";
 
 const NAV = [
-  { to: "/app/dashboard", label: "Dashboard", icon: GridIcon },
   { to: "/app/screener", label: "Screener", icon: FilterIcon },
   { to: "/app/chart", label: "Chart", icon: ChartIcon },
   { to: "/app/indices", label: "Indices & FX", icon: GlobeIcon },
@@ -21,6 +20,7 @@ const NAV = [
   { to: "/app/saved", label: "Saved Screens", icon: BookmarkIcon },
   { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
   { to: "/app/refer", label: "Refer & Earn", icon: GiftIcon },
+  { to: "/app/settings", label: "Settings", icon: GearIcon },
 ];
 
 export default function AppShell() {
@@ -55,19 +55,23 @@ export default function AppShell() {
   return (
     <div className="shell">
       <header className="topbar">
-        {/* hamburger — visible only on mobile (CSS); toggles the left drawer */}
-        <button
-          type="button"
-          className="nav-toggle"
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((v) => !v)}
-        >
-          <MenuIcon open={menuOpen} />
-        </button>
+        {/* Glossy black frame keeps the logo + wordmark + hamburger legible in
+            ANY theme (the white theme otherwise washes the logo out). */}
+        <div className="brand-cluster">
+          {/* hamburger — visible only on mobile (CSS); toggles the left drawer */}
+          <button
+            type="button"
+            className="nav-toggle"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            <MenuIcon open={menuOpen} />
+          </button>
 
-        <div className="topbar-brand">
-          <Logo size={24} />
+          <div className="topbar-brand">
+            <Logo size={24} />
+          </div>
         </div>
 
         <nav className={"topnav" + (menuOpen ? " open" : "")}>
@@ -87,6 +91,15 @@ export default function AppShell() {
         </nav>
 
         <div className="topbar-right">
+          <button
+            type="button"
+            className="home-btn"
+            title="Home (Dashboard)"
+            aria-label="Home"
+            onClick={() => nav("/app/dashboard")}
+          >
+            <HomeIcon />
+          </button>
           <AlertsBell />
           <ThemeToggle />
           <CreditsBadge />
@@ -145,13 +158,18 @@ function BriefcaseIcon() {
     </svg>
   );
 }
-function GridIcon() {
+function HomeIcon() {
   return (
     <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="7" height="9" rx="1.5" />
-      <rect x="14" y="3" width="7" height="5" rx="1.5" />
-      <rect x="14" y="12" width="7" height="9" rx="1.5" />
-      <rect x="3" y="16" width="7" height="5" rx="1.5" />
+      <path d="M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function GearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M19.4 13a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 4.2l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
