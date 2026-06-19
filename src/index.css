@@ -14,8 +14,9 @@
   --text-faint: #5e6776;
 
   /* Brand + market semantics */
-  --accent: #18c98c;       /* bull green */
-  --accent-dim: #128f63;
+  --accent: #ffffff;       /* monochrome accent: white on the dark theme */
+  --accent-dim: #c9d1db;
+  --on-accent: #0a0f0c;    /* text/icon shown on an accent-filled surface */
   --up: #18c98c;
   --down: #f0506e;
   --warn: #f5a623;
@@ -53,8 +54,9 @@
   --text-muted: #58616d;
   --text-faint: #98a1ad;
 
-  --accent: #0f9d63;
-  --accent-dim: #0c8553;
+  --accent: #0f1419;       /* monochrome accent: black on the light theme */
+  --accent-dim: #3a4250;
+  --on-accent: #ffffff;
   --up: #0f9d63;
   --down: #e0455f;
   --warn: #c2870f;

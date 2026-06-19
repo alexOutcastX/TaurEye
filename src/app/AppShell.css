@@ -33,6 +33,11 @@
   --text: #eef1f5;
   --text-muted: #9aa4b2;
   --text-faint: #6b7480;
+  /* the bar is always black, so keep its accent white in BOTH themes (otherwise
+     the light theme's black accent would hide the wordmark "Eye" + credits ◆) */
+  --accent: #ffffff;
+  --accent-dim: #c9d1db;
+  --on-accent: #0a0f0c;
 }
 
 /* Sign out — pinned to the right corner of the glossy bar. */
