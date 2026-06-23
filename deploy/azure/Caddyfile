@@ -1,0 +1,17 @@
+# TaurEye reverse proxy.
+#
+# NOW (no domain): plain HTTP on :80 -> the web (nginx) container.
+:80 {
+	encode gzip
+	reverse_proxy web:80
+}
+
+# LATER (you have a domain): comment out the :80 block above and use this instead.
+# Caddy will fetch + renew a Let's Encrypt certificate automatically. Also
+# uncomment "443:443" in docker-compose.yml, and repoint the build's
+# VITE_SUPABASE_URL to https://api.<your-domain> (front Kong:8000 with TLS too).
+#
+# your-domain.com {
+# 	encode gzip
+# 	reverse_proxy web:80
+# }
