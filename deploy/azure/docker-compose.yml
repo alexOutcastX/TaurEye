@@ -1,0 +1,72 @@
+# TaurEye — all-in-one app stack for an Azure VM (Docker).
+#   ./up.sh            # brings up Supabase + this stack
+#   docker compose up -d --build      # this stack only (web + dataengine + scheduler)
+#
+# This compose runs the TaurEye APP layer. Supabase runs as its own stack from
+# ./supabase-docker (the official supabase/docker compose) — see DEPLOY-AZURE.md.
+# The browser reaches Supabase directly at http://<VM-IP>:8000 (Kong), so the two
+# stacks don't need a shared network.
+name: taureye
+
+services:
+  # ---- Static SPA + the /data bundle (nginx, published directly on :80) ----
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/azure/Dockerfile.web
+      args:
+        VITE_DATA_SOURCE: local
+        VITE_DATA_BASE: ""              # same-origin /data
+        VITE_CANDLE_BASE: ""
+        VITE_AI_MODE: ${VITE_AI_MODE:-cache}
+        VITE_SUPABASE_URL: "http://${AZURE_PUBLIC_IP}:8000"
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+        VITE_OAUTH_PROVIDERS: ${VITE_OAUTH_PROVIDERS:-}
+    image: taureye-web
+    container_name: taureye-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # - "443:443"   # add when you put TLS in front of nginx (see DEPLOY-AZURE.md)
+    volumes:
+      # The dataengine writes the JSON bundle here; nginx serves it read-only.
+      - ./data/bundle:/usr/share/nginx/html/data:ro
+
+  # ---- Data engine: pulls EOD -> SQLite spine -> exports the JSON bundle ----
+  # Stays alive (sleep) so the scheduler can `exec` the nightly refresh into it,
+  # mirroring the existing `docker compose exec` pattern.
+  dataengine:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: taureye-dataengine
+    container_name: taureye-dataengine
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Kolkata
+      TAUREYE_PROVIDER: db
+      TAUREYE_DATA_DIR: /app/backend/data
+      TAUREYE_DB_PATH: /app/backend/data/market.db
+    volumes:
+      - ./data/spine:/app/backend/data       # market.db + logs (persisted)
+      - ./data/bundle:/data/bundle           # export target (shared with web)
+    command: ["sleep", "infinity"]
+    labels:
+      ofelia.enabled: "true"
+      # 15:30 UTC = 21:00 IST (safely after the 15:30 IST market close + EOD publish).
+      # Cron is 6-field (sec min hour dom mon dow). Schedule is evaluated in UTC.
+      ofelia.job-exec.nightly-refresh.schedule: "0 30 15 * * *"
+      ofelia.job-exec.nightly-refresh.command: >-
+        bash -lc "python -m backend.app.dataengine.run nightly &&
+        python -m backend.app.dataengine.run export --all --gz --out /data/bundle"
+
+  # ---- Cron-in-Docker: fires the nightly refresh by reading the labels above ----
+  scheduler:
+    image: mcuadros/ofelia:latest
+    container_name: taureye-scheduler
+    restart: unless-stopped
+    depends_on:
+      - dataengine
+    command: daemon --docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro

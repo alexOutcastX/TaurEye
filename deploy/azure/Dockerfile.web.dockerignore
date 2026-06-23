@@ -1,0 +1,12 @@
+# Per-Dockerfile ignore for the web build (BuildKit picks this up for
+# Dockerfile.web and it OVERRIDES the root .dockerignore — which excludes src/).
+# Patterns are relative to the build context (the repo root).
+.git
+node_modules
+dist
+android
+*.apk
+*.mp4
+backend/data
+deploy/azure/data
+deploy/azure/supabase-docker

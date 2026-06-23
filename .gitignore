@@ -85,3 +85,9 @@ id_ed25519*
 
 # self-hosted Supabase stack (clone + secrets) created by scripts/selfhost-supabase.sh
 selfhost/
+
+# Azure Docker deploy: runtime data (spine/bundle), local env, and the cloned
+# Supabase self-host stack — never commit these.
+deploy/azure/.env
+deploy/azure/data/
+deploy/azure/supabase-docker/
