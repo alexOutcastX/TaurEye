@@ -1,6 +1,6 @@
 # TaurEye — all-in-one app stack for an Azure VM (Docker).
 #   ./up.sh            # brings up Supabase + this stack
-#   docker compose up -d --build      # this stack only (web + dataengine + caddy + scheduler)
+#   docker compose up -d --build      # this stack only (web + dataengine + scheduler)
 #
 # This compose runs the TaurEye APP layer. Supabase runs as its own stack from
 # ./supabase-docker (the official supabase/docker compose) — see DEPLOY-AZURE.md.
@@ -9,22 +9,7 @@
 name: taureye
 
 services:
-  # ---- Reverse proxy / web entry (HTTP now; flip to HTTPS when you add a domain) ----
-  caddy:
-    image: caddy:2-alpine
-    container_name: taureye-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      # - "443:443"     # uncomment together with the domain block in ./Caddyfile
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - web
-
-  # ---- Static SPA + the /data bundle (served from the shared bundle volume) ----
+  # ---- Static SPA + the /data bundle (nginx, published directly on :80) ----
   web:
     build:
       context: ../..
@@ -40,6 +25,9 @@ services:
     image: taureye-web
     container_name: taureye-web
     restart: unless-stopped
+    ports:
+      - "80:80"
+      # - "443:443"   # add when you put TLS in front of nginx (see DEPLOY-AZURE.md)
     volumes:
       # The dataengine writes the JSON bundle here; nginx serves it read-only.
       - ./data/bundle:/usr/share/nginx/html/data:ro
@@ -82,7 +70,3 @@ services:
     command: daemon --docker
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-
-volumes:
-  caddy_data:
-  caddy_config:

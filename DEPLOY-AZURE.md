@@ -1,14 +1,14 @@
 # Hosting TaurEye on an Azure VM with Docker (self-hosted Supabase)
 
 One Ubuntu VM runs **everything in Docker**: the static SPA + `/data` bundle
-(nginx behind Caddy), the **data engine** (nightly EOD → SQLite → JSON bundle),
-and a **self-hosted Supabase** stack (auth + Postgres wallet/portfolio/credits).
-Served over **HTTP on the VM's public IP** for now; flip to HTTPS when you add a
-domain (one line in the Caddyfile).
+(**nginx**, published on :80), the **data engine** (nightly EOD → SQLite → JSON
+bundle), and a **self-hosted Supabase** stack (auth + Postgres
+wallet/portfolio/credits). Served over **HTTP on the VM's public IP** for now;
+add TLS to nginx when you get a domain (see the HTTPS section below).
 
 ```
                   ┌──────────── Azure VM (Ubuntu 22.04 + Docker) ────────────┐
-  Browser ──:80───► Caddy ──► web (nginx: SPA + /data)                        │
+  Browser ──:80───► web (nginx: SPA + /data)                                 │
   Browser ──:8000──► Supabase Kong ──► auth · rest · realtime · storage · db  │
                   │   web ──reads── [data/bundle] ──written by── dataengine    │
                   │   scheduler (ofelia) ── nightly exec ──► dataengine        │
@@ -16,7 +16,7 @@ domain (one line in the Caddyfile).
 ```
 
 Files live in **`deploy/azure/`**: `Dockerfile.web`, `docker-compose.yml`,
-`Caddyfile`, `.env.example`, `up.sh`, `down.sh`.
+`.env.example`, `up.sh`, `down.sh`.
 
 > Steps 1–2 (Azure account / VM) are yours — the rest is copy-paste on the VM.
 
@@ -91,7 +91,7 @@ the first export in step 9).
 ```bash
 chmod +x up.sh down.sh
 ./up.sh            # Supabase first, then build + start the app stack
-docker compose ps  # web / dataengine / caddy / scheduler healthy?
+docker compose ps  # web / dataengine / scheduler healthy?
 ```
 
 ## 9. Apply the schema + first data export
@@ -139,12 +139,17 @@ Plus Azure **disk snapshots** of the data disk (covers `market.db` + the bundle)
 
 ---
 
-## Going HTTPS later (recommended once you have a domain)
-1. Point an A record at the VM IP; open `443` in the NSG.
-2. In `deploy/azure/Caddyfile`: comment the `:80` block, uncomment the
-   `your-domain.com { … }` block; uncomment `443:443` in `docker-compose.yml`.
-3. Rebuild the web with `VITE_SUPABASE_URL=https://api.<domain>` and front Kong
-   with TLS too; set the same URLs in Supabase `*_EXTERNAL_URL`.
+## Going HTTPS later (recommended once you have a domain) — still nginx
+1. Point an A record at the VM IP; open `443` in the NSG and uncomment `443:443`
+   on the `web` service in `docker-compose.yml`.
+2. Add a TLS server block to nginx. Easiest path: run **certbot** in nginx mode on
+   the host, or add a small companion container
+   (`nginxproxy/nginx-proxy` + `acme-companion`, or certbot) that obtains and
+   renews a Let's Encrypt cert and mounts it into the `web` container. Add a
+   `server { listen 443 ssl; ... }` block alongside the existing `:80` server in
+   `deploy/nginx-taureye.conf`.
+3. Rebuild the web with `VITE_SUPABASE_URL=https://api.<domain>` and put TLS in
+   front of Kong:8000 too; set the same URLs in Supabase `*_EXTERNAL_URL`.
 4. Drop `cleartext: true` from `capacitor.config.ts` and rebuild the APK once.
 
 ## Gotchas (read before you start)

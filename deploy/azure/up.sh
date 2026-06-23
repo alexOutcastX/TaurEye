@@ -15,7 +15,7 @@ fi
 echo "==> 1/2 Supabase…"
 ( cd supabase-docker && docker compose up -d )
 
-echo "==> 2/2 TaurEye app (web + dataengine + caddy + scheduler)…"
+echo "==> 2/2 TaurEye app (web + dataengine + scheduler)…"
 docker compose up -d --build
 
 echo ""
