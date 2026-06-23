@@ -15,10 +15,35 @@ add TLS to nginx when you get a domain (see the HTTPS section below).
                   └──────────────────────────────────────────────────────────┘
 ```
 
-Files live in **`deploy/azure/`**: `Dockerfile.web`, `docker-compose.yml`,
-`.env.example`, `up.sh`, `down.sh`.
+Files live in **`deploy/azure/`**: `bootstrap.sh`, `Dockerfile.web`,
+`docker-compose.yml`, `.env.example`, `up.sh`, `down.sh`.
 
 > Steps 1–2 (Azure account / VM) are yours — the rest is copy-paste on the VM.
+
+---
+
+## ⚡ One-command setup (recommended)
+After the VM exists (Phases 1–2 below) and the **whole TaurEye folder is on the
+VM**, this single command does everything — installs Docker, generates all
+Supabase secrets (incl. the anon/service JWTs), detects the public IP, writes
+both `.env` files, starts Supabase + the app, applies the schema, and builds the
+first data bundle:
+
+```bash
+bash deploy/azure/bootstrap.sh
+```
+
+- **Idempotent** — safe to re-run; it keeps existing secrets/data.
+- **Provide your data (optional):** put your spine at
+  `deploy/azure/data/spine/market.db` (or `backend/data/market.db` — it'll copy
+  it). No DB? It builds one from scratch (slow).
+- **IP override** if auto-detect fails: `PUBLIC_IP=<vm-ip> bash deploy/azure/bootstrap.sh`
+- **Still required by hand:** open NSG ports **80 + 8000** (Phase 2), and set
+  `SMTP_*` in `deploy/azure/supabase-docker/.env` for real auth emails (the
+  script enables email auto-confirm so signups work without SMTP meanwhile).
+
+The manual phases below are the same steps, broken out, if you prefer to run them
+yourself or need to debug.
 
 ---
 
