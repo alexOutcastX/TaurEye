@@ -1,37 +1,43 @@
 #!/usr/bin/env bash
 # Migrate accounts + app data from the OLD Supabase into the self-hosted DB.
-#   bash deploy/azure/migrate-supabase.sh "postgresql://postgres:PW@OLD_HOST:5432/postgres"
+#   bash deploy/azure/migrate-supabase.sh "<OLD_DB_URL>"   (use the SESSION POOLER url)
 #
-# Migrating auth.users + auth.identities preserves old emails AND bcrypt password
-# hashes, so old logins keep working. public.* carries profiles/wallet/etc.
-# Prereqs: pg_dump on this box (sudo dnf/apt install postgresql), and the old DB
-# reachable from here. Run from deploy/azure on the VM.
+# Runs pg_dump/psql INSIDE the supabase-db container so the client version matches
+# the PG17 server (no host pg_dump version mismatch). The container reaches the old
+# DB over the internet. Migrating auth.users + auth.identities preserves old emails
+# AND bcrypt password hashes, so old logins keep working; public schema carries
+# profiles / wallet / watchlists / etc.
+#
+# WARNING: this TRUNCATEs the new auth.users first (deletes test accounts you
+# created on Azure) for a clean import. Comment out the truncate to merge instead.
 set -euo pipefail
 OLD="${1:?usage: migrate-supabase.sh <OLD_DB_URL>}"
 cd "$(dirname "$0")"
 
-command -v pg_dump >/dev/null || { echo "pg_dump missing — install: sudo dnf install -y postgresql || sudo apt-get install -y postgresql-client"; exit 1; }
 DB=$(sudo docker ps -qf name=supabase-db)
-[ -z "$DB" ] && { echo "supabase-db container not running"; exit 1; }
+[ -z "$DB" ] && { echo "supabase-db container not running (run from the VM)"; exit 1; }
+
+echo "==> Sanity: old user count..."
+sudo docker exec "$DB" psql "$OLD" -t -c "select count(*) from auth.users;" \
+  || { echo "cannot reach old DB from the container"; exit 1; }
 
 echo "==> Dumping auth (users + identities) from old DB..."
-pg_dump "$OLD" --data-only --no-owner -t auth.users -t auth.identities > /tmp/auth_data.sql
+sudo docker exec "$DB" pg_dump "$OLD" --data-only --no-owner \
+  -t auth.users -t auth.identities > /tmp/auth_data.sql
 
-echo "==> Dumping public.* app data from old DB..."
-pg_dump "$OLD" --data-only --no-owner \
-  -t public.profiles -t public.credit_transactions -t public.watchlists \
-  -t public.screens -t public.referrals -t public.subscriptions \
-  -t public.purchases -t public.devices -t public.reports \
-  -t public.ai_jobs -t public.credit_products > /tmp/app_data.sql
+echo "==> Dumping public schema data from old DB..."
+sudo docker exec "$DB" pg_dump "$OLD" --data-only --no-owner --schema=public > /tmp/app_data.sql
+
+echo "==> auth dump: $(wc -l < /tmp/auth_data.sql) lines | public dump: $(wc -l < /tmp/app_data.sql) lines"
 
 echo "==> Clearing freshly-created local test users (avoids email collisions)..."
 sudo docker exec -i "$DB" psql -U postgres -d postgres -c "truncate auth.users cascade;"
 
-echo "==> Restoring (FK/triggers disabled during the bulk load)..."
-cat <(echo "SET session_replication_role=replica;") /tmp/auth_data.sql /tmp/app_data.sql \
-    <(echo "SET session_replication_role=DEFAULT;") \
-  | sudo docker exec -i "$DB" psql -U postgres -d postgres
+echo "==> Restoring into self-hosted DB (FK/triggers disabled during load)..."
+{ echo "SET session_replication_role=replica;"; cat /tmp/auth_data.sql /tmp/app_data.sql; echo "SET session_replication_role=DEFAULT;"; } \
+  | sudo docker exec -i "$DB" psql -U postgres -d postgres -v ON_ERROR_STOP=0
 
-echo "==> Done. User count:"
-sudo docker exec -i "$DB" psql -U postgres -d postgres -c "select count(*) as users from auth.users;"
-echo "Now test an old account login on https://taureye.com"
+echo "==> Done. New user count + latest accounts:"
+sudo docker exec -i "$DB" psql -U postgres -d postgres -c \
+  "select count(*) as users from auth.users; select email, created_at from auth.users order by created_at desc limit 8;"
+echo "Now test an OLD account login on https://taureye.com"
