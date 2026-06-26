@@ -72,3 +72,17 @@
 }
 .login-body .social-label { display: none; }
 .login-body .btn-ghost { padding: 10px; font-size: 12.5px; border-radius: 10px; }
+
+/* Public-page links so logged-out (mobile) users can reach Insights/About/Contact. */
+.login-links {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: var(--sp-4);
+}
+.login-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+}
+.login-links a:hover { color: var(--text); }
