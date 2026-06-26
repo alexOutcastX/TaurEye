@@ -178,3 +178,22 @@
   flex: 0 0 auto;
 }
 .auth-consent a { color: var(--accent); }
+
+/* Forgot-password link under the password field, and the reset screen. */
+.auth-forgot {
+  align-self: flex-start;
+  margin-top: 8px;
+  font-size: 12.5px;
+}
+.auth-heading {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+.auth-note {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}

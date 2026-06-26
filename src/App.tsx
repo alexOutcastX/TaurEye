@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { useEffect, type ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import { useAuth } from "./auth/AuthContext";
@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
 import Legal from "./pages/Legal";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import Screener from "./pages/Screener";
 import Chart from "./pages/Chart";
 import GlobalIndices from "./pages/GlobalIndices";
@@ -49,12 +50,22 @@ export default function App() {
   // full marketing Landing is web-only. Evaluated at render time so Capacitor
   // is initialised on-device.
   const native = Capacitor.isNativePlatform();
+  // A password-recovery link establishes a temporary session and fires the
+  // PASSWORD_RECOVERY event; route the user to the set-new-password screen. On
+  // web the email link already lands on /reset-password; this also covers native
+  // (deep-link exchange) and any tab that's elsewhere when recovery fires.
+  const { recovery } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (recovery) navigate("/reset-password", { replace: true });
+  }, [recovery, navigate]);
   return (
     <>
       <ConsentBanner />
       <Routes>
       <Route path="/" element={native ? <Login /> : <Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/i/:code" element={<Invite />} />
       <Route path="/legal/:doc" element={<Legal />} />
 

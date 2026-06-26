@@ -30,7 +30,7 @@ const VISIBLE_SOCIALS = ENABLED.length
  * an invite code (?ref=CODE) and forwards into the app once a session exists.
  */
 export default function AuthPanel() {
-  const { signIn, signUp, oauth, cloud, isAuthed, loading } = useAuth();
+  const { signIn, signUp, oauth, resetPassword, cloud, isAuthed, loading } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -40,6 +40,9 @@ export default function AuthPanel() {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Forgot-password sub-flow: collect the email and request a reset link.
+  const [forgot, setForgot] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
 
@@ -60,6 +63,25 @@ export default function AuthPanel() {
     const { error } = await oauth(id);
     if (error) setError(error);
     // success → full-page redirect to the provider, nothing else to do here.
+  };
+
+  // Forgot-password: email a reset link, then show a neutral confirmation (we
+  // don't reveal whether the address exists).
+  const sendReset = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!emailValid) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    setBusy(true);
+    const { error } = await resetPassword(email);
+    setBusy(false);
+    if (error) {
+      setError(error);
+      return;
+    }
+    setSent(true);
   };
 
   // Step 1: validate the email, then reveal the password field in the same box.
@@ -95,6 +117,47 @@ export default function AuthPanel() {
     }
     nav("/app/dashboard");
   };
+
+  // Forgot-password view (separate from the sign-in/up form).
+  if (forgot) {
+    return (
+      <div className="auth-panel">
+        <form onSubmit={sendReset} className="auth-form">
+          <button
+            type="button"
+            className="auth-back"
+            onClick={() => { setForgot(false); setSent(false); setError(null); }}
+          >
+            ‹ Back to sign in
+          </button>
+          {sent ? (
+            <p className="auth-note">
+              If an account exists for <b>{email}</b>, a password-reset link is on its
+              way. Check your inbox (and spam).
+            </p>
+          ) : (
+            <label className="field">
+              <span>Reset password — your email</span>
+              <div className="auth-inputgroup">
+                <input
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoFocus
+                />
+                <button type="submit" className="auth-go" disabled={busy} aria-label="Send reset link">
+                  {busy ? "…" : "→"}
+                </button>
+              </div>
+            </label>
+          )}
+          {error && <p className="auth-error">{error}</p>}
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-panel">
@@ -156,6 +219,15 @@ export default function AuthPanel() {
                   <Link to="/legal/privacy">Privacy Policy</Link>.
                 </span>
               </label>
+            )}
+            {mode === "signin" && cloud && (
+              <button
+                type="button"
+                className="auth-link auth-forgot"
+                onClick={() => { setForgot(true); setSent(false); setError(null); }}
+              >
+                Forgot password?
+              </button>
             )}
           </>
         )}

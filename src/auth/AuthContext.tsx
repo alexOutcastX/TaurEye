@@ -18,6 +18,13 @@ type AuthState = {
   signIn: (email: string, password: string) => Promise<Result>;
   signUp: (email: string, password: string) => Promise<Result>;
   oauth: (provider: OAuthProvider) => Promise<Result>;
+  /** Email a password-reset link (no-op without SMTP configured server-side). */
+  resetPassword: (email: string) => Promise<Result>;
+  /** Set a new password for the user in the current (recovery) session. */
+  updatePassword: (password: string) => Promise<Result>;
+  /** True after a password-recovery link establishes a session. */
+  recovery: boolean;
+  clearRecovery: () => void;
   bypass: () => void;
   signOut: () => Promise<void>;
 };
@@ -41,6 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   });
   const [loading, setLoading] = useState(cloud);
+  // Set when the user arrives via a password-recovery link — the app routes them
+  // to /reset-password to choose a new password (see App.tsx).
+  const [recovery, setRecovery] = useState(false);
 
   // ---- cloud (Supabase) session lifecycle ----
   useEffect(() => {
@@ -52,8 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(s ? { id: s.user.id, email: s.user.email ?? "", name: nameFromEmail(s.user.email ?? "") } : null);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setUser(s ? { id: s.user.id, email: s.user.email ?? "", name: nameFromEmail(s.user.email ?? "") } : null);
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
     });
     return () => {
       active = false;
@@ -119,6 +130,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error ? { error: error.message } : {};
   };
 
+  // Email a reset link. The link returns to /reset-password (web) or the native
+  // deep link, where updatePassword sets the new password. Requires SMTP to be
+  // configured server-side, otherwise the email is never delivered.
+  const resetPassword = async (email: string): Promise<Result> => {
+    if (!cloud || !supabase) return { error: "Password reset needs the cloud backend." };
+    const { Capacitor } = await import("@capacitor/core");
+    const redirectTo = Capacitor.isNativePlatform()
+      ? "app.taureye.mobile://auth-callback"
+      : `${window.location.origin}/reset-password`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+    return error ? { error: error.message } : {};
+  };
+
+  // Set a new password using the active (recovery) session.
+  const updatePassword = async (password: string): Promise<Result> => {
+    if (!cloud || !supabase) return { error: "Not available offline." };
+    const { error } = await supabase.auth.updateUser({ password });
+    return error ? { error: error.message } : {};
+  };
+
+  const clearRecovery = () => setRecovery(false);
+
   // Guest mode (kept for local use / preview).
   const bypass = () => setUser({ name: "Guest", email: "guest@taureye.local" });
 
@@ -129,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthCtx.Provider
-      value={{ user, isAuthed: !!user, loading, cloud, signIn, signUp, oauth, bypass, signOut }}
+      value={{ user, isAuthed: !!user, loading, cloud, signIn, signUp, oauth, resetPassword, updatePassword, recovery, clearRecovery, bypass, signOut }}
     >
       {children}
     </AuthCtx.Provider>
