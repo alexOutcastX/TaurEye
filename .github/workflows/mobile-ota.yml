@@ -43,7 +43,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # 22: Node 20 is deprecated on runners, and the Capgo CLI requires >=22
+          # (it emitted EBADENGINE warnings on 20).
+          node-version: "22"
           cache: "npm"
 
       - run: npm ci
