@@ -272,7 +272,15 @@ export default function Screener() {
   const share = async () => {
     const url = shareUrl(req);
     const title = "TaurEye stock screen";
-    const text = count > 0 ? `Check out this stock screen on TaurEye — ${count} stocks match` : "Check out this stock screen on TaurEye";
+    // Include the screened scrips themselves (top of the current sort) so the
+    // message lists the actual stocks, plus the link that reproduces the screen.
+    const SHOWN = 25;
+    const symbols = displayRows.slice(0, SHOWN).map((r) => r.symbol);
+    const more = count > symbols.length ? ` +${count - symbols.length} more` : "";
+    const text =
+      symbols.length > 0
+        ? `${count} stocks on this TaurEye screen:\n${symbols.join(", ")}${more}`
+        : "Check out this stock screen on TaurEye";
 
     // Native app: Capacitor Share opens the OS share sheet.
     try {
@@ -297,9 +305,9 @@ export default function Screener() {
       }
     }
 
-    // Fallback (desktop without share support): copy the link.
-    const r = await copyToClipboard(url);
-    setNlMsg(r === "copied" ? "Share link copied — anyone opening it sees this exact screen." : "Couldn't copy the link.");
+    // Fallback (desktop without share support): copy the scrips + link.
+    const r = await copyToClipboard(`${text}\n${url}`);
+    setNlMsg(r === "copied" ? "Copied the screened stocks + a link to this exact screen." : "Couldn't copy.");
   };
 
   // Toggle a preset in/out of the selection. The combined filters of every
@@ -557,7 +565,7 @@ export default function Screener() {
         <div className="panel-actions">
           <button className="btn-add" onClick={addFilter}>+ Add filter</button>
           <div className="spacer" />
-          <button className="btn-save" onClick={share} title="Share this screen — opens your share sheet, or copies the link">
+          <button className="btn-save" onClick={share} title="Share the screened stocks + a link that opens this exact screen">
             Share
           </button>
           <button className="btn-save" onClick={save}>Save screen</button>
