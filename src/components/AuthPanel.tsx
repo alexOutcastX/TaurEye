@@ -24,6 +24,21 @@ const VISIBLE_SOCIALS = ENABLED.length
   ? SOCIALS.filter((s) => ENABLED.includes(s.id))
   : SOCIALS.filter((s) => s.id === "google");
 
+// Post-auth redirect target ("?next=…") — returns a logged-out visitor to a
+// shared link (e.g. /app/screener?s=…) after they sign in. Stashed in
+// sessionStorage so it also survives the full-page OAuth round-trip. Only
+// same-origin app paths are honoured (no open redirects).
+const NEXT_KEY = "taureye.next";
+function safeNext(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const d = decodeURIComponent(raw);
+    return d.startsWith("/") && !d.startsWith("//") ? d : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Self-contained email/password + social + guest sign-in widget. Shared by the
  * Login page and the Landing hero so auth behaviour lives in one place. Captures
@@ -46,6 +61,14 @@ export default function AuthPanel() {
 
   const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
 
+  // Stash ?next=… so it survives the OAuth full-page redirect, then resolve the
+  // landing target (URL first, then the stash, else dashboard).
+  useEffect(() => {
+    const n = safeNext(params.get("next"));
+    if (n) sessionStorage.setItem(NEXT_KEY, n);
+  }, [params]);
+  const postAuthTarget = safeNext(params.get("next")) || sessionStorage.getItem(NEXT_KEY) || "/app/dashboard";
+
   // Invite link (?ref=CODE): stash the code; it's redeemed automatically after
   // the account's first sign-in (AuthContext -> claimPendingReferral).
   useEffect(() => {
@@ -53,10 +76,14 @@ export default function AuthPanel() {
     if (ref) storeRefCode(ref);
   }, [params]);
 
-  // After an OAuth round-trip (or any established session), forward into the app.
+  // After an OAuth round-trip (or any established session), forward into the app
+  // — to the shared-link target if there is one.
   useEffect(() => {
-    if (!loading && isAuthed) nav("/app/dashboard", { replace: true });
-  }, [loading, isAuthed, nav]);
+    if (!loading && isAuthed) {
+      sessionStorage.removeItem(NEXT_KEY);
+      nav(postAuthTarget, { replace: true });
+    }
+  }, [loading, isAuthed, nav, postAuthTarget]);
 
   const social = async (id: OAuthProvider) => {
     setError(null);
@@ -115,7 +142,8 @@ export default function AuthPanel() {
       setStep("email");
       return;
     }
-    nav("/app/dashboard");
+    sessionStorage.removeItem(NEXT_KEY);
+    nav(postAuthTarget);
   };
 
   // Forgot-password view (separate from the sign-in/up form).

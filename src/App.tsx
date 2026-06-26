@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, type ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import { useAuth } from "./auth/AuthContext";
@@ -26,11 +26,16 @@ import ConsentBanner from "./components/ConsentBanner";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthed, loading } = useAuth();
+  const location = useLocation();
   // Wait for the (cloud) session to hydrate before deciding — otherwise a
   // signed-in user is bounced to /login on every refresh while the async
   // Supabase session is still resolving.
   if (loading) return null;
-  return isAuthed ? <>{children}</> : <Navigate to="/" replace />;
+  if (isAuthed) return <>{children}</>;
+  // Preserve where they were headed (e.g. a shared screen /app/screener?s=…) so
+  // sign-in returns them there instead of dropping to the dashboard.
+  const next = encodeURIComponent(location.pathname + location.search);
+  return <Navigate to={`/?next=${next}`} replace />;
 }
 
 // Clean invite link: /i/<code> stashes the referral code, then lands on the home
