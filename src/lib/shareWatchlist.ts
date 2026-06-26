@@ -1,9 +1,12 @@
 // Shareable watchlists — encode a list (name + scrips) into a URL-safe token so
 // it can be shared as a plain link:  /app/watchlist?w=<token>
-// base64url(JSON), fully client-side (fits the static hosting model). Decoding is
-// defensive: a bad token just yields null. Only the scrip identity is shared
-// (symbol/name/exchange) — not your personal entry price/date.
+// The token is lz-string-compressed JSON (URL-safe), fully client-side (fits the
+// static hosting model). Compression cuts the link length ~70% vs raw base64url.
+// Decoding is defensive and back-compatible: it tries the compressed form first,
+// then falls back to the legacy base64url tokens so older links still open. Only
+// scrip identity is shared (symbol/name/exchange) — not your entry price/date.
 
+import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
 import { publicOrigin } from "./share";
 import type { WatchItem } from "./watchlist";
 
@@ -16,29 +19,46 @@ export function encodeWatchlist(wl: WatchlistLike): string {
     n: wl.name,
     i: wl.items.slice(0, 250).map((w) => ({ s: w.symbol, n: w.name, e: w.exchange })),
   };
-  const json = JSON.stringify(payload);
-  const b64 = btoa(unescape(encodeURIComponent(json)));
-  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return compressToEncodedURIComponent(JSON.stringify(payload));
+}
+
+// Validate + normalise a decoded payload; returns null if the shape is wrong.
+function normalizeWatchlist(p: SharedWL): WatchlistLike | null {
+  if (!Array.isArray(p.i)) return null;
+  const items: WatchItem[] = p.i
+    .filter((x) => x && typeof x.s === "string" && x.s)
+    .map((x) => ({
+      symbol: String(x.s).toUpperCase(),
+      name: String(x.n ?? x.s),
+      exchange: String(x.e ?? "NSE"),
+    }));
+  if (!items.length) return null;
+  return { name: (p.n || "Shared watchlist").slice(0, 60), items };
+}
+
+// Legacy base64url(JSON) decode — kept so links shared before lz-string still work.
+function decodeLegacyWatchlist(token: string): WatchlistLike | null {
+  try {
+    const b64 = token.replace(/-/g, "+").replace(/_/g, "/");
+    return normalizeWatchlist(JSON.parse(decodeURIComponent(escape(atob(b64)))) as SharedWL);
+  } catch {
+    return null;
+  }
 }
 
 export function decodeWatchlist(token: string | null): WatchlistLike | null {
   if (!token) return null;
+  // Try the compressed form first.
   try {
-    const b64 = token.replace(/-/g, "+").replace(/_/g, "/");
-    const p = JSON.parse(decodeURIComponent(escape(atob(b64)))) as SharedWL;
-    if (!Array.isArray(p.i)) return null;
-    const items: WatchItem[] = p.i
-      .filter((x) => x && typeof x.s === "string" && x.s)
-      .map((x) => ({
-        symbol: String(x.s).toUpperCase(),
-        name: String(x.n ?? x.s),
-        exchange: String(x.e ?? "NSE"),
-      }));
-    if (!items.length) return null;
-    return { name: (p.n || "Shared watchlist").slice(0, 60), items };
+    const json = decompressFromEncodedURIComponent(token);
+    if (json) {
+      const wl = normalizeWatchlist(JSON.parse(json) as SharedWL);
+      if (wl) return wl;
+    }
   } catch {
-    return null;
+    /* fall through to legacy */
   }
+  return decodeLegacyWatchlist(token);
 }
 
 export function watchlistShareUrl(wl: WatchlistLike): string {
