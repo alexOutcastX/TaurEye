@@ -288,3 +288,32 @@
   .user-pill span:last-child { display: none; }
   .content { padding: var(--sp-3); }
 }
+
+/* Public-pages section: only inside the mobile drawer (the desktop top nav is
+   the horizontal app nav; these links live in page footers there). */
+.nav-extra { display: none; }
+@media (max-width: 980px) {
+  .nav-extra {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .nav-extra-label {
+    padding: 4px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-faint);
+  }
+  .nav-extra-link {
+    padding: 11px 12px;
+    border-radius: var(--r-md);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .nav-extra-link:hover { background: var(--surface-2); color: var(--text); }
+}

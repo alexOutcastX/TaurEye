@@ -10,6 +10,10 @@ import Landing from "./pages/Landing";
 import Legal from "./pages/Legal";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Blog from "./pages/Blog";
+import Article from "./pages/Article";
 import Screener from "./pages/Screener";
 import Chart from "./pages/Chart";
 import GlobalIndices from "./pages/GlobalIndices";
@@ -73,6 +77,12 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/i/:code" element={<Invite />} />
       <Route path="/legal/:doc" element={<Legal />} />
+
+      {/* Public content pages (no login) */}
+      <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/blog/:slug" element={<Article />} />
 
       <Route
         path="/app"
