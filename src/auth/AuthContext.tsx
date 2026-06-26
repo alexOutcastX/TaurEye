@@ -20,6 +20,8 @@ type AuthState = {
   oauth: (provider: OAuthProvider) => Promise<Result>;
   /** Email a password-reset link (no-op without SMTP configured server-side). */
   resetPassword: (email: string) => Promise<Result>;
+  /** Re-send the signup confirmation email. */
+  resendConfirmation: (email: string) => Promise<Result>;
   /** Set a new password for the user in the current (recovery) session. */
   updatePassword: (password: string) => Promise<Result>;
   /** True after a password-recovery link establishes a session. */
@@ -143,6 +145,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error ? { error: error.message } : {};
   };
 
+  // Re-send the signup confirmation email (needs SMTP server-side).
+  const resendConfirmation = async (email: string): Promise<Result> => {
+    if (!cloud || !supabase) return { error: "Not available offline." };
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    });
+    return error ? { error: error.message } : {};
+  };
+
   // Set a new password using the active (recovery) session.
   const updatePassword = async (password: string): Promise<Result> => {
     if (!cloud || !supabase) return { error: "Not available offline." };
@@ -162,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthCtx.Provider
-      value={{ user, isAuthed: !!user, loading, cloud, signIn, signUp, oauth, resetPassword, updatePassword, recovery, clearRecovery, bypass, signOut }}
+      value={{ user, isAuthed: !!user, loading, cloud, signIn, signUp, oauth, resetPassword, resendConfirmation, updatePassword, recovery, clearRecovery, bypass, signOut }}
     >
       {children}
     </AuthCtx.Provider>

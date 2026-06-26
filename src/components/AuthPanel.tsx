@@ -45,7 +45,7 @@ function safeNext(raw: string | null): string | null {
  * an invite code (?ref=CODE) and forwards into the app once a session exists.
  */
 export default function AuthPanel() {
-  const { signIn, signUp, oauth, resetPassword, cloud, isAuthed, loading } = useAuth();
+  const { signIn, signUp, oauth, resetPassword, resendConfirmation, cloud, isAuthed, loading } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -58,6 +58,9 @@ export default function AuthPanel() {
   // Forgot-password sub-flow: collect the email and request a reset link.
   const [forgot, setForgot] = useState(false);
   const [sent, setSent] = useState(false);
+  // After signup, show a "verify your email" screen (with resend).
+  const [verifyFor, setVerifyFor] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
 
   const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
 
@@ -111,6 +114,20 @@ export default function AuthPanel() {
     setSent(true);
   };
 
+  // Re-send the signup confirmation email.
+  const resend = async () => {
+    if (!verifyFor) return;
+    setError(null);
+    setBusy(true);
+    const { error } = await resendConfirmation(verifyFor);
+    setBusy(false);
+    if (error) {
+      setError(error);
+      return;
+    }
+    setResent(true);
+  };
+
   // Step 1: validate the email, then reveal the password field in the same box.
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -136,15 +153,46 @@ export default function AuthPanel() {
       return;
     }
     if (cloud && mode === "signup") {
-      // Supabase may require email confirmation before a session exists.
-      setError("Check your email to confirm your account, then sign in.");
-      setMode("signin");
-      setStep("email");
+      // Email confirmation required before a session exists — show the verify
+      // screen. The confirmation link signs them in when clicked.
+      setVerifyFor(email);
+      setResent(false);
       return;
     }
     sessionStorage.removeItem(NEXT_KEY);
     nav(postAuthTarget);
   };
+
+  // Verify-your-email view (shown right after signing up).
+  if (verifyFor) {
+    return (
+      <div className="auth-panel">
+        <div className="auth-form">
+          <h1 className="auth-heading">Verify your email</h1>
+          <p className="auth-note">
+            We sent a confirmation link to <b>{verifyFor}</b>. Click it to activate
+            your account — you’ll be signed in automatically.
+          </p>
+          {resent && <p className="auth-note">Sent again — check your inbox (and spam).</p>}
+          {error && <p className="auth-error">{error}</p>}
+          <div className="auth-verify-actions">
+            <button type="button" className="auth-link" onClick={resend} disabled={busy}>
+              {busy ? "Sending…" : "Resend email"}
+            </button>
+            <button
+              type="button"
+              className="auth-link"
+              onClick={() => {
+                setVerifyFor(null); setResent(false); setMode("signin"); setStep("email"); setError(null);
+              }}
+            >
+              Back to sign in
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Forgot-password view (separate from the sign-in/up form).
   if (forgot) {
