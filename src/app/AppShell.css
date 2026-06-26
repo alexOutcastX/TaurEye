@@ -232,18 +232,22 @@
   }
   .topbar-brand { border-right: none; padding-right: 0; }
 
-  /* Header rows on the glossy bar:
-     row1 = [hamburger + brand] ............ [Sign out]
-     row2 = account controls (home, alerts, theme, credits, user)
-     row3 = full-width search.  (nav is a fixed drawer.) */
-  .signout-btn { order: 1; margin-left: auto; }
+  /* Header rows on the glossy bar (home + alerts sit with the brand now):
+     row1 = [hamburger + brand + home + alerts]
+     row2 = [theme, credits, user] ............ [Sign out]
+     row3 = full-width search.  (nav is a fixed drawer.)
+     Sign out lives on the controls row (not row 1) so it is never clipped when
+     the brand cluster is wide; the cluster itself wraps on very narrow screens. */
+  .brand-cluster { flex-wrap: wrap; min-width: 0; gap: var(--sp-2); }
   .topbar-right {
     order: 2;
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
     margin-left: 0;
     gap: var(--sp-3);
   }
-  .scrip-search { order: 3; width: 100%; flex: 1 1 100%; margin-left: 0; }
+  .signout-btn { order: 3; margin-left: auto; }
+  .scrip-search { order: 4; width: 100%; flex: 1 1 100%; margin-left: 0; }
   .search { width: 100%; }
 
   /* The nav becomes a left off-canvas drawer: slid out by default, slid in
