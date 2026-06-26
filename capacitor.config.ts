@@ -12,15 +12,16 @@ const config: CapacitorConfig = {
   appName: "TaurEye",
   webDir: "dist",
   android: {
-    // Allow http (cleartext) traffic so a LAN-IP backend works during testing.
-    // For a public release point VITE_API_BASE at an https backend and you can
-    // set this back to false.
-    allowMixedContent: true,
+    // HTTPS-only: the backend is now https://taureye.com / https://api.taureye.com,
+    // so cleartext is disabled to prevent MITM/downgrade. Re-enable ONLY for
+    // temporary LAN/IP (http) testing, never for a release build.
+    allowMixedContent: false,
   },
   server: {
-    // Android needs https or cleartext explicitly allowed; keep cleartext on for
-    // LAN testing. Harmless for https backends.
-    cleartext: true,
+    // Disabled now that data + Supabase are served over HTTPS. NOTE: an APK built
+    // with this off MUST use https VITE_DATA_BASE/VITE_SUPABASE_URL (the Azure
+    // setup) — a build still pointing at an http IP would fail to load.
+    cleartext: false,
   },
   plugins: {
     // Route the app's fetch/XHR through Capacitor's NATIVE HTTP layer. The app
