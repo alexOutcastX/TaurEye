@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import type { IndexQuote, IndicesResponse } from "../api/types";
 import { fmtNum, fmtPct, fmtStamp, signClass } from "../lib/format";
+import { openExternal, tradingViewUrl } from "../lib/tradingview";
 import "./GlobalIndices.css";
 
 type Cat = "domestic" | "international" | "currency" | "depository";
@@ -92,6 +93,9 @@ export default function GlobalIndices() {
 
   const active = TABS.find((t) => t.cat === tab)!;
   const items = groups[tab];
+  // Currency + Depository Receipts are a small fixed set — show them as a compact
+  // list instead of cards. Indices stay as cards. All open a TradingView chart.
+  const asList = tab === "currency" || tab === "depository";
 
   return (
     <section className="gidx">
@@ -125,23 +129,61 @@ export default function GlobalIndices() {
           <p className="gidx-empty">Loading…</p>
         ) : items.length === 0 ? (
           <p className="gidx-empty">{active.empty}</p>
+        ) : asList ? (
+          <div className="gidx-list">
+            {items.map((q) => {
+              const url = tradingViewUrl(q);
+              return (
+                <a
+                  className="gidx-row"
+                  key={q.key}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Open ${q.label} on TradingView`}
+                  onClick={(e) => { e.preventDefault(); void openExternal(url); }}
+                >
+                  <span className="gidx-row-name">
+                    <span className="gidx-label">{q.label}</span>
+                    {q.country && <span className="gidx-country">{q.country}</span>}
+                  </span>
+                  <span className="gidx-row-value">{q.value != null ? fmtNum(q.value) : "—"}</span>
+                  {q.change_pct != null && (
+                    <span className={`gidx-chg ${signClass(q.change_pct)}`}>{fmtPct(q.change_pct)}</span>
+                  )}
+                  {q.data_date && <span className="gidx-row-date">EOD {q.data_date}</span>}
+                </a>
+              );
+            })}
+          </div>
         ) : (
           <div className="gidx-grid">
-            {items.map((q) => (
-              <div className="gidx-card" key={q.key}>
-                <div className="gidx-card-top">
-                  <span className="gidx-label">{q.label}</span>
-                  {q.country && <span className="gidx-country">{q.country}</span>}
-                </div>
-                <span className="gidx-value">{q.value != null ? fmtNum(q.value) : "—"}</span>
-                {q.change_pct != null && (
-                  <span className={`gidx-chg ${signClass(q.change_pct)}`}>
-                    {fmtPct(q.change_pct)}
-                  </span>
-                )}
-                {q.data_date && <span className="gidx-date">EOD {q.data_date}</span>}
-              </div>
-            ))}
+            {items.map((q) => {
+              const url = tradingViewUrl(q);
+              return (
+                <a
+                  className="gidx-card"
+                  key={q.key}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Open ${q.label} on TradingView`}
+                  onClick={(e) => { e.preventDefault(); void openExternal(url); }}
+                >
+                  <div className="gidx-card-top">
+                    <span className="gidx-label">{q.label}</span>
+                    {q.country && <span className="gidx-country">{q.country}</span>}
+                  </div>
+                  <span className="gidx-value">{q.value != null ? fmtNum(q.value) : "—"}</span>
+                  {q.change_pct != null && (
+                    <span className={`gidx-chg ${signClass(q.change_pct)}`}>
+                      {fmtPct(q.change_pct)}
+                    </span>
+                  )}
+                  {q.data_date && <span className="gidx-date">EOD {q.data_date}</span>}
+                </a>
+              );
+            })}
           </div>
         )}
       </div>

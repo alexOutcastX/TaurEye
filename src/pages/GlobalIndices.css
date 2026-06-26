@@ -104,6 +104,44 @@
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.06s;
+}
+.gidx-card:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+
+/* Compact list (Currency, Depository Receipts) — fixed, limited sets. */
+.gidx-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface);
+}
+.gidx-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: 11px 14px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  border-top: 1px solid var(--border);
+  transition: background 0.12s;
+}
+.gidx-row:first-child { border-top: none; }
+.gidx-row:hover { background: var(--surface-2, rgba(255, 255, 255, 0.03)); }
+.gidx-row-name { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.gidx-row-name .gidx-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gidx-row-value { font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
+.gidx-row-date { font-size: 10px; color: var(--text-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 560px) {
+  .gidx-row { grid-template-columns: 1fr auto auto; }
+  .gidx-row-date { display: none; }
 }
 .gidx-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .gidx-label {

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { IndicesResponse } from "../api/types";
 import { fmtNum, fmtPct, fmtStamp, signClass } from "../lib/format";
+import { openExternal, tradingViewUrl } from "../lib/tradingview";
 import "./IndexTicker.css";
 
 // Small, readable freshness line: the EOD date the prices belong to, plus when
@@ -55,19 +56,30 @@ export default function IndexTicker() {
   return (
     <div className="idx-strip">
       <div className="idx-items">
-        {shown.map((q) => (
-          <span className="idx-item" key={q.key}>
-            <span className="idx-label">{q.label}</span>
-            <span className="idx-value">
-              {q.value != null ? fmtNum(q.value) : "—"}
-            </span>
-            {q.change_pct != null && (
-              <span className={`idx-chg ${signClass(q.change_pct)}`}>
-                {fmtPct(q.change_pct)}
+        {shown.map((q) => {
+          const url = tradingViewUrl(q);
+          return (
+            <a
+              className="idx-item"
+              key={q.key}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Open ${q.label} on TradingView`}
+              onClick={(e) => { e.preventDefault(); void openExternal(url); }}
+            >
+              <span className="idx-label">{q.label}</span>
+              <span className="idx-value">
+                {q.value != null ? fmtNum(q.value) : "—"}
               </span>
-            )}
-          </span>
-        ))}
+              {q.change_pct != null && (
+                <span className={`idx-chg ${signClass(q.change_pct)}`}>
+                  {fmtPct(q.change_pct)}
+                </span>
+              )}
+            </a>
+          );
+        })}
       </div>
       {freshness(data) && (
         <span className="idx-asof" title={`Indices as of ${new Date(data.as_of).toLocaleString("en-IN")}`}>

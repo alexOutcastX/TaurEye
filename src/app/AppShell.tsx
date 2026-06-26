@@ -72,6 +72,18 @@ export default function AppShell() {
           <div className="topbar-brand">
             <Logo size={24} />
           </div>
+
+          {/* Home + Alerts sit right next to the branding. */}
+          <button
+            type="button"
+            className="home-btn"
+            title="Home (Dashboard)"
+            aria-label="Home"
+            onClick={() => nav("/app/dashboard")}
+          >
+            <HomeIcon />
+          </button>
+          <AlertsBell />
         </div>
 
         {/* Sign out pinned to the right corner of the glossy bar (brand at left). */}
@@ -96,16 +108,6 @@ export default function AppShell() {
         </nav>
 
         <div className="topbar-right">
-          <button
-            type="button"
-            className="home-btn"
-            title="Home (Dashboard)"
-            aria-label="Home"
-            onClick={() => nav("/app/dashboard")}
-          >
-            <HomeIcon />
-          </button>
-          <AlertsBell />
           <ThemeToggle />
           <CreditsBadge />
           <span className="user-pill">
