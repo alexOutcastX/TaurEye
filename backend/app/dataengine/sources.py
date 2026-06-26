@@ -137,6 +137,10 @@ def _parse_udiff(text: str, exchange: str, trade_date: date) -> list[PriceRow]:
         o = _num(_pick(r, "OpnPric", "OPEN", "OPEN_PRICE"))
         h = _num(_pick(r, "HghPric", "HIGH", "HIGH_PRICE"))
         lo = _num(_pick(r, "LwPric", "LOW", "LOW_PRICE"))
+        # Use the exchange's OFFICIAL closing price for all scrips (NSE & BSE).
+        # For illiquid BSE names this ClsPric (a last-30-min weighted average) can
+        # differ from the last-traded price shown on some quote sites — that is the
+        # official close and the deliberate, consistent value for the screener.
         c = _num(_pick(r, "ClsPric", "CLOSE", "CLOSE_PRICE"))
         vol = _num(_pick(r, "TtlTradgVol", "TOTTRDQTY", "TTL_TRD_QNTY"))
         if not isin or not symbol or None in (o, h, lo, c):
