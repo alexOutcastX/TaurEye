@@ -266,10 +266,48 @@ export default function Screener() {
     }
   };
 
-  // Copy a link that reproduces the current screen exactly (filters, sort, all).
+  // Share a link that reproduces the current screen exactly (filters, sort, all).
+  // Prefers the native OS share sheet (APK + mobile browsers) so a "nice combo"
+  // can go straight to WhatsApp/Telegram/etc.; falls back to copying the link.
   const share = async () => {
-    const r = await copyToClipboard(shareUrl(req));
-    setNlMsg(r === "copied" ? "Share link copied — anyone opening it sees this exact screen." : "Couldn't copy the link.");
+    const url = shareUrl(req);
+    const title = "TaurEye stock screen";
+    // Include the screened scrips themselves (top of the current sort) so the
+    // message lists the actual stocks, plus the link that reproduces the screen.
+    const SHOWN = 25;
+    const symbols = displayRows.slice(0, SHOWN).map((r) => r.symbol);
+    const more = count > symbols.length ? ` +${count - symbols.length} more` : "";
+    const text =
+      symbols.length > 0
+        ? `${count} stocks on this TaurEye screen:\n${symbols.join(", ")}${more}`
+        : "Check out this stock screen on TaurEye";
+
+    // Native app: Capacitor Share opens the OS share sheet.
+    try {
+      const { Capacitor } = await import("@capacitor/core");
+      if (Capacitor.isNativePlatform()) {
+        const { Share } = await import("@capacitor/share");
+        await Share.share({ title, text, url, dialogTitle: "Share this screen" });
+        return;
+      }
+    } catch {
+      /* fall through to web sharing */
+    }
+
+    // Web: use the Web Share API where supported (most mobile browsers).
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title, text, url });
+        return;
+      } catch (e) {
+        if ((e as Error)?.name === "AbortError") return; // user dismissed the sheet
+        // otherwise fall back to clipboard below
+      }
+    }
+
+    // Fallback (desktop without share support): copy the scrips + link.
+    const r = await copyToClipboard(`${text}\n${url}`);
+    setNlMsg(r === "copied" ? "Copied the screened stocks + a link to this exact screen." : "Couldn't copy.");
   };
 
   // Toggle a preset in/out of the selection. The combined filters of every
@@ -527,7 +565,7 @@ export default function Screener() {
         <div className="panel-actions">
           <button className="btn-add" onClick={addFilter}>+ Add filter</button>
           <div className="spacer" />
-          <button className="btn-save" onClick={share} title="Copy a link that opens this exact screen">
+          <button className="btn-save" onClick={share} title="Share the screened stocks + a link that opens this exact screen">
             Share
           </button>
           <button className="btn-save" onClick={save}>Save screen</button>

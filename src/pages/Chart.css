@@ -19,6 +19,55 @@
 .chart-last .up { color: var(--up); } .chart-last .down { color: var(--down); }
 .chart-last-cap { color: var(--text-faint); font-size: 12px; font-weight: 400; }
 
+/* Small "i" with a hover/tap tooltip explaining "over range". */
+.rangeinfo {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 5px;
+  vertical-align: middle;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  color: var(--text-faint);
+  font-size: 10px;
+  font-style: italic;
+  font-family: var(--font-serif, Georgia, serif);
+  cursor: help;
+  user-select: none;
+}
+.rangeinfo:hover, .rangeinfo:focus-visible { color: var(--accent); border-color: var(--accent); outline: none; }
+.rangeinfo-pop {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 250px;
+  max-width: 78vw;
+  padding: 9px 11px;
+  background: var(--elevated, #1a1f29);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  font-style: normal;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.12s, transform 0.12s, visibility 0.12s;
+  pointer-events: none;
+}
+.rangeinfo:hover .rangeinfo-pop, .rangeinfo:focus-visible .rangeinfo-pop {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
 .watch-btn {
   background: var(--surface-2); border: 1px solid var(--border);
   color: var(--text-muted); border-radius: var(--r-sm); padding: 7px 14px; font-size: 13px;

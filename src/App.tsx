@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, type ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import { useAuth } from "./auth/AuthContext";
@@ -9,6 +9,11 @@ import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
 import Legal from "./pages/Legal";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Blog from "./pages/Blog";
+import Article from "./pages/Article";
 import Screener from "./pages/Screener";
 import Chart from "./pages/Chart";
 import GlobalIndices from "./pages/GlobalIndices";
@@ -25,11 +30,16 @@ import ConsentBanner from "./components/ConsentBanner";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthed, loading } = useAuth();
+  const location = useLocation();
   // Wait for the (cloud) session to hydrate before deciding — otherwise a
   // signed-in user is bounced to /login on every refresh while the async
   // Supabase session is still resolving.
   if (loading) return null;
-  return isAuthed ? <>{children}</> : <Navigate to="/" replace />;
+  if (isAuthed) return <>{children}</>;
+  // Preserve where they were headed (e.g. a shared screen /app/screener?s=…) so
+  // sign-in returns them there instead of dropping to the dashboard.
+  const next = encodeURIComponent(location.pathname + location.search);
+  return <Navigate to={`/?next=${next}`} replace />;
 }
 
 // Clean invite link: /i/<code> stashes the referral code, then lands on the home
@@ -49,14 +59,30 @@ export default function App() {
   // full marketing Landing is web-only. Evaluated at render time so Capacitor
   // is initialised on-device.
   const native = Capacitor.isNativePlatform();
+  // A password-recovery link establishes a temporary session and fires the
+  // PASSWORD_RECOVERY event; route the user to the set-new-password screen. On
+  // web the email link already lands on /reset-password; this also covers native
+  // (deep-link exchange) and any tab that's elsewhere when recovery fires.
+  const { recovery } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (recovery) navigate("/reset-password", { replace: true });
+  }, [recovery, navigate]);
   return (
     <>
       <ConsentBanner />
       <Routes>
       <Route path="/" element={native ? <Login /> : <Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/i/:code" element={<Invite />} />
       <Route path="/legal/:doc" element={<Legal />} />
+
+      {/* Public content pages (no login) */}
+      <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/blog/:slug" element={<Article />} />
 
       <Route
         path="/app"

@@ -476,6 +476,19 @@ export default function Chart() {
                 {fmtPct(head.rangeChg)}
               </span>
               <span className="chart-last-cap"> over range</span>
+              <span
+                className="rangeinfo"
+                tabIndex={0}
+                role="note"
+                aria-label="What 'over range' means"
+              >
+                i
+                <span className="rangeinfo-pop" role="tooltip">
+                  Price change from the first bar shown on the chart to the latest
+                  close — the move across the whole visible range, not the 1-day
+                  change. Switch Daily / Weekly / Monthly to change the range.
+                </span>
+              </span>
             </span>
           )}
           <button className="ai-btn" onClick={runAi} disabled={aiBusy}>

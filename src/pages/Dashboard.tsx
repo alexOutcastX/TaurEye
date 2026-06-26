@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import { fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
 import { getWatchlists, onWatchlistChange, type Watchlist } from "../lib/watchlist";
 import BullMark from "../components/BullMark";
+import BrokerCTA from "../components/BrokerCTA";
 import ErrorBoundary from "../components/ErrorBoundary";
 import type { IndexQuote, Metrics } from "../api/types";
 import "./Dashboard.css";
@@ -288,6 +289,9 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
+
+          {/* ---- broker affiliate partners (hidden until a link is set) ---- */}
+          <BrokerCTA />
         </>
       )}
     </section>

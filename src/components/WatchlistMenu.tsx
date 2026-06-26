@@ -2,7 +2,7 @@
 // "new watchlist" creation. Rendered in a portal so it's never clipped by a
 // table's overflow:auto; closes on outside-click or Escape. Used by the Screener
 // row stars and the Chart page watch button.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   addToWatchlist,
@@ -30,6 +30,10 @@ export default function WatchlistMenu({
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number }>(() => ({
+    top: anchor.bottom + 6,
+    left: Math.max(8, Math.min(anchor.right - WIDTH, window.innerWidth - WIDTH - 8)),
+  }));
 
   useEffect(() => onWatchlistChange(() => setLists(getWatchlists())), []);
 
@@ -48,9 +52,19 @@ export default function WatchlistMenu({
     };
   }, [onClose]);
 
-  // Position below the anchor, right-aligned, clamped into the viewport.
-  const left = Math.max(8, Math.min(anchor.right - WIDTH, window.innerWidth - WIDTH - 8));
-  const top = Math.min(anchor.bottom + 6, window.innerHeight - 12);
+  // Position the popover after it's measured: open below the star, but flip it
+  // ABOVE the anchor (clamped into the viewport) when a row near the bottom would
+  // otherwise push the menu off-screen. Runs before paint, so there's no flash.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const M = 8;
+    const h = el.offsetHeight;
+    const left = Math.max(M, Math.min(anchor.right - WIDTH, window.innerWidth - WIDTH - M));
+    const spaceBelow = window.innerHeight - anchor.bottom - M;
+    const top = h <= spaceBelow ? anchor.bottom + 6 : Math.max(M, anchor.top - 6 - h);
+    setPos({ top, left });
+  }, [anchor, lists, creating]);
 
   const create = () => {
     const name = newName.trim();
@@ -62,7 +76,7 @@ export default function WatchlistMenu({
   };
 
   return createPortal(
-    <div className="wlm" ref={ref} style={{ left, top, width: WIDTH }} role="menu">
+    <div className="wlm" ref={ref} style={{ left: pos.left, top: pos.top, width: WIDTH }} role="menu">
       <div className="wlm-head">
         Add <strong>{item.symbol}</strong> to…
       </div>

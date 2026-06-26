@@ -199,23 +199,49 @@ def update_sectors() -> dict:
 
     sym_sector: dict[str, str] = {}
     n_idx = 0
+    # The equity-stockIndices JSON API sits behind Akamai bot management: it only
+    # accepts a session carrying the bm_* cookies issued when you load the homepage
+    # AND an actual market-data HTML page first. Priming only the homepage (the old
+    # behaviour) returned the HTML block page -> JSONDecodeError. So warm both
+    # pages, send the market-data Referer + XHR header, and re-warm/retry once on a
+    # block. Still fail-soft: a persistent block just contributes nothing.
+    INDEX_PAGE = "https://www.nseindia.com/market-data/live-equity-market"
     try:
         s = cr.Session(impersonate="chrome")
-        try:
-            s.get("https://www.nseindia.com", timeout=10)  # prime cookie
-        except Exception:  # noqa: BLE001
-            pass
-        for index_name, label in _SECTOR_INDICES:
+        for warm in ("https://www.nseindia.com", INDEX_PAGE):
             try:
-                r = s.get(
-                    "https://www.nseindia.com/api/equity-stockIndices",
-                    params={"index": index_name},
-                    headers={"Referer": "https://www.nseindia.com/", "Accept": "application/json"},
-                    timeout=15,
-                )
-                data = r.json().get("data", [])
-            except Exception as e:  # noqa: BLE001
-                log(f"  sectors       {index_name}: {type(e).__name__} (skipped)")
+                s.get(warm, headers={"Referer": "https://www.nseindia.com/"}, timeout=15)
+            except Exception:  # noqa: BLE001
+                pass
+
+        def _fetch(index_name: str) -> list:
+            r = s.get(
+                "https://www.nseindia.com/api/equity-stockIndices",
+                params={"index": index_name},
+                headers={
+                    "Referer": INDEX_PAGE,
+                    "Accept": "application/json, text/plain, */*",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                timeout=20,
+            )
+            return r.json().get("data", [])
+
+        for index_name, label in _SECTOR_INDICES:
+            data = None
+            for attempt in range(2):
+                try:
+                    data = _fetch(index_name)
+                    break
+                except Exception as e:  # noqa: BLE001
+                    if attempt == 0:  # likely a stale/blocked cookie — re-warm once
+                        try:
+                            s.get(INDEX_PAGE, headers={"Referer": "https://www.nseindia.com/"}, timeout=15)
+                        except Exception:  # noqa: BLE001
+                            pass
+                        continue
+                    log(f"  sectors       {index_name}: {type(e).__name__} (skipped)")
+            if data is None:
                 continue
             n_idx += 1
             for row in data:

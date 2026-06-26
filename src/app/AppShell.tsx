@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { initPush } from "../lib/push";
 import Logo from "../components/Logo";
@@ -21,6 +21,17 @@ const NAV = [
   { to: "/app/wallet", label: "Wallet", icon: WalletIcon },
   { to: "/app/refer", label: "Refer & Earn", icon: GiftIcon },
   { to: "/app/settings", label: "Settings", icon: GearIcon },
+];
+
+// Public content pages — shown in the hamburger drawer (mobile) below the app
+// nav. They navigate out to the no-login public site (About, Insights, etc.).
+const CONTENT = [
+  { to: "/", label: "Home" },
+  { to: "/blog", label: "Insights" },
+  { to: "/about", label: "About Us" },
+  { to: "/contact", label: "Contact Us" },
+  { to: "/legal/privacy", label: "Privacy Policy" },
+  { to: "/legal/terms", label: "Terms & Conditions" },
 ];
 
 export default function AppShell() {
@@ -72,6 +83,18 @@ export default function AppShell() {
           <div className="topbar-brand">
             <Logo size={24} />
           </div>
+
+          {/* Home + Alerts sit right next to the branding. */}
+          <button
+            type="button"
+            className="home-btn"
+            title="Home (Dashboard)"
+            aria-label="Home"
+            onClick={() => nav("/app/dashboard")}
+          >
+            <HomeIcon />
+          </button>
+          <AlertsBell />
         </div>
 
         {/* Sign out pinned to the right corner of the glossy bar (brand at left). */}
@@ -93,19 +116,19 @@ export default function AppShell() {
               <span>{label}</span>
             </NavLink>
           ))}
+
+          {/* Public pages — only rendered inside the mobile drawer (see CSS). */}
+          <div className="nav-extra">
+            <span className="nav-extra-label">More</span>
+            {CONTENT.map(({ to, label }) => (
+              <Link key={to} to={to} className="nav-extra-link" onClick={() => setMenuOpen(false)}>
+                {label}
+              </Link>
+            ))}
+          </div>
         </nav>
 
         <div className="topbar-right">
-          <button
-            type="button"
-            className="home-btn"
-            title="Home (Dashboard)"
-            aria-label="Home"
-            onClick={() => nav("/app/dashboard")}
-          >
-            <HomeIcon />
-          </button>
-          <AlertsBell />
           <ThemeToggle />
           <CreditsBadge />
           <span className="user-pill">

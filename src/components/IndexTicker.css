@@ -21,7 +21,15 @@
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 5px;
+  padding: 1px 4px;
+  margin: -1px -4px;
+  transition: background 0.12s;
 }
+.idx-item:hover { background: rgba(255, 255, 255, 0.08); }
 .idx-label {
   color: var(--text-faint, #5e6776);
   font-weight: 600;

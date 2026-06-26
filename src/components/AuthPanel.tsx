@@ -24,13 +24,28 @@ const VISIBLE_SOCIALS = ENABLED.length
   ? SOCIALS.filter((s) => ENABLED.includes(s.id))
   : SOCIALS.filter((s) => s.id === "google");
 
+// Post-auth redirect target ("?next=…") — returns a logged-out visitor to a
+// shared link (e.g. /app/screener?s=…) after they sign in. Stashed in
+// sessionStorage so it also survives the full-page OAuth round-trip. Only
+// same-origin app paths are honoured (no open redirects).
+const NEXT_KEY = "taureye.next";
+function safeNext(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const d = decodeURIComponent(raw);
+    return d.startsWith("/") && !d.startsWith("//") ? d : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Self-contained email/password + social + guest sign-in widget. Shared by the
  * Login page and the Landing hero so auth behaviour lives in one place. Captures
  * an invite code (?ref=CODE) and forwards into the app once a session exists.
  */
 export default function AuthPanel() {
-  const { signIn, signUp, oauth, cloud, isAuthed, loading } = useAuth();
+  const { signIn, signUp, oauth, resetPassword, resendConfirmation, cloud, isAuthed, loading } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -40,8 +55,22 @@ export default function AuthPanel() {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Forgot-password sub-flow: collect the email and request a reset link.
+  const [forgot, setForgot] = useState(false);
+  const [sent, setSent] = useState(false);
+  // After signup, show a "verify your email" screen (with resend).
+  const [verifyFor, setVerifyFor] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
 
   const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
+
+  // Stash ?next=… so it survives the OAuth full-page redirect, then resolve the
+  // landing target (URL first, then the stash, else dashboard).
+  useEffect(() => {
+    const n = safeNext(params.get("next"));
+    if (n) sessionStorage.setItem(NEXT_KEY, n);
+  }, [params]);
+  const postAuthTarget = safeNext(params.get("next")) || sessionStorage.getItem(NEXT_KEY) || "/app/dashboard";
 
   // Invite link (?ref=CODE): stash the code; it's redeemed automatically after
   // the account's first sign-in (AuthContext -> claimPendingReferral).
@@ -50,16 +79,53 @@ export default function AuthPanel() {
     if (ref) storeRefCode(ref);
   }, [params]);
 
-  // After an OAuth round-trip (or any established session), forward into the app.
+  // After an OAuth round-trip (or any established session), forward into the app
+  // — to the shared-link target if there is one.
   useEffect(() => {
-    if (!loading && isAuthed) nav("/app/dashboard", { replace: true });
-  }, [loading, isAuthed, nav]);
+    if (!loading && isAuthed) {
+      sessionStorage.removeItem(NEXT_KEY);
+      nav(postAuthTarget, { replace: true });
+    }
+  }, [loading, isAuthed, nav, postAuthTarget]);
 
   const social = async (id: OAuthProvider) => {
     setError(null);
     const { error } = await oauth(id);
     if (error) setError(error);
     // success → full-page redirect to the provider, nothing else to do here.
+  };
+
+  // Forgot-password: email a reset link, then show a neutral confirmation (we
+  // don't reveal whether the address exists).
+  const sendReset = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!emailValid) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    setBusy(true);
+    const { error } = await resetPassword(email);
+    setBusy(false);
+    if (error) {
+      setError(error);
+      return;
+    }
+    setSent(true);
+  };
+
+  // Re-send the signup confirmation email.
+  const resend = async () => {
+    if (!verifyFor) return;
+    setError(null);
+    setBusy(true);
+    const { error } = await resendConfirmation(verifyFor);
+    setBusy(false);
+    if (error) {
+      setError(error);
+      return;
+    }
+    setResent(true);
   };
 
   // Step 1: validate the email, then reveal the password field in the same box.
@@ -87,14 +153,87 @@ export default function AuthPanel() {
       return;
     }
     if (cloud && mode === "signup") {
-      // Supabase may require email confirmation before a session exists.
-      setError("Check your email to confirm your account, then sign in.");
-      setMode("signin");
-      setStep("email");
+      // Email confirmation required before a session exists — show the verify
+      // screen. The confirmation link signs them in when clicked.
+      setVerifyFor(email);
+      setResent(false);
       return;
     }
-    nav("/app/dashboard");
+    sessionStorage.removeItem(NEXT_KEY);
+    nav(postAuthTarget);
   };
+
+  // Verify-your-email view (shown right after signing up).
+  if (verifyFor) {
+    return (
+      <div className="auth-panel">
+        <div className="auth-form">
+          <h1 className="auth-heading">Verify your email</h1>
+          <p className="auth-note">
+            We sent a confirmation link to <b>{verifyFor}</b>. Click it to activate
+            your account — you’ll be signed in automatically.
+          </p>
+          {resent && <p className="auth-note">Sent again — check your inbox (and spam).</p>}
+          {error && <p className="auth-error">{error}</p>}
+          <div className="auth-verify-actions">
+            <button type="button" className="auth-link" onClick={resend} disabled={busy}>
+              {busy ? "Sending…" : "Resend email"}
+            </button>
+            <button
+              type="button"
+              className="auth-link"
+              onClick={() => {
+                setVerifyFor(null); setResent(false); setMode("signin"); setStep("email"); setError(null);
+              }}
+            >
+              Back to sign in
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Forgot-password view (separate from the sign-in/up form).
+  if (forgot) {
+    return (
+      <div className="auth-panel">
+        <form onSubmit={sendReset} className="auth-form">
+          <button
+            type="button"
+            className="auth-back"
+            onClick={() => { setForgot(false); setSent(false); setError(null); }}
+          >
+            ‹ Back to sign in
+          </button>
+          {sent ? (
+            <p className="auth-note">
+              If an account exists for <b>{email}</b>, a password-reset link is on its
+              way. Check your inbox (and spam).
+            </p>
+          ) : (
+            <label className="field">
+              <span>Reset password — your email</span>
+              <div className="auth-inputgroup">
+                <input
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoFocus
+                />
+                <button type="submit" className="auth-go" disabled={busy} aria-label="Send reset link">
+                  {busy ? "…" : "→"}
+                </button>
+              </div>
+            </label>
+          )}
+          {error && <p className="auth-error">{error}</p>}
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-panel">
@@ -156,6 +295,15 @@ export default function AuthPanel() {
                   <Link to="/legal/privacy">Privacy Policy</Link>.
                 </span>
               </label>
+            )}
+            {mode === "signin" && cloud && (
+              <button
+                type="button"
+                className="auth-link auth-forgot"
+                onClick={() => { setForgot(true); setSent(false); setError(null); }}
+              >
+                Forgot password?
+              </button>
             )}
           </>
         )}

@@ -20,6 +20,18 @@
 .lp-brand { display: flex; align-items: center; gap: 10px; }
 .lp-wordmark { height: 24px; width: auto; display: block; }
 .lp-nav-tag { color: var(--text-faint); font-size: 12px; letter-spacing: 0.03em; }
+.lp-nav-links { display: flex; gap: 4px; }
+.lp-nav-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 14px;
+  padding: 6px 11px;
+  border-radius: var(--r-md);
+}
+.lp-nav-links a:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+.lp-foot-links { display: inline-flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: center; }
+.lp-foot-links a { color: var(--text-muted); text-decoration: none; }
+.lp-foot-links a:hover { color: var(--text); }
 
 /* ---- hero ---- */
 .lp-hero {
