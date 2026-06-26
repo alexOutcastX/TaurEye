@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { fmtNum, fmtPct, signClass } from "../lib/format";
 import {
+  addToWatchlist,
   createWatchlist,
   deleteWatchlist,
   getWatchlists,
@@ -13,6 +14,8 @@ import {
   type Watchlist as WL,
   type WatchItem,
 } from "../lib/watchlist";
+import { shareLink } from "../lib/share";
+import { decodeWatchlist, watchlistShareUrl } from "../lib/shareWatchlist";
 import { buildAiReport } from "../lib/reportData";
 import ReportView, { type ReportData } from "../components/ReportView";
 import type { Metrics } from "../api/types";
@@ -46,6 +49,23 @@ export default function Watchlist() {
   useEffect(() => {
     if (!lists.some((l) => l.id === activeId)) setActiveId(lists[0]?.id ?? "default");
   }, [lists, activeId]);
+
+  // Import a shared watchlist (/app/watchlist?w=<token>) once on open: create a
+  // new list from its scrips, then strip the param so a refresh doesn't re-import.
+  useEffect(() => {
+    const tok = new URLSearchParams(window.location.search).get("w");
+    if (!tok) return;
+    const shared = decodeWatchlist(tok);
+    if (shared) {
+      const wl = createWatchlist(shared.name);
+      shared.items.forEach((it) => addToWatchlist(wl.id, it));
+      setActiveId(wl.id);
+      setMsg(`Imported “${wl.name}” — ${shared.items.length} scrip${shared.items.length === 1 ? "" : "s"} added to a new watchlist.`);
+    }
+    const u = new URL(window.location.href);
+    u.searchParams.delete("w");
+    window.history.replaceState({}, "", u.pathname + u.search);
+  }, []);
 
   const active = useMemo(
     () => lists.find((l) => l.id === activeId) ?? lists[0],
@@ -92,6 +112,20 @@ export default function Watchlist() {
     if (!active) return;
     const name = window.prompt("Rename watchlist", active.name);
     if (name?.trim()) renameWatchlist(active.id, name);
+  };
+  // Share the active watchlist as a link that imports it for the recipient.
+  const share = async () => {
+    if (!active) return;
+    if (active.items.length === 0) {
+      setMsg("Add some scrips to this watchlist first, then share.");
+      return;
+    }
+    const syms = active.items.slice(0, 20).map((w) => w.symbol);
+    const more = active.items.length > syms.length ? ` +${active.items.length - syms.length} more` : "";
+    const text = `“${active.name}” watchlist on TaurEye — ${active.items.length} scrips: ${syms.join(", ")}${more}`;
+    const r = await shareLink({ title: "TaurEye watchlist", text, url: watchlistShareUrl(active) });
+    if (r === "copied") setMsg("Watchlist link copied — opening it imports these scrips.");
+    else if (r === "failed") setMsg("Couldn’t share the watchlist.");
   };
   const remove = () => {
     if (!active) return;
@@ -160,6 +194,9 @@ export default function Watchlist() {
         <span className="wl-tabs-spacer" />
         {active && (
           <>
+            <button type="button" className="wl-mng" onClick={share} title="Share this watchlist (opening the link imports it)">
+              Share
+            </button>
             <button type="button" className="wl-mng" onClick={rename} title="Rename this watchlist">
               Rename
             </button>
