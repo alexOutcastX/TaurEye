@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import { Link } from "react-router-dom";
 import AuthPanel from "../components/AuthPanel";
 import BullMark from "../components/BullMark";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -32,6 +33,11 @@ export default function Login() {
       </div>
       <div className="login-body">
         <AuthPanel />
+        <nav className="login-links">
+          <Link to="/blog">Insights</Link>
+          <Link to="/about">About</Link>
+          <Link to="/contact">Contact</Link>
+        </nav>
         <LegalLinks className="login-legal" />
       </div>
     </div>
