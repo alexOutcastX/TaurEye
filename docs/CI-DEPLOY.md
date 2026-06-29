@@ -26,8 +26,8 @@ git push -u origin main
 ### 2. Prepare the VM (once)
 Copy the repo's `deploy/` to the VM and run the setup script:
 ```
-scp -i <key> -r deploy <user>@161.118.174.177:/tmp/deploy
-ssh -i <key> <user>@161.118.174.177
+scp -i <key> -r deploy <user>@<vm-host>:/tmp/deploy
+ssh -i <key> <user>@<vm-host>
 bash /tmp/deploy/setup-vm.sh
 ```
 This installs nginx + Python, creates the venv at `/opt/taureye/venv`, installs
@@ -50,7 +50,7 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 
 | Secret | Value |
 |---|---|
-| `VM_HOST` | `161.118.174.177` |
+| `VM_HOST` | your VM's host/IP (e.g. `taureye.com`) |
 | `VM_USER` | your VM user (`opc`) |
 | `VM_SSH_KEY` | contents of the **private** deploy key |
 | `VITE_API_KEY` | (optional; static build doesn't call a backend) |
@@ -64,7 +64,7 @@ git add -A && git commit -m "what changed" && git push
 GitHub Actions (`.github/workflows/deploy.yml`) builds the SPA with
 `VITE_DATA_SOURCE=local` and rsyncs it to the nginx web root (**excluding
 `data/`**, so the live bundle is never clobbered), then reloads nginx. The site
-at `http://161.118.174.177` updates in ~1 min. Watch the repo's **Actions** tab.
+at `https://taureye.com` updates in ~1 min. Watch the repo's **Actions** tab.
 
 ## Notes
 - **Same-origin data.** The SPA reads `/data/*.json` from the same host; no IP is

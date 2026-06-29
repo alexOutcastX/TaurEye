@@ -52,8 +52,9 @@ jobs:
         run: |
           PLIST="ios/App/App/Info.plist"
           PB="/usr/libexec/PlistBuddy"
-          # Allow plain-HTTP loads (the data bundle is served over http://161.118.174.177).
-          # Replace with a scoped NSExceptionDomains entry once the VM has HTTPS.
+          # The data bundle + API are served over HTTPS (taureye.com / api.taureye.com).
+          # NSAllowsArbitraryLoads is kept as a safety net; tighten to a scoped
+          # NSExceptionDomains entry if a cleartext host is ever reintroduced.
           $PB -c "Delete :NSAppTransportSecurity" "$PLIST" 2>/dev/null || true
           $PB -c "Add :NSAppTransportSecurity dict" "$PLIST"
           $PB -c "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true" "$PLIST"

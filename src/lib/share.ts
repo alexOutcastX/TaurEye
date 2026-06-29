@@ -1,32 +1,8 @@
 import { copyToClipboard } from "./referral";
 
-/**
- * The PUBLIC site origin for share links. A shared link must point at the live
- * website, NOT wherever the code runs — inside the APK's WebView
- * `window.location.origin` is `localhost`/`capacitor://…`. Resolve, in order:
- * VITE_PUBLIC_URL → the origin of an absolute VITE_DATA_BASE (mobile build) → a
- * real non-localhost https origin → the canonical domain.
- */
-export function publicOrigin(): string {
-  const explicit = (import.meta.env.VITE_PUBLIC_URL ?? "").trim();
-  if (explicit) return explicit.replace(/\/+$/, "");
-
-  const dataBase = (import.meta.env.VITE_DATA_BASE ?? "").trim();
-  if (/^https?:\/\//i.test(dataBase)) {
-    try {
-      return new URL(dataBase).origin;
-    } catch {
-      /* fall through */
-    }
-  }
-
-  if (typeof window !== "undefined") {
-    const o = window.location.origin;
-    if (/^https?:\/\//i.test(o) && !/(localhost|127\.0\.0\.1|capacitor)/i.test(o)) return o;
-  }
-
-  return "https://taureye.com";
-}
+// Re-exported for back-compat: callers import `publicOrigin` from "./share".
+// The implementation lives in ./origin (shared with referral/invite links).
+export { publicOrigin } from "./origin";
 
 /**
  * Share a link via the best available channel: the native OS share sheet on the
