@@ -4,8 +4,10 @@
 #
 # This compose runs the TaurEye APP layer. Supabase runs as its own stack from
 # ./supabase-docker (the official supabase/docker compose) — see DEPLOY-AZURE.md.
-# The browser reaches Supabase directly at http://<VM-IP>:8000 (Kong), so the two
-# stacks don't need a shared network.
+# The browser reaches Supabase over HTTPS at https://api.taureye.com (host nginx
+# terminates TLS and proxies to Kong on localhost:8000). The site is HTTPS, so it
+# MUST call an HTTPS Supabase URL — a plain http://<IP>:8000 is blocked as mixed
+# content. Override VITE_SUPABASE_URL in .env to point elsewhere (e.g. Cloud).
 name: taureye
 
 services:
@@ -19,15 +21,17 @@ services:
         VITE_DATA_BASE: ""              # same-origin /data
         VITE_CANDLE_BASE: ""
         VITE_AI_MODE: ${VITE_AI_MODE:-cache}
-        VITE_SUPABASE_URL: "http://${AZURE_PUBLIC_IP}:8000"
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-https://api.taureye.com}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
         VITE_OAUTH_PROVIDERS: ${VITE_OAUTH_PROVIDERS:-}
     image: taureye-web
     container_name: taureye-web
     restart: unless-stopped
     ports:
-      - "80:80"
-      # - "443:443"   # add when you put TLS in front of nginx (see DEPLOY-AZURE.md)
+      # Host nginx is the public TLS edge (80/443) and reverse-proxies to this
+      # container on localhost. Publish to 127.0.0.1 only so we never collide with
+      # host nginx for port 80.
+      - "127.0.0.1:8080:80"
     volumes:
       # The dataengine writes the JSON bundle here; nginx serves it read-only.
       - ./data/bundle:/usr/share/nginx/html/data:ro
