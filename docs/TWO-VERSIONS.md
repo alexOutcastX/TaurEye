@@ -51,10 +51,10 @@ Supabase from `docs/SELF-HOST-SUPABASE.md`. Local `.env.local`:
 ```
 VITE_DATA_SOURCE=local
 VITE_AI_MODE=cache
-VITE_SUPABASE_URL=http://localhost:8001        # your self-host Kong URL
+VITE_SUPABASE_URL=https://api.taureye.com      # your self-host Supabase (via nginx TLS)
 VITE_SUPABASE_ANON_KEY=eyJ...self-host anon...
-VITE_DATA_BASE=http://161.118.174.177/data     # reuse the VM bundle
-VITE_CANDLE_BASE=http://161.118.174.177/data
+VITE_DATA_BASE=https://taureye.com/data        # reuse the live bundle
+VITE_CANDLE_BASE=https://taureye.com/data
 ```
 
 `npm run dev` (or `npm run build`) → cache-only AI, self-host auth/wallet.

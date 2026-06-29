@@ -9,6 +9,7 @@
 import { isSupabaseConfigured, supabase } from "./supabase";
 import { REWARDS } from "./economy";
 import { emitCreditsChange } from "./credits";
+import { publicOrigin } from "./origin";
 
 export interface Referral {
   id: string;
@@ -28,19 +29,6 @@ export interface ReferralProgram {
 
 export const REWARD_PER_REFERRAL = REWARDS.referrer;
 export const REWARD_FOR_FRIEND = REWARDS.referee;
-
-// The public, shareable site URL for invite links. In the native app the WebView
-// origin is https://localhost (not shareable), so prefer the build-time
-// VITE_PUBLIC_URL and fall back to the live site when the origin is local.
-function siteBase(): string {
-  const env = (import.meta.env.VITE_PUBLIC_URL ?? "").trim().replace(/\/+$/, "");
-  if (env) return env;
-  const o = typeof window !== "undefined" ? window.location.origin : "";
-  if (!o || /^(https?:\/\/localhost|capacitor:|ionic:|file:)/i.test(o)) {
-    return "http://161.118.174.177"; // the live web deployment (set VITE_PUBLIC_URL to a domain later)
-  }
-  return o;
-}
 
 // ---- pending invite code (captured from /login?ref=CODE, claimed post-auth) ----
 const REF_KEY = "taureye.referral.pending.v1";
@@ -115,7 +103,7 @@ export async function getReferralProgram(): Promise<ReferralProgram> {
 
   return {
     code: code || PLACEHOLDER.code,
-    link: `${siteBase()}/i/${encodeURIComponent(code || PLACEHOLDER.code)}`,
+    link: `${publicOrigin()}/i/${encodeURIComponent(code || PLACEHOLDER.code)}`,
     rewardPerReferral: REWARD_PER_REFERRAL,
     rewardForFriend: REWARD_FOR_FRIEND,
     invited,
