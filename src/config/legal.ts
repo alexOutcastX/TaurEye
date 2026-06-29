@@ -11,7 +11,7 @@ export const LEGAL = {
   /** Registered business / proprietor legal name (TODO: replace placeholder). */
   entity: "TaurEye",
   /** Public support + grievance contact (TODO: use a branded address). */
-  email: "support@taureye.app",
+  email: "support@taureye.com",
   /** Courts / governing-law seat. */
   jurisdiction: "Bengaluru, Karnataka, India",
   /** Last revision date shown on each document. */

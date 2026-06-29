@@ -204,8 +204,7 @@ export default function Watchlist() {
               type="button"
               className="wl-mng danger"
               onClick={remove}
-              disabled={lists.length <= 1}
-              title={lists.length <= 1 ? "Keep at least one watchlist" : "Delete this watchlist"}
+              title="Delete this watchlist"
             >
               Delete
             </button>
