@@ -71,7 +71,7 @@ export async function claimPendingReferral(): Promise<void> {
 // ---- program data ----
 const PLACEHOLDER: ReferralProgram = {
   code: "TAUR-PREVIEW",
-  link: "https://taureye.app/login?ref=TAUR-PREVIEW",
+  link: "https://taureye.com/login?ref=TAUR-PREVIEW",
   rewardPerReferral: REWARD_PER_REFERRAL,
   rewardForFriend: REWARD_FOR_FRIEND,
   invited: [],

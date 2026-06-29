@@ -6,41 +6,7 @@
   color: var(--text);
 }
 
-/* ---- top bar ---- */
-.pub-top {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
-  padding: 14px max(var(--sp-5), env(safe-area-inset-left, 0px));
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: linear-gradient(180deg, #12161d 0%, #0b0e13 100%);
-}
-.pub-brand { display: inline-flex; align-items: center; text-decoration: none; }
-.pub-nav { display: flex; gap: 4px; flex-wrap: wrap; }
-.pub-nav a {
-  padding: 7px 12px;
-  border-radius: var(--r-md);
-  color: var(--text-muted);
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-}
-.pub-nav a:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
-.pub-nav a.active { color: var(--text); background: rgba(255, 255, 255, 0.08); }
-.pub-cta {
-  margin-left: auto;
-  padding: 8px 16px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--border-strong);
-  color: var(--text);
-  text-decoration: none;
-  font-size: 14px;
-  white-space: nowrap;
-}
-.pub-cta:hover { border-color: var(--accent); color: var(--accent); }
+/* The top bar is the shared <TopBar/> component (styles live in AppShell.css). */
 
 /* ---- main ---- */
 .pub-main {
@@ -162,7 +128,5 @@
 .contact-send:disabled { opacity: 0.5; cursor: default; }
 
 @media (max-width: 640px) {
-  .pub-top { gap: var(--sp-2); flex-wrap: wrap; }
-  .pub-cta { margin-left: auto; }
   .pub-main h1 { font-size: 25px; }
 }

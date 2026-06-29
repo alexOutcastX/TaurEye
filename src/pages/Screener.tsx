@@ -419,7 +419,13 @@ export default function Screener() {
             <span>Exchange</span>
             <select
               value={req.exchange ?? ""}
-              onChange={(e) => update({ exchange: (e.target.value || null) as Exchange | null })}
+              onChange={(e) => {
+                // An exchange switch re-scopes the whole universe, so run it
+                // immediately (like a column sort) rather than waiting for Run.
+                const next = { ...req, exchange: (e.target.value || null) as Exchange | null };
+                setReq(next);
+                run(next);
+              }}
             >
               <option value="">All</option>
               <option value="NSE">NSE</option>
@@ -499,18 +505,16 @@ export default function Screener() {
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
-                <input
+                <NumField
                   className="f-val mono"
-                  type="number"
                   value={f.value}
-                  onChange={(e) => setFilter(i, { value: Number(e.target.value) })}
+                  onChange={(v) => setFilter(i, { value: v })}
                 />
                 {f.op === "between" && (
-                  <input
+                  <NumField
                     className="f-val mono"
-                    type="number"
                     value={f.value2 ?? 0}
-                    onChange={(e) => setFilter(i, { value2: Number(e.target.value) })}
+                    onChange={(v) => setFilter(i, { value2: v })}
                   />
                 )}
                 {/* Optional second condition on the SAME field. Defaults to none.
@@ -541,11 +545,10 @@ export default function Screener() {
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
-                    <input
+                    <NumField
                       className="f-val mono"
-                      type="number"
                       value={f.value2 ?? 0}
-                      onChange={(e) => setFilter(i, { value2: Number(e.target.value) })}
+                      onChange={(v) => setFilter(i, { value2: v })}
                     />
                   </>
                 )}
@@ -748,5 +751,50 @@ function Th({
       {children}
       <span className="arrow">{active ? (req.sort_dir === "desc" ? "▾" : "▴") : ""}</span>
     </th>
+  );
+}
+
+// A numeric filter input that — unlike a raw <input type="number"> — lets you
+// CLEAR the field and type NEGATIVE / decimal values (e.g. "% from 52w High < -20").
+// It mirrors the numeric value as editable text, commits a parsed number on each
+// valid keystroke, and treats an empty / lone-minus field as 0.
+function NumField({
+  value,
+  onChange,
+  className,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  className?: string;
+}) {
+  const fmt = (v: number) => (Number.isFinite(v) ? String(v) : "");
+  const [str, setStr] = useState<string>(() => fmt(value));
+
+  // Re-sync when the value changes from OUTSIDE (preset / NL load), but keep the
+  // user's in-progress text ("", "-", a trailing ".") so editing isn't clobbered.
+  useEffect(() => {
+    setStr((prev) =>
+      prev === "" || prev === "-" || prev.endsWith(".")
+        ? prev
+        : Number(prev) === value
+          ? prev
+          : fmt(value),
+    );
+  }, [value]);
+
+  return (
+    <input
+      className={className}
+      type="text"
+      inputMode="decimal"
+      value={str}
+      onChange={(e) => {
+        const raw = e.target.value;
+        if (!/^-?\d*\.?\d*$/.test(raw)) return; // accept only a decimal-in-progress
+        setStr(raw);
+        const n = raw === "" || raw === "-" || raw === "." || raw === "-." ? 0 : Number(raw);
+        onChange(Number.isFinite(n) ? n : 0);
+      }}
+    />
   );
 }

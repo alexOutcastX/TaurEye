@@ -58,7 +58,7 @@
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   margin-top: 8px; padding: 11px 16px;
   border: none; border-radius: var(--r-md);
-  background: var(--accent); color: #06241a;
+  background: var(--accent); color: var(--on-accent);
   font-size: 14px; font-weight: 700; cursor: pointer;
 }
 .rsh-share:hover { filter: brightness(1.06); }
