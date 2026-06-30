@@ -231,45 +231,30 @@
   padding-bottom: max(var(--sp-5), env(safe-area-inset-bottom, 0px));
 }
 
-/* ---- Responsive ---- */
-@media (max-width: 980px) {
-  /* Show the hamburger; the nav now lives in a hideable left drawer. */
+/* ---- Responsive ----
+   The app nav has 10 items; laid out inline it needs ~2100px — wider than any
+   common laptop/desktop (1366–1920), which is why the bar used to overflow and
+   push "Sign out" off-screen. So the inline horizontal nav is shown ONLY on very
+   wide screens (>=2121px). On everything narrower the nav collapses into the
+   hamburger drawer while the bar stays a single desktop row (brand left,
+   controls + Sign out pinned right) that always fits — Sign out is never
+   clipped. Below 980px the bar additionally reflows into stacked mobile rows. */
+
+/* The "More" public links only appear inside the hamburger drawer. */
+.nav-extra { display: none; }
+
+/* Let the right-hand zones shrink rather than push Sign out past the edge. */
+.topbar-right { min-width: 0; }
+.scrip-search { min-width: 0; }
+.search { flex: 0 1 280px; min-width: 0; max-width: 280px; }
+
+/* Collapse the nav into the hamburger drawer for all but very wide screens. */
+@media (max-width: 2120px) {
   .nav-toggle { display: inline-flex; order: 0; }
 
-  .topbar {
-    height: auto;
-    flex-wrap: wrap;
-    row-gap: var(--sp-3);
-    column-gap: var(--sp-3);
-    padding: var(--sp-3) var(--sp-4);
-    /* re-apply the cutout insets (the shorthand above resets them) */
-    padding-top: max(var(--sp-3), env(safe-area-inset-top, 0px));
-    padding-left: max(var(--sp-4), env(safe-area-inset-left, 0px));
-    padding-right: max(var(--sp-4), env(safe-area-inset-right, 0px));
-  }
-  .topbar-brand { border-right: none; padding-right: 0; }
-
-  /* Header rows on the glossy bar (home + alerts sit with the brand now):
-     row1 = [hamburger + brand + home + alerts]
-     row2 = [theme, credits, user] ............ [Sign out]
-     row3 = full-width search.  (nav is a fixed drawer.)
-     Sign out lives on the controls row (not row 1) so it is never clipped when
-     the brand cluster is wide; the cluster itself wraps on very narrow screens. */
-  .brand-cluster { flex-wrap: wrap; min-width: 0; gap: var(--sp-2); }
-  .topbar-right {
-    order: 2;
-    flex: 1 1 auto;
-    min-width: 0;
-    margin-left: 0;
-    gap: var(--sp-3);
-  }
-  .signout-btn, .signin-btn { order: 3; margin-left: auto; }
-  .scrip-search { order: 4; width: 100%; flex: 1 1 100%; margin-left: 0; }
-  .search { width: 100%; }
-
-  /* The nav becomes a left off-canvas drawer: slid out by default, slid in
-     when .open. Fixed to the viewport so it overlays the page; scrolls if the
-     destinations don't fit. */
+  /* The nav becomes a left off-canvas drawer: slid out by default, slid in when
+     .open. Fixed to the viewport (out of the bar's flow) so the single-row bar
+     keeps Sign out visible; the drawer scrolls if the destinations don't fit. */
   .topnav {
     position: fixed;
     top: 0;
@@ -293,23 +278,10 @@
     transition: transform 0.22s ease;
   }
   .topnav.open { transform: translateX(0); }
-  /* full-width, comfortably tall rows inside the drawer */
   .topnav .nav-item { width: 100%; padding: 11px 12px; }
-
   .nav-backdrop.show { display: block; }
-}
-@media (max-width: 480px) {
-  .nav-item { padding: 6px 9px; gap: 6px; }
-  .nav-item span { font-size: 13px; }
-  .topnav { gap: 2px; }
-  .user-pill span:last-child { display: none; }
-  .content { padding: var(--sp-3); }
-}
 
-/* Public-pages section: only inside the mobile drawer (the desktop top nav is
-   the horizontal app nav; these links live in page footers there). */
-.nav-extra { display: none; }
-@media (max-width: 980px) {
+  /* the "More" public links live in the drawer at every drawer size */
   .nav-extra {
     display: flex;
     flex-direction: column;
@@ -333,4 +305,40 @@
     font-size: 14px;
   }
   .nav-extra-link:hover { background: var(--surface-2); color: var(--text); }
+}
+
+/* Below 980px: stack the bar into mobile rows (full-width search etc.). Sign out
+   moves to the controls row so the wide brand cluster can never clip it. */
+@media (max-width: 980px) {
+  .topbar {
+    height: auto;
+    flex-wrap: wrap;
+    row-gap: var(--sp-3);
+    column-gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+    /* re-apply the cutout insets (the shorthand above resets them) */
+    padding-top: max(var(--sp-3), env(safe-area-inset-top, 0px));
+    padding-left: max(var(--sp-4), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--sp-4), env(safe-area-inset-right, 0px));
+  }
+  .topbar-brand { border-right: none; padding-right: 0; }
+  .brand-cluster { flex-wrap: wrap; min-width: 0; gap: var(--sp-2); }
+  .topbar-right {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-left: 0;
+    gap: var(--sp-3);
+  }
+  .signout-btn, .signin-btn { order: 3; margin-left: auto; }
+  .scrip-search { order: 4; width: 100%; flex: 1 1 100%; margin-left: 0; }
+  .search { width: 100%; flex: 1 1 100%; max-width: none; }
+}
+
+@media (max-width: 480px) {
+  .nav-item { padding: 6px 9px; gap: 6px; }
+  .nav-item span { font-size: 13px; }
+  .topnav { gap: 2px; }
+  .user-pill span:last-child { display: none; }
+  .content { padding: var(--sp-3); }
 }
