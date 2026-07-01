@@ -49,6 +49,14 @@ class Metrics(BaseModel):
     pct_above_sma200: float
     dist_52w_high_pct: float
     dist_52w_low_pct: float
+    # Nearest support/resistance distance per timeframe (D/W/M). Support >= 0
+    # (price sits above support); resistance <= 0 (price sits below resistance).
+    dist_sup_d_pct: float = 0.0
+    dist_res_d_pct: float = 0.0
+    dist_sup_w_pct: float = 0.0
+    dist_res_w_pct: float = 0.0
+    dist_sup_m_pct: float = 0.0
+    dist_res_m_pct: float = 0.0
     atr_pct: float
     market_cap_cr: Optional[float] = None  # None when share count is unavailable (e.g. BSE-only)
     segment: Optional[str] = None  # EQ | ETF | SME

@@ -78,6 +78,79 @@ def _pct(a: float, b: float) -> float:
     return round((a / b - 1) * 100, 2) if b else 0.0
 
 
+# ---- Support / Resistance: nearest swing level, per timeframe (D / W / M) ----
+def _iso_week_key(date: str) -> str:
+    import datetime
+
+    y, m, d = (int(x) for x in date[:10].split("-"))
+    iso = datetime.date(y, m, d).isocalendar()
+    return f"{iso[0]}-W{iso[1]:02d}"
+
+
+def resample(candles: list[Candle], tf: str) -> list[Candle]:
+    """Aggregate daily candles into weekly ('W') or monthly ('M') OHLCV bars.
+    'D' returns the input unchanged."""
+    if tf == "D":
+        return candles
+    buckets: dict[str, list[Candle]] = {}
+    order: list[str] = []
+    for c in candles:
+        key = c.date[:7] if tf == "M" else _iso_week_key(c.date)
+        if key not in buckets:
+            buckets[key] = []
+            order.append(key)
+        buckets[key].append(c)
+    out: list[Candle] = []
+    for key in order:
+        grp = buckets[key]
+        out.append(
+            Candle(
+                date=grp[-1].date,
+                open=grp[0].open,
+                high=max(x.high for x in grp),
+                low=min(x.low for x in grp),
+                close=grp[-1].close,
+                volume=sum(x.volume for x in grp),
+            )
+        )
+    return out
+
+
+def _pivot_levels(candles: list[Candle], k: int) -> tuple[list[float], list[float]]:
+    """Swing highs/lows: a bar whose high/low is the strict extreme within ±k bars."""
+    highs: list[float] = []
+    lows: list[float] = []
+    n = len(candles)
+    for i in range(k, n - k):
+        h = candles[i].high
+        if all(candles[j].high <= h for j in range(i - k, i + k + 1) if j != i):
+            highs.append(h)
+        lo = candles[i].low
+        if all(candles[j].low >= lo for j in range(i - k, i + k + 1) if j != i):
+            lows.append(lo)
+    return highs, lows
+
+
+def support_resistance(candles: list[Candle], tf: str, k: int) -> tuple[float, float]:
+    """(% from support, % from resistance) on the given timeframe.
+
+    Resistance = the nearest swing high ABOVE the latest close; support = the
+    nearest swing low BELOW it. Falls back to the period high/low when there is
+    no pivot on that side. Signs mirror the 52-week fields: the support distance
+    is >= 0 (price sits above support) and the resistance distance is <= 0
+    (price sits below resistance)."""
+    bars = resample(candles, tf)
+    if len(bars) < 2 * k + 2:
+        return 0.0, 0.0
+    close = bars[-1].close
+    highs, lows = _pivot_levels(bars, k)
+    above = [h for h in highs if h > close]
+    below = [lo for lo in lows if lo < close]
+    resistance = min(above) if above else max(b.high for b in bars)
+    support = max(below) if below else min(b.low for b in bars)
+    return _pct(close, support), _pct(close, resistance)
+
+
 def sma_at(values: list[float], period: int, back: int = 0) -> float | None:
     """SMA of `period` closes ending `back` bars before the latest (0 = latest)."""
     end = len(values) - back
@@ -111,6 +184,11 @@ def compute_metrics(sec: Security, candles: list[Candle]) -> Metrics:
     window_52w = candles[-252:] if len(candles) >= 252 else candles
     high_52w = max(c.high for c in window_52w)
     low_52w = min(c.low for c in window_52w)
+
+    # Nearest support/resistance on the daily, weekly and monthly timeframes.
+    sup_d, res_d = support_resistance(candles, "D", 5)
+    sup_w, res_w = support_resistance(candles, "W", 3)
+    sup_m, res_m = support_resistance(candles, "M", 2)
 
     avg_vol_20 = sum(vols[-20:]) / min(20, len(vols)) if vols else 0
     rel_vol = round(last.volume / avg_vol_20, 2) if avg_vol_20 else 0.0
@@ -172,6 +250,12 @@ def compute_metrics(sec: Security, candles: list[Candle]) -> Metrics:
         pct_above_sma200=_pct(last.close, sma200),
         dist_52w_high_pct=_pct(last.close, high_52w),
         dist_52w_low_pct=_pct(last.close, low_52w),
+        dist_sup_d_pct=sup_d,
+        dist_res_d_pct=res_d,
+        dist_sup_w_pct=sup_w,
+        dist_res_w_pct=res_w,
+        dist_sup_m_pct=sup_m,
+        dist_res_m_pct=res_m,
         atr_pct=atr_pct(candles, 14),
         market_cap_cr=market_cap_cr,
         segment=sec.segment,
