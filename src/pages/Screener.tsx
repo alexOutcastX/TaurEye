@@ -215,7 +215,11 @@ export default function Screener() {
     }
     const parsed = parseScreen(nlText);
     if (!parsed.matchedAny) {
-      setNlMsg("Couldn't recognise that yet — try e.g. \"golden crossover\", \"20 dma crossing 50\", \"rsi below 30 and above 200 dma\".");
+      setNlMsg(
+        "Couldn't recognise that yet — try e.g. \"rsi below 30 and price above 200 dma\", " +
+          "\"near weekly support\", \"market cap over 5000 cr\", \"golden cross with volume spike\", " +
+          "\"within 3% of 52 week high\", \"% from resistance between -2 and 0\".",
+      );
       return;
     }
     setReq((r) => ({
@@ -224,7 +228,10 @@ export default function Screener() {
       logic: parsed.logic,
       segments: parsed.segments ?? r.segments,
     }));
-    setNlMsg("Understood: " + parsed.recognized.join(" · "));
+    const ignored = parsed.unrecognized.length
+      ? `  ·  Ignored: ${parsed.unrecognized.join(", ")}`
+      : "";
+    setNlMsg(`Understood (${parsed.logic}): ${parsed.recognized.join(" · ")}${ignored}`);
   };
   const setFilter = (i: number, patch: Partial<Filter>) =>
     setReq((r) => ({
