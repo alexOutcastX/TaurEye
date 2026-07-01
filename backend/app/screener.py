@@ -75,6 +75,40 @@ FIELDS: list[FieldDef] = [
         "near the lows. Use '> 50' for names well off their bottom, or a small value "
         "to scan beaten-down stocks.",
     ),
+    # ---- Support / Resistance: distance to the nearest swing level, per
+    # timeframe (Daily / Weekly / Monthly). Support >= 0 (price above the level),
+    # resistance <= 0 (price below the level). A small support value = sitting on
+    # support; a small |resistance| value = pressing against overhead resistance.
+    FieldDef(
+        key="dist_sup_d_pct", label="% from Support (D)", group="Support/Resistance", unit="%",
+        desc="Percent above the nearest DAILY support (recent swing low below price). "
+        "Use a small value (e.g. 'between 0 and 3') to find scrips resting on support.",
+    ),
+    FieldDef(
+        key="dist_res_d_pct", label="% from Resistance (D)", group="Support/Resistance", unit="%",
+        desc="Percent below the nearest DAILY resistance (recent swing high above price). "
+        "0 = at resistance; use 'between -3 and 0' for names pressing against it.",
+    ),
+    FieldDef(
+        key="dist_sup_w_pct", label="% from Support (W)", group="Support/Resistance", unit="%",
+        desc="Percent above the nearest WEEKLY support (swing low on the weekly chart). "
+        "Weekly levels are broader/stronger than daily ones.",
+    ),
+    FieldDef(
+        key="dist_res_w_pct", label="% from Resistance (W)", group="Support/Resistance", unit="%",
+        desc="Percent below the nearest WEEKLY resistance (swing high on the weekly chart). "
+        "0 = at resistance.",
+    ),
+    FieldDef(
+        key="dist_sup_m_pct", label="% from Support (M)", group="Support/Resistance", unit="%",
+        desc="Percent above the nearest MONTHLY support (swing low on the monthly chart). "
+        "The longest-term of the three support levels.",
+    ),
+    FieldDef(
+        key="dist_res_m_pct", label="% from Resistance (M)", group="Support/Resistance", unit="%",
+        desc="Percent below the nearest MONTHLY resistance (swing high on the monthly chart). "
+        "0 = at resistance.",
+    ),
     FieldDef(
         key="atr_pct", label="ATR %", group="Volatility", unit="%",
         desc="Average True Range as a percent of price — typical daily swing. "

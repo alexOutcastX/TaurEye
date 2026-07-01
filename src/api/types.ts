@@ -31,6 +31,14 @@ export interface Metrics {
   pct_above_sma200: number;
   dist_52w_high_pct: number;
   dist_52w_low_pct: number;
+  // Nearest support/resistance distance per timeframe (D/W/M). Support >= 0
+  // (price above support), resistance <= 0 (price below resistance).
+  dist_sup_d_pct?: number;
+  dist_res_d_pct?: number;
+  dist_sup_w_pct?: number;
+  dist_res_w_pct?: number;
+  dist_sup_m_pct?: number;
+  dist_res_m_pct?: number;
   atr_pct: number;
   market_cap_cr: number | null;
   segment?: string | null;
