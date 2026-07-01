@@ -26,6 +26,24 @@ export async function fetchCorpActions(symbol: string): Promise<CorpAction[] | n
   return null;
 }
 
+/**
+ * A brief factual company description from the published funda/<SYMBOL>.json
+ * (the `about` field). Returns null until a profile has been exported, so the
+ * caller can simply hide the section.
+ */
+export async function fetchCompanyAbout(symbol: string): Promise<string | null> {
+  try {
+    const r = await fetch(dataUrl(`funda/${encodeURIComponent(symbol)}.json`));
+    if (r.ok) {
+      const about = (await r.json()).about;
+      return typeof about === "string" && about.trim() ? about.trim() : null;
+    }
+  } catch {
+    /* no funda file / no profile yet — the About section just stays hidden */
+  }
+  return null;
+}
+
 /** Detect chart patterns from the symbol's candles (best-effort; [] on failure). */
 async function patternsFor(symbol: string): Promise<{ label: string; detail: string | null }[]> {
   try {

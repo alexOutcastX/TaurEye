@@ -24,7 +24,7 @@ import BrokerCTA from "../components/BrokerCTA";
 import Markdown from "../components/Markdown";
 import { detectPatterns, type DetectedPattern } from "../lib/patterns";
 import ReportView, { type ReportData } from "../components/ReportView";
-import { buildAiReport } from "../lib/reportData";
+import { buildAiReport, fetchCompanyAbout } from "../lib/reportData";
 import {
   isWatched,
   listsWithSymbol,
@@ -144,6 +144,8 @@ export default function Chart() {
 
   const [candles, setCandles] = useState<Candle[]>([]);
   const [info, setInfo] = useState<Metrics | null>(null);
+  const [about, setAbout] = useState<string | null>(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [source, setSource] = useState<"native" | "tv">("native");
   const [tf, setTf] = useState<TF>("D");
   const [enabled, setEnabled] = useState<Set<number>>(new Set(DEFAULT_ON));
@@ -212,6 +214,14 @@ export default function Chart() {
       return;
     }
     api.metrics(symbol).then(setInfo).catch(() => setInfo(null));
+  }, [symbol]);
+
+  // ---- fetch the brief company profile (funda/<SYMBOL>.json `about`) ----
+  useEffect(() => {
+    setAbout(null);
+    setAboutOpen(false);
+    if (!symbol) return;
+    fetchCompanyAbout(symbol).then(setAbout).catch(() => setAbout(null));
   }, [symbol]);
 
   const bars = useMemo(() => resample(candles, tf), [candles, tf]);
@@ -666,6 +676,21 @@ export default function Chart() {
           <h2 className="ai-title">✨ AI analysis</h2>
           {ai.text && <Markdown text={ai.text} className="ai-text" />}
           {ai.note && <p className="ai-note">{ai.note}</p>}
+        </section>
+      )}
+
+      {about && (
+        <section className="stock-about">
+          <h2 className="info-title">About {name}</h2>
+          <p className={"about-text" + (aboutOpen ? " open" : "")}>
+            {aboutOpen || about.length <= 360 ? about : about.slice(0, 340).trimEnd() + "…"}
+          </p>
+          {about.length > 360 && (
+            <button type="button" className="about-more" onClick={() => setAboutOpen((v) => !v)}>
+              {aboutOpen ? "Show less" : "Read more"}
+            </button>
+          )}
+          <p className="about-src">Company profile · factual reference, not investment advice.</p>
         </section>
       )}
 

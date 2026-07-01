@@ -133,6 +133,38 @@
   border-radius: var(--r-lg);
   padding: var(--sp-4);
 }
+
+/* Brief company profile (from funda/<SYMBOL>.json `about`). */
+.stock-about {
+  margin-top: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+}
+.about-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  white-space: pre-line;
+}
+.about-more {
+  margin-top: 8px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.about-more:hover { text-decoration: underline; }
+.about-src {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
 .info-title {
   margin: 0 0 var(--sp-3);
   font-size: 14px;
