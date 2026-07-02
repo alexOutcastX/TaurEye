@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import ReportView from "../components/ReportView";
@@ -17,6 +17,7 @@ import type {
 import { fmtCap, fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
 import { useColumns, type ColDef } from "../lib/columns";
 import { ColumnMenu, ExportMenu } from "../components/TableTools";
+import { computeSR, EMPTY_SR, SR_KEYS, type SR, type SRKey } from "../lib/supportResistance";
 import AdSlot from "../components/AdSlot";
 import { parseScreen } from "../lib/nlScreen";
 import { spend } from "../lib/economy";
@@ -145,6 +146,10 @@ export default function Screener() {
   const [pageSize, setPageSize] = useState(100);
   const [page, setPage] = useState(0);
   const cols = useColumns("screener", SCR_COLS);
+  // Support/resistance computed locally from candles (fills the Sup/Res D/W/M
+  // columns even when the published metrics.json doesn't carry them yet).
+  const [srMap, setSrMap] = useState<Map<string, SR>>(new Map());
+  const srFetched = useRef<Set<string>>(new Set());
 
   const nav = useNavigate();
 
@@ -188,6 +193,40 @@ export default function Screener() {
   useEffect(() => {
     setPage(0);
   }, [rows, req.sort_by, req.sort_dir, pageSize]);
+
+  // Any support/resistance column showing? Then compute S/R locally (from
+  // candles) for the visible rows that the bundle doesn't already carry.
+  const srVisible = useMemo(
+    () => cols.visible.some((c) => c.key.startsWith("dist_sup_") || c.key.startsWith("dist_res_")),
+    [cols.visible],
+  );
+  useEffect(() => {
+    if (!srVisible) return;
+    let alive = true;
+    const need = pageRows.filter(
+      (m) => (m as unknown as Record<string, unknown>).dist_sup_d_pct == null && !srFetched.current.has(m.symbol),
+    );
+    need.forEach((m) => srFetched.current.add(m.symbol));
+    if (!need.length) return;
+    const queue = [...need];
+    const worker = async () => {
+      while (queue.length && alive) {
+        const m = queue.shift()!;
+        let sr: SR;
+        try {
+          sr = computeSR(await api.candles(m.symbol, 800));
+        } catch {
+          sr = EMPTY_SR;
+        }
+        if (alive) setSrMap((prev) => new Map(prev).set(m.symbol, sr));
+      }
+    };
+    // limited concurrency so a page of 100 doesn't fire 100 fetches at once
+    void Promise.all(Array.from({ length: 6 }, worker));
+    return () => {
+      alive = false;
+    };
+  }, [srVisible, pageRows]);
 
   useEffect(() => {
     api.fields().then(setFields).catch((e) => setError(String(e)));
@@ -391,7 +430,8 @@ export default function Screener() {
       case "market_cap_cr": return fmtCap(m.market_cap_cr);
       case "macd_hist": return fmtNum(m.macd_hist, 2);
       default: {
-        const v = (m as unknown as Record<string, number | null | undefined>)[key];
+        let v = (m as unknown as Record<string, number | null | undefined>)[key];
+        if (v == null && SR_KEYS.includes(key as SRKey)) v = srMap.get(m.symbol)?.[key as SRKey] ?? null;
         return v == null ? "" : fmtPct(v);
       }
     }
@@ -416,7 +456,12 @@ export default function Screener() {
       case "market_cap_cr": return <td key={c.key} className="mono">{fmtCap(m.market_cap_cr)}</td>;
       case "macd_hist": return <td key={c.key} className="mono">{fmtNum(m.macd_hist, 2)}</td>;
       default: {
-        const v = (m as unknown as Record<string, number | null | undefined>)[c.key];
+        let v = (m as unknown as Record<string, number | null | undefined>)[c.key];
+        if (v == null && SR_KEYS.includes(c.key as SRKey)) {
+          const sr = srMap.get(m.symbol);
+          if (sr) v = sr[c.key as SRKey];
+          else if (srVisible) return <td key={c.key} className="mono dim">…</td>; // computing
+        }
         return (
           <td key={c.key} className={`mono ${typeof v === "number" ? signClass(v) : ""}`}>
             {v == null ? "—" : fmtPct(v)}
