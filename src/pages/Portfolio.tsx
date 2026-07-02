@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
+import { useColumns, type ColDef } from "../lib/columns";
+import { ColumnMenu, ExportMenu } from "../components/TableTools";
 import { hhi, zScores } from "../lib/portfolioMath";
 import { computeRisk, loadBenchmark, type RiskResult } from "../lib/portfolioData";
 import {
@@ -44,6 +46,18 @@ function fmtDay(iso: string): string {
     : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
 }
 
+// Configurable columns for the Holdings table (Actions stays fixed, not here).
+const PF_COLS: ColDef[] = [
+  { key: "symbol", label: "Symbol", locked: true, align: "left" },
+  { key: "qty", label: "Qty", align: "right" },
+  { key: "avgCost", label: "Avg cost", align: "right" },
+  { key: "ltp", label: "LTP", align: "right" },
+  { key: "value", label: "Value", align: "right" },
+  { key: "weight", label: "Wt", align: "right" },
+  { key: "dayPnl", label: "Day P&L", align: "right" },
+  { key: "totalPnl", label: "Total P&L", align: "right" },
+];
+
 export default function Portfolio() {
   const nav = useNavigate();
   const [metricsArr, setMetricsArr] = useState<Metrics[]>([]);
@@ -67,6 +81,7 @@ export default function Portfolio() {
   const [importWl, setImportWl] = useState("");
   const [csvMsg, setCsvMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const holdingCols = useColumns("portfolio", PF_COLS);
 
   useEffect(() => onPortfolioChange(() => setPortfolios(getPortfolios())), []);
 
@@ -343,6 +358,74 @@ export default function Portfolio() {
         `&name=${encodeURIComponent(r.pos.name)}&exchange=${encodeURIComponent(r.pos.exchange)}`,
     );
 
+  // ---- Holdings table: display string + cell for each configurable column ----
+  const pfText = (key: string, r: Row): string => {
+    switch (key) {
+      case "symbol": return r.pos.symbol;
+      case "qty": return String(r.pos.qty);
+      case "avgCost": return fmtNum(r.pos.avgCost);
+      case "ltp": return fmtNum(r.ltp);
+      case "value": return rupee(r.mv);
+      case "weight": return `${(r.weight * 100).toFixed(1)}%`;
+      case "dayPnl": return `${r.dayPnl >= 0 ? "+" : ""}${fmtInt(Math.round(r.dayPnl))}`;
+      case "totalPnl": return `${r.totalPnl >= 0 ? "+" : ""}${fmtInt(Math.round(r.totalPnl))} (${fmtPct(r.totalPnlPct)})`;
+      default: return "";
+    }
+  };
+  const pfCell = (c: ColDef, r: Row) => {
+    switch (c.key) {
+      case "symbol":
+        return (
+          <td key={c.key}>
+            <button className="pf-sym" onClick={() => openChart(r)}>{r.pos.symbol}</button>
+            <span className="pf-sec">
+              {r.sector}
+              {r.pos.addedAt ? ` · since ${fmtDay(r.pos.addedAt)}` : ""}
+            </span>
+          </td>
+        );
+      case "qty":
+        return (
+          <td key={c.key} className="num">
+            <input className="pf-in" type="number" min={0} defaultValue={r.pos.qty}
+              onBlur={(e) => commit(r, { qty: Math.max(0, Number(e.target.value) || 0) })} />
+          </td>
+        );
+      case "avgCost":
+        return (
+          <td key={c.key} className="num">
+            <input className="pf-in" type="number" min={0} step="0.05" defaultValue={r.pos.avgCost}
+              onBlur={(e) => commit(r, { avgCost: Math.max(0, Number(e.target.value) || 0) })} />
+          </td>
+        );
+      case "ltp": return <td key={c.key} className="num mono">{fmtNum(r.ltp)}</td>;
+      case "value": return <td key={c.key} className="num mono">{rupee(r.mv)}</td>;
+      case "weight": return <td key={c.key} className="num mono">{(r.weight * 100).toFixed(1)}%</td>;
+      case "dayPnl":
+        return (
+          <td key={c.key} className={`num mono ${signClass(r.dayPnl)}`}>
+            {r.dayPnl >= 0 ? "+" : ""}{fmtInt(Math.round(r.dayPnl))}
+          </td>
+        );
+      case "totalPnl":
+        return (
+          <td key={c.key} className={`num mono ${signClass(r.totalPnl)}`}>
+            {r.totalPnl >= 0 ? "+" : ""}{fmtInt(Math.round(r.totalPnl))}
+            <span className="pf-pnlpct">{fmtPct(r.totalPnlPct)}</span>
+          </td>
+        );
+      default: return <td key={c.key} />;
+    }
+  };
+  const pfExport = () => ({
+    columns: holdingCols.visible.map((c) => ({ key: c.key, label: c.label, align: c.align })),
+    rows: rows.map((r) => {
+      const row: Record<string, string> = {};
+      for (const c of holdingCols.visible) row[c.key] = pfText(c.key, r);
+      return row;
+    }),
+  });
+
   const onImport = () => {
     if (!importWl) return;
     const p = seedFromWatchlist(importWl, (s) => metricsMap.get(s)?.close);
@@ -594,65 +677,34 @@ export default function Portfolio() {
         <>
           {/* ---- holdings ---- */}
           <div className="pf-card">
-            <h2 className="pf-card-title">Holdings</h2>
+            <div className="pf-card-head">
+              <h2 className="pf-card-title">Holdings</h2>
+              {rows.length > 0 && (
+                <div className="pf-toolbar">
+                  <ColumnMenu defs={PF_COLS} prefs={holdingCols.prefs} onChange={holdingCols.setPrefs} onReset={holdingCols.reset} />
+                  <ExportMenu
+                    filename={`taureye-portfolio-${active?.name ?? "holdings"}`}
+                    title={`Portfolio — ${active?.name ?? ""}`}
+                    subtitle={`${rows.length} holding${rows.length === 1 ? "" : "s"}`}
+                    getData={pfExport}
+                  />
+                </div>
+              )}
+            </div>
             <div className="pf-table-wrap">
               <table className="pf-table">
                 <thead>
                   <tr>
-                    <th>Symbol</th>
-                    <th className="num">Qty</th>
-                    <th className="num">Avg cost</th>
-                    <th className="num">LTP</th>
-                    <th className="num">Value</th>
-                    <th className="num">Wt</th>
-                    <th className="num">Day P&L</th>
-                    <th className="num">Total P&L</th>
+                    {holdingCols.visible.map((c) => (
+                      <th key={c.key} className={c.align === "right" ? "num" : ""}>{c.label}</th>
+                    ))}
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r) => (
                     <tr key={r.pos.symbol}>
-                      <td>
-                        <button className="pf-sym" onClick={() => openChart(r)}>
-                          {r.pos.symbol}
-                        </button>
-                        <span className="pf-sec">
-                          {r.sector}
-                          {r.pos.addedAt ? ` · since ${fmtDay(r.pos.addedAt)}` : ""}
-                        </span>
-                      </td>
-                      <td className="num">
-                        <input
-                          className="pf-in"
-                          type="number"
-                          min={0}
-                          defaultValue={r.pos.qty}
-                          onBlur={(e) => commit(r, { qty: Math.max(0, Number(e.target.value) || 0) })}
-                        />
-                      </td>
-                      <td className="num">
-                        <input
-                          className="pf-in"
-                          type="number"
-                          min={0}
-                          step="0.05"
-                          defaultValue={r.pos.avgCost}
-                          onBlur={(e) => commit(r, { avgCost: Math.max(0, Number(e.target.value) || 0) })}
-                        />
-                      </td>
-                      <td className="num mono">{fmtNum(r.ltp)}</td>
-                      <td className="num mono">{rupee(r.mv)}</td>
-                      <td className="num mono">{(r.weight * 100).toFixed(1)}%</td>
-                      <td className={`num mono ${signClass(r.dayPnl)}`}>
-                        {r.dayPnl >= 0 ? "+" : ""}
-                        {fmtInt(Math.round(r.dayPnl))}
-                      </td>
-                      <td className={`num mono ${signClass(r.totalPnl)}`}>
-                        {r.totalPnl >= 0 ? "+" : ""}
-                        {fmtInt(Math.round(r.totalPnl))}
-                        <span className="pf-pnlpct">{fmtPct(r.totalPnlPct)}</span>
-                      </td>
+                      {holdingCols.visible.map((c) => pfCell(c, r))}
                       <td className="num">
                         <button className="pf-x" title="Remove" onClick={() => removePosition(active.id, r.pos.symbol)}>
                           ✕

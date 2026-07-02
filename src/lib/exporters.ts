@@ -13,7 +13,6 @@ export interface ExportColumn {
 }
 export type ExportRow = Record<string, string>;
 
-const A4 = { w: 595.28, h: 841.89 }; // points
 const MARGIN = 18; // 0.25 inch = 18pt
 
 function stamp(): string {
@@ -101,7 +100,12 @@ export async function exportPdf(opts: {
     o: unknown,
   ) => void;
 
-  const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+  // Wide tables (many columns) go landscape so cells don't get char-wrapped;
+  // both orientations are still A4 with the same 0.25in margins.
+  const landscape = opts.columns.length > 8;
+  const doc = new jsPDF({ unit: "pt", format: "a4", orientation: landscape ? "landscape" : "portrait" });
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
   const title = opts.title;
   const subtitle = opts.subtitle ?? "";
   const generated = `Generated ${stamp()}`;
@@ -120,16 +124,16 @@ export async function exportPdf(opts: {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10.5);
     doc.setTextColor(15, 20, 25);
-    doc.text(title, A4.w - MARGIN, MARGIN + 11, { align: "right" });
+    doc.text(title, pw - MARGIN, MARGIN + 11, { align: "right" });
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(90, 96, 110);
-    if (subtitle) doc.text(subtitle, A4.w - MARGIN, MARGIN + 21, { align: "right" });
-    doc.text(generated, A4.w - MARGIN, MARGIN + (subtitle ? 30 : 21), { align: "right" });
+    if (subtitle) doc.text(subtitle, pw - MARGIN, MARGIN + 21, { align: "right" });
+    doc.text(generated, pw - MARGIN, MARGIN + (subtitle ? 30 : 21), { align: "right" });
 
     doc.setDrawColor(15, 20, 25);
     doc.setLineWidth(1);
-    doc.line(MARGIN, MARGIN + 36, A4.w - MARGIN, MARGIN + 36);
+    doc.line(MARGIN, MARGIN + 36, pw - MARGIN, MARGIN + 36);
 
     // ---- footer (disclaimer, within the 0.25in bottom margin) ----
     doc.setFont("helvetica", "normal");
@@ -138,8 +142,8 @@ export async function exportPdf(opts: {
     doc.text(
       "Educational & informational only — not investment advice. End-of-day figures may be delayed; verify with NSE/BSE.",
       MARGIN,
-      A4.h - MARGIN + 2,
-      { maxWidth: A4.w - 2 * MARGIN - 60 },
+      ph - MARGIN + 2,
+      { maxWidth: pw - 2 * MARGIN - 60 },
     );
     void data;
   };
@@ -149,9 +153,13 @@ export async function exportPdf(opts: {
     if (c.align === "right") rightCols[i] = { halign: "right" };
   });
 
+  // jsPDF's built-in Helvetica lacks ₹ (U+20B9); swap it so cells don't
+  // mis-measure and char-wrap. (CSV/XLSX keep the real ₹.)
+  const pdfSafe = (s: string) => (s ?? "").replace(/₹/g, "Rs ");
+
   autoTable(doc, {
-    head: [opts.columns.map((c) => c.label)],
-    body: opts.rows.map((r) => opts.columns.map((c) => r[c.key] ?? "")),
+    head: [opts.columns.map((c) => pdfSafe(c.label))],
+    body: opts.rows.map((r) => opts.columns.map((c) => pdfSafe(r[c.key] ?? ""))),
     startY: MARGIN + 46,
     margin: { top: MARGIN + 46, left: MARGIN, right: MARGIN, bottom: MARGIN + 16 },
     tableWidth: "auto",
@@ -177,7 +185,7 @@ export async function exportPdf(opts: {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.8);
     doc.setTextColor(120, 128, 140);
-    doc.text(`Page ${i} of ${total}`, A4.w - MARGIN, A4.h - MARGIN + 2, { align: "right" });
+    doc.text(`Page ${i} of ${total}`, pw - MARGIN, ph - MARGIN + 2, { align: "right" });
   }
 
   doc.save(`${safeName(opts.filename)}.pdf`);

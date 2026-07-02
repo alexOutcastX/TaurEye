@@ -9,6 +9,7 @@ export interface ColDef {
   key: string;
   label: string;
   locked?: boolean; // always shown, can't be hidden or reordered off (e.g. Symbol)
+  defaultHidden?: boolean; // hidden until the user opts in (extra/optional columns)
   align?: "left" | "right";
 }
 export interface ColPrefs {
@@ -19,7 +20,10 @@ export interface ColPrefs {
 const storeKey = (id: string) => `taureye.cols.${id}`;
 
 function defaults(defs: ColDef[]): ColPrefs {
-  return { order: defs.map((d) => d.key), hidden: [] };
+  return {
+    order: defs.map((d) => d.key),
+    hidden: defs.filter((d) => d.defaultHidden && !d.locked).map((d) => d.key),
+  };
 }
 
 export function loadColPrefs(id: string, defs: ColDef[]): ColPrefs {
