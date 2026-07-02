@@ -15,6 +15,8 @@ import type {
   SegmentInfo,
 } from "../api/types";
 import { fmtCap, fmtInt, fmtNum, fmtPct, signClass } from "../lib/format";
+import { useColumns, type ColDef } from "../lib/columns";
+import { ColumnMenu, ExportMenu } from "../components/TableTools";
 import AdSlot from "../components/AdSlot";
 import { parseScreen } from "../lib/nlScreen";
 import { spend } from "../lib/economy";
@@ -75,6 +77,36 @@ const DEFAULT_REQ: ScreenRequest = {
   limit: 100000,
 };
 
+// Configurable result columns. Keys are metric fields (so cells + sort + export
+// all key off the same name). Extra metric columns (200 DMA, ATR, 52w-low, MACD,
+// and the daily/weekly/monthly support & resistance) are hidden by default — the
+// Columns menu lets users add them.
+type ScrCol = ColDef & { sortable?: boolean; thClass?: string };
+const SCR_COLS: ScrCol[] = [
+  { key: "symbol", label: "Symbol", locked: true, align: "left", sortable: true },
+  { key: "name", label: "Name", align: "left", thClass: "left col-name" },
+  { key: "exchange", label: "Exch", align: "left" },
+  { key: "close", label: "LTP", align: "right", sortable: true },
+  { key: "change_pct", label: "% Chg", align: "right", sortable: true },
+  { key: "volume", label: "Volume", align: "right", sortable: true },
+  { key: "rel_volume", label: "Rel Vol", align: "right", sortable: true },
+  { key: "rsi_14", label: "RSI", align: "right", sortable: true },
+  { key: "pct_above_sma50", label: "vs 50DMA", align: "right", sortable: true },
+  { key: "pct_above_sma200", label: "vs 200DMA", align: "right", sortable: true, defaultHidden: true },
+  { key: "dist_52w_high_pct", label: "52w Hi", align: "right", sortable: true },
+  { key: "dist_52w_low_pct", label: "52w Lo", align: "right", sortable: true, defaultHidden: true },
+  { key: "atr_pct", label: "ATR %", align: "right", sortable: true, defaultHidden: true },
+  { key: "macd_hist", label: "MACD", align: "right", sortable: true, defaultHidden: true },
+  { key: "market_cap_cr", label: "Mkt Cap", align: "right", sortable: true },
+  { key: "dist_sup_d_pct", label: "Sup D", align: "right", sortable: true, defaultHidden: true },
+  { key: "dist_res_d_pct", label: "Res D", align: "right", sortable: true, defaultHidden: true },
+  { key: "dist_sup_w_pct", label: "Sup W", align: "right", sortable: true, defaultHidden: true },
+  { key: "dist_res_w_pct", label: "Res W", align: "right", sortable: true, defaultHidden: true },
+  { key: "dist_sup_m_pct", label: "Sup M", align: "right", sortable: true, defaultHidden: true },
+  { key: "dist_res_m_pct", label: "Res M", align: "right", sortable: true, defaultHidden: true },
+];
+const SCR_BY_KEY = new Map(SCR_COLS.map((c) => [c.key, c]));
+
 // Module-level cache so navigating away from the Screener and back doesn't reset
 // the user's screen (the route component unmounts on navigation). Survives for
 // the session; a saved-screen "Run" (location.state) still takes precedence.
@@ -112,6 +144,7 @@ export default function Screener() {
   // Client-side pagination over the full match set (no server cap anymore).
   const [pageSize, setPageSize] = useState(100);
   const [page, setPage] = useState(0);
+  const cols = useColumns("screener", SCR_COLS);
 
   const nav = useNavigate();
 
@@ -343,6 +376,63 @@ export default function Screener() {
     run(nextReq);
     setNlMsg("Presets cleared — showing the full universe.");
   };
+
+  // ---- results table: display string + cell for each configurable column ----
+  const scrText = (key: string, m: Metrics): string => {
+    switch (key) {
+      case "symbol": return m.symbol;
+      case "name": return m.name;
+      case "exchange": return m.exchange;
+      case "close": return fmtNum(m.close);
+      case "change_pct": return fmtPct(m.change_pct);
+      case "volume": return fmtInt(m.volume);
+      case "rel_volume": return `${fmtNum(m.rel_volume)}x`;
+      case "rsi_14": return fmtNum(m.rsi_14, 0);
+      case "market_cap_cr": return fmtCap(m.market_cap_cr);
+      case "macd_hist": return fmtNum(m.macd_hist, 2);
+      default: {
+        const v = (m as unknown as Record<string, number | null | undefined>)[key];
+        return v == null ? "" : fmtPct(v);
+      }
+    }
+  };
+  const scrCell = (c: ColDef, m: Metrics) => {
+    switch (c.key) {
+      case "symbol":
+        return (
+          <td key={c.key} className="left sym">
+            <button type="button" className="sym-link" onClick={() => openChart(m)} title={`${m.name} — open details`}>
+              {m.symbol}
+            </button>
+          </td>
+        );
+      case "name": return <td key={c.key} className="left name col-name">{m.name}</td>;
+      case "exchange": return <td key={c.key} className="dim">{m.exchange}</td>;
+      case "close": return <td key={c.key} className="mono">{fmtNum(m.close)}</td>;
+      case "change_pct": return <td key={c.key} className={`mono ${signClass(m.change_pct)}`}>{fmtPct(m.change_pct)}</td>;
+      case "volume": return <td key={c.key} className="mono dim">{fmtInt(m.volume)}</td>;
+      case "rel_volume": return <td key={c.key} className="mono">{fmtNum(m.rel_volume)}x</td>;
+      case "rsi_14": return <td key={c.key} className="mono">{fmtNum(m.rsi_14, 0)}</td>;
+      case "market_cap_cr": return <td key={c.key} className="mono">{fmtCap(m.market_cap_cr)}</td>;
+      case "macd_hist": return <td key={c.key} className="mono">{fmtNum(m.macd_hist, 2)}</td>;
+      default: {
+        const v = (m as unknown as Record<string, number | null | undefined>)[c.key];
+        return (
+          <td key={c.key} className={`mono ${typeof v === "number" ? signClass(v) : ""}`}>
+            {v == null ? "—" : fmtPct(v)}
+          </td>
+        );
+      }
+    }
+  };
+  const buildScrExport = () => ({
+    columns: cols.visible.map((c) => ({ key: c.key, label: c.label, align: c.align })),
+    rows: displayRows.map((m) => {
+      const row: Record<string, string> = {};
+      for (const c of cols.visible) row[c.key] = scrText(c.key, m);
+      return row;
+    }),
+  });
 
   return (
     <section className="scr">
@@ -598,57 +688,46 @@ export default function Screener() {
           )}
           {error && <span className="err">· {error}</span>}
         </span>
-        <label className="per-page">
-          <span>Rows</span>
-          <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
-            {[20, 50, 100, 200].map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-        </label>
+        <div className="results-actions">
+          <ColumnMenu defs={SCR_COLS} prefs={cols.prefs} onChange={cols.setPrefs} onReset={cols.reset} />
+          <ExportMenu
+            filename="taureye-screen"
+            title="Screener"
+            subtitle={`${fmtInt(count)} matches`}
+            getData={buildScrExport}
+          />
+          <label className="per-page">
+            <span>Rows</span>
+            <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+              {[20, 50, 100, 200].map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
       <div className="table-wrap">
         <table className="results">
           <thead>
             <tr>
-              <Th k="symbol" req={req} onSort={sortBy} align="left">Symbol</Th>
-              <th className="left col-name">Name</th>
-              <th>Exch</th>
-              <Th k="close" req={req} onSort={sortBy}>LTP</Th>
-              <Th k="change_pct" req={req} onSort={sortBy}>% Chg</Th>
-              <Th k="volume" req={req} onSort={sortBy}>Volume</Th>
-              <Th k="rel_volume" req={req} onSort={sortBy}>Rel Vol</Th>
-              <Th k="rsi_14" req={req} onSort={sortBy}>RSI</Th>
-              <Th k="pct_above_sma50" req={req} onSort={sortBy}>vs 50DMA</Th>
-              <Th k="dist_52w_high_pct" req={req} onSort={sortBy}>52w Hi</Th>
-              <Th k="market_cap_cr" req={req} onSort={sortBy}>Mkt Cap</Th>
+              {cols.visible.map((c) => {
+                const sc = SCR_BY_KEY.get(c.key);
+                return sc?.sortable ? (
+                  <Th key={c.key} k={c.key} req={req} onSort={sortBy} align={c.align === "left" ? "left" : "right"}>
+                    {c.label}
+                  </Th>
+                ) : (
+                  <th key={c.key} className={sc?.thClass ?? (c.align === "left" ? "left" : "")}>{c.label}</th>
+                );
+              })}
               <th className="actions-col">Actions</th>
             </tr>
           </thead>
           <tbody>
             {pageRows.map((m) => (
               <tr key={`${m.exchange}:${m.symbol}`}>
-                <td className="left sym">
-                  <button
-                    type="button"
-                    className="sym-link"
-                    onClick={() => openChart(m)}
-                    title={`${m.name} — open details`}
-                  >
-                    {m.symbol}
-                  </button>
-                </td>
-                <td className="left name col-name">{m.name}</td>
-                <td className="dim">{m.exchange}</td>
-                <td className="mono">{fmtNum(m.close)}</td>
-                <td className={`mono ${signClass(m.change_pct)}`}>{fmtPct(m.change_pct)}</td>
-                <td className="mono dim">{fmtInt(m.volume)}</td>
-                <td className="mono">{fmtNum(m.rel_volume)}x</td>
-                <td className="mono">{fmtNum(m.rsi_14, 0)}</td>
-                <td className={`mono ${signClass(m.pct_above_sma50)}`}>{fmtPct(m.pct_above_sma50)}</td>
-                <td className={`mono ${signClass(m.dist_52w_high_pct)}`}>{fmtPct(m.dist_52w_high_pct)}</td>
-                <td className="mono">{fmtCap(m.market_cap_cr)}</td>
+                {cols.visible.map((c) => scrCell(c, m))}
                 <td className="row-actions">
                   <button
                     className="ra-btn"
@@ -676,7 +755,7 @@ export default function Screener() {
             ))}
             {!displayRows.length && !loading && (
               <tr>
-                <td colSpan={12} className="empty">No scrips match these filters.</td>
+                <td colSpan={cols.visible.length + 1} className="empty">No scrips match these filters.</td>
               </tr>
             )}
           </tbody>

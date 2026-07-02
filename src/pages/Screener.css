@@ -167,6 +167,7 @@
 }
 .results-head strong { color: var(--text); font-size: 15px; }
 .results-head .dim { color: var(--text-muted); }
+.results-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .err { color: var(--down); }
 
 .per-page { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
