@@ -334,6 +334,7 @@ def main() -> None:
     epp = sub.add_parser("eodhd-probe", help="validate the EODHD key/plan on one symbol")
     epp.add_argument("symbol", nargs="?", default="RELIANCE")
     sub.add_parser("readjust")
+    sub.add_parser("fuel", help="fetch + print daily fuel prices (validate the scrapers)")
     sub.add_parser("status")
     ip = sub.add_parser("inspect", help="diagnose one symbol's price spine (ISIN map, last dates)")
     ip.add_argument("symbol")
@@ -356,6 +357,8 @@ def main() -> None:
                     help="write per-symbol fundamentals files (corp actions + financials + shareholding)")
     xp.add_argument("--indices", action="store_true",
                     help="export indices.json (live ticker snapshot for offline)")
+    xp.add_argument("--fuel", action="store_true",
+                    help="export fuel.json (daily India-city + global fuel prices)")
     xp.add_argument("--all", dest="everything", action="store_true",
                     help="publish the COMPLETE cloud bundle: fundamentals + metrics "
                          "+ indices + per-symbol candles (charts fetch on demand)")
@@ -417,7 +420,17 @@ def main() -> None:
         cmd_export(args.out, window=args.days, gz=args.gz,
                    fundamentals=args.fundamentals, metrics=args.metrics,
                    ohlc=args.ohlc, candles=args.candles,
-                   indices=args.indices, everything=args.everything, funda=args.funda)
+                   indices=args.indices, everything=args.everything, funda=args.funda,
+                   fuel=args.fuel)
+    elif args.cmd == "fuel":
+        # Fetch + print daily fuel prices (for validating/tuning the scrapers).
+        from .fuel import build_fuel_bundle
+        b = build_fuel_bundle()
+        print(f"India: {len(b['india'])} cities, Global: {len(b['global'])} countries")
+        for r in b["india"]:
+            print(f"  {r['city']:12} petrol={r['petrol']} diesel={r['diesel']}")
+        for r in b["global"][:20]:
+            print(f"  {r['country']:22} petrol={r['petrol']} diesel={r['diesel']}")
 
 
 if __name__ == "__main__":
