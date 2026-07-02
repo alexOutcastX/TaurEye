@@ -16,6 +16,8 @@ import {
 } from "../lib/watchlist";
 import { shareLink } from "../lib/share";
 import { decodeWatchlist, watchlistShareUrl } from "../lib/shareWatchlist";
+import { useColumns, type ColDef } from "../lib/columns";
+import { ColumnMenu, ExportMenu } from "../components/TableTools";
 import { buildAiReport } from "../lib/reportData";
 import ReportView, { type ReportData } from "../components/ReportView";
 import type { Metrics } from "../api/types";
@@ -29,6 +31,19 @@ interface Quote {
   date: string;
 }
 
+// Configurable data columns for the watchlist table (Actions is always last and
+// not part of this config). Users can hide/show and reorder these.
+const WL_COLS: ColDef[] = [
+  { key: "symbol", label: "Symbol", locked: true, align: "left" },
+  { key: "name", label: "Name", align: "left" },
+  { key: "exchange", label: "Exch", align: "left" },
+  { key: "ltp", label: "LTP", align: "right" },
+  { key: "chg", label: "% Chg", align: "right" },
+  { key: "addedPrice", label: "Added @", align: "right" },
+  { key: "addedOn", label: "Added on", align: "left" },
+  { key: "since", label: "Since add", align: "right" },
+];
+
 // Which report is being generated for which symbol (drives the spinner labels).
 type Busy = { symbol: string; kind: "report" | "ai" } | null;
 
@@ -41,6 +56,7 @@ export default function Watchlist() {
   const [view, setView] = useState<{ m: Metrics; data: ReportData } | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const { prefs, setPrefs, reset, visible } = useColumns("watchlist", WL_COLS);
 
   // Keep lists in sync with adds/removes from anywhere (screener, chart, tab).
   useEffect(() => onWatchlistChange(() => setLists(getWatchlists())), []);
@@ -168,6 +184,83 @@ export default function Watchlist() {
 
   const otherLists = lists.filter((l) => l.id !== active?.id);
 
+  // Per-row derived values shared by the on-screen cells and the exporters.
+  const derive = (w: WatchItem) => {
+    const q = quotes[w.symbol];
+    const since = q && w.addedPrice ? ((q.close - w.addedPrice) / w.addedPrice) * 100 : null;
+    const addedOn = w.addedAt
+      ? new Date(w.addedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+      : "—";
+    return { q, since, addedOn };
+  };
+
+  // Display string for a data column (used by CSV / Excel / PDF exports).
+  const cellText = (key: string, w: WatchItem, d: ReturnType<typeof derive>): string => {
+    switch (key) {
+      case "symbol": return w.symbol;
+      case "name": return w.name;
+      case "exchange": return w.exchange;
+      case "ltp": return d.q ? fmtNum(d.q.close) : "";
+      case "chg": return d.q ? fmtPct(d.q.change_pct) : "";
+      case "addedPrice": return w.addedPrice != null ? fmtNum(w.addedPrice) : "";
+      case "addedOn": return d.addedOn === "—" ? "" : d.addedOn;
+      case "since": return d.since != null ? fmtPct(d.since) : "";
+      default: return "";
+    }
+  };
+
+  const buildExportData = () => ({
+    columns: visible.map((c) => ({ key: c.key, label: c.label, align: c.align })),
+    rows: items.map((w) => {
+      const d = derive(w);
+      const row: Record<string, string> = {};
+      for (const c of visible) row[c.key] = cellText(c.key, w, d);
+      return row;
+    }),
+  });
+
+  // On-screen cell for a data column (Actions is rendered separately).
+  const renderCell = (c: ColDef, w: WatchItem, d: ReturnType<typeof derive>) => {
+    switch (c.key) {
+      case "symbol":
+        return (
+          <td key={c.key} className="left sym">
+            <button type="button" className="sym-link" onClick={() => openChart(w)} title={`${w.name} — open chart & details`}>
+              {w.symbol}
+            </button>
+          </td>
+        );
+      case "name":
+        return (
+          <td key={c.key} className="left name">
+            <button type="button" className="name-link" onClick={() => openChart(w)}>{w.name}</button>
+          </td>
+        );
+      case "exchange":
+        return <td key={c.key} className="dim">{w.exchange}</td>;
+      case "ltp":
+        return <td key={c.key} className="mono">{d.q ? fmtNum(d.q.close) : "—"}</td>;
+      case "chg":
+        return (
+          <td key={c.key} className={`mono ${d.q ? signClass(d.q.change_pct) : ""}`}>
+            {d.q ? fmtPct(d.q.change_pct) : "—"}
+          </td>
+        );
+      case "addedPrice":
+        return <td key={c.key} className="mono dim">{w.addedPrice != null ? fmtNum(w.addedPrice) : "—"}</td>;
+      case "addedOn":
+        return <td key={c.key} className="dim mono">{d.addedOn}</td>;
+      case "since":
+        return (
+          <td key={c.key} className={`mono ${d.since != null ? signClass(d.since) : ""}`}>
+            {d.since != null ? fmtPct(d.since) : "—"}
+          </td>
+        );
+      default:
+        return <td key={c.key} />;
+    }
+  };
+
   return (
     <section className="wl">
       <header className="wl-head">
@@ -225,63 +318,33 @@ export default function Watchlist() {
           </button>
         </div>
       ) : (
-        <div className="table-wrap">
+        <>
+          <div className="wl-toolbar">
+            <ColumnMenu defs={WL_COLS} prefs={prefs} onChange={setPrefs} onReset={reset} />
+            <ExportMenu
+              filename={`taureye-watchlist-${active?.name ?? "list"}`}
+              title={`Watchlist — ${active?.name ?? ""}`}
+              subtitle={`${items.length} scrip${items.length === 1 ? "" : "s"}`}
+              getData={buildExportData}
+            />
+          </div>
+          <div className="table-wrap">
           <table className="wl-table">
             <thead>
               <tr>
-                <th className="left">Symbol</th>
-                <th className="left">Name</th>
-                <th>Exch</th>
-                <th>LTP</th>
-                <th>% Chg</th>
-                <th>Added @</th>
-                <th>Added on</th>
-                <th>Since add</th>
+                {visible.map((c) => (
+                  <th key={c.key} className={c.align === "left" ? "left" : ""}>{c.label}</th>
+                ))}
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {items.map((w) => {
-                const q = quotes[w.symbol];
-                const since =
-                  q && w.addedPrice
-                    ? ((q.close - w.addedPrice) / w.addedPrice) * 100
-                    : null;
-                const addedOn = w.addedAt
-                  ? new Date(w.addedAt).toLocaleDateString("en-IN", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })
-                  : "—";
+                const d = derive(w);
                 const isBusy = busy?.symbol === w.symbol;
                 return (
                   <tr key={w.symbol}>
-                    <td className="left sym">
-                      <button
-                        type="button"
-                        className="sym-link"
-                        onClick={() => openChart(w)}
-                        title={`${w.name} — open chart & details`}
-                      >
-                        {w.symbol}
-                      </button>
-                    </td>
-                    <td className="left name">
-                      <button type="button" className="name-link" onClick={() => openChart(w)}>
-                        {w.name}
-                      </button>
-                    </td>
-                    <td className="dim">{w.exchange}</td>
-                    <td className="mono">{q ? fmtNum(q.close) : "—"}</td>
-                    <td className={`mono ${q ? signClass(q.change_pct) : ""}`}>
-                      {q ? fmtPct(q.change_pct) : "—"}
-                    </td>
-                    <td className="mono dim">{w.addedPrice != null ? fmtNum(w.addedPrice) : "—"}</td>
-                    <td className="dim mono">{addedOn}</td>
-                    <td className={`mono ${since != null ? signClass(since) : ""}`}>
-                      {since != null ? fmtPct(since) : "—"}
-                    </td>
+                    {visible.map((c) => renderCell(c, w, d))}
                     <td className="wl-actions">
                       <button className="mini" title="Open chart" onClick={() => openChart(w)}>
                         Chart
@@ -337,7 +400,8 @@ export default function Watchlist() {
               })}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
 
       {view && (

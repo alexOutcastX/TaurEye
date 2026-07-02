@@ -49,6 +49,16 @@
 .wl-mng:hover { border-color: var(--border-strong); }
 .wl-mng.danger:hover:not(:disabled) { color: var(--down); border-color: var(--down); }
 .wl-mng:disabled { opacity: 0.45; cursor: default; }
+
+/* Column + export tools row, right-aligned above the table. */
+.wl-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+
 .wl-move {
   background: var(--surface-2);
   border: 1px solid var(--border);
