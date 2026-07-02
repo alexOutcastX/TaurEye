@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fmtNum } from "../lib/format";
+import { CURRENCIES, convert, getFxRates, type FxRates } from "../lib/fx";
 import "./Calculators.css";
 
 // Indian rupee, Indian digit grouping, no decimals for large money.
@@ -21,9 +22,10 @@ type CalcKey =
   | "position"
   | "rr"
   | "brokerage"
-  | "fno";
+  | "fno"
+  | "currency";
 
-const CALCS: { key: CalcKey; label: string; group: "Investing" | "Trading" }[] = [
+const CALCS: { key: CalcKey; label: string; group: "Investing" | "Trading" | "Utilities" }[] = [
   { key: "sip", label: "SIP", group: "Investing" },
   { key: "swp", label: "SWP", group: "Investing" },
   { key: "lumpsum", label: "Lumpsum", group: "Investing" },
@@ -34,6 +36,7 @@ const CALCS: { key: CalcKey; label: string; group: "Investing" | "Trading" }[] =
   { key: "rr", label: "Risk : reward", group: "Trading" },
   { key: "brokerage", label: "Brokerage & charges", group: "Trading" },
   { key: "fno", label: "F&O breakeven", group: "Trading" },
+  { key: "currency", label: "Currency converter", group: "Utilities" },
 ];
 
 export default function Calculators() {
@@ -68,6 +71,7 @@ export default function Calculators() {
         {active === "rr" && <RiskReward />}
         {active === "brokerage" && <Brokerage />}
         {active === "fno" && <Fno />}
+        {active === "currency" && <Currency />}
       </div>
 
       <p className="calc-disclaimer">
@@ -133,6 +137,89 @@ function Layout({ inputs, results }: { inputs: React.ReactNode; results: React.R
         <div className="calc-results">{results}</div>
       </div>
     </div>
+  );
+}
+
+function Picker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="calc-field">
+      <span className="calc-field-l">{label}</span>
+      <span className="calc-input">
+        <select value={value} onChange={(e) => onChange(e.target.value)}>
+          {CURRENCIES.map((c) => (
+            <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+          ))}
+        </select>
+      </span>
+    </label>
+  );
+}
+
+// ---------------- Currency converter ----------------
+function Currency() {
+  const [rates, setRates] = useState<FxRates | null>(null);
+  const [state, setState] = useState<"loading" | "ok" | "error">("loading");
+  const [amt, setAmt] = useState("1000");
+  const [from, setFrom] = useState("USD");
+  const [to, setTo] = useState("INR");
+
+  useEffect(() => {
+    let alive = true;
+    getFxRates().then((r) => {
+      if (!alive) return;
+      if (r) {
+        setRates(r);
+        setState("ok");
+      } else {
+        setState("error");
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const amount = num(amt);
+  const out = rates ? convert(rates, amount, from, to) : null;
+  const one = rates ? convert(rates, 1, from, to) : null;
+  const swap = () => {
+    setFrom(to);
+    setTo(from);
+  };
+
+  return (
+    <Layout
+      inputs={
+        <>
+          <Field label="Amount" value={amt} onChange={setAmt} />
+          <Picker label="From" value={from} onChange={setFrom} />
+          <button type="button" className="calc-swap" onClick={swap} title="Swap currencies">
+            ⇅ Swap
+          </button>
+          <Picker label="To" value={to} onChange={setTo} />
+        </>
+      }
+      results={
+        <>
+          <Result
+            big
+            label={`${fmtNum(amount)} ${from} =`}
+            value={out != null ? `${fmtNum(out, 2)} ${to}` : state === "error" ? "Rates unavailable" : "…"}
+          />
+          <Result label="Exchange rate" value={one != null ? `1 ${from} = ${fmtNum(one, 4)} ${to}` : "…"} />
+          <Result
+            label="Source"
+            value={
+              state === "ok"
+                ? `Live rates${rates?.updated ? ` · ${rates.updated}` : ""}`
+                : state === "error"
+                  ? "Couldn’t reach the rate service — check your connection."
+                  : "Loading live rates…"
+            }
+          />
+        </>
+      }
+    />
   );
 }
 
