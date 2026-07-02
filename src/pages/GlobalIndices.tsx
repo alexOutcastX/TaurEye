@@ -4,11 +4,14 @@ import type { IndexQuote, IndicesResponse } from "../api/types";
 import { fmtNum, fmtPct, fmtStamp, signClass } from "../lib/format";
 import { openExternal, tradingViewUrl } from "../lib/tradingview";
 import { getFxRates, convert, FX_PAIRS, type FxRates } from "../lib/fx";
+import { fetchFuel, type FuelData } from "../lib/fuelData";
+import FuelPanel from "../components/FuelPanel";
 import "./GlobalIndices.css";
 
 type Cat = "domestic" | "international" | "currency" | "depository";
+type TabKey = Cat | "fuel";
 
-const TABS: { cat: Cat; label: string; sub?: string; empty: string }[] = [
+const TABS: { cat: TabKey; label: string; sub?: string; empty: string }[] = [
   {
     cat: "domestic",
     label: "Domestic indices",
@@ -30,6 +33,12 @@ const TABS: { cat: Cat; label: string; sub?: string; empty: string }[] = [
     label: "Depository Receipts",
     sub: "Indian ADRs / GDRs",
     empty: "Indian depository receipts will appear after the next data refresh.",
+  },
+  {
+    cat: "fuel",
+    label: "Fuel prices",
+    sub: "Daily retail — India & global",
+    empty: "Fuel prices will appear after the next data refresh.",
   },
 ];
 
@@ -53,8 +62,18 @@ function categoryOf(q: IndexQuote): Cat {
 export default function GlobalIndices() {
   const [data, setData] = useState<IndicesResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Cat>("domestic");
+  const [tab, setTab] = useState<TabKey>("domestic");
   const [fx, setFx] = useState<FxRates | null>(null);
+  const [fuel, setFuel] = useState<FuelData | null>(null);
+
+  // Daily fuel prices (published nightly as /data/fuel.json).
+  useEffect(() => {
+    let alive = true;
+    fetchFuel().then((f) => alive && setFuel(f));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Live currency rates (free, no-key API) so the Currency tab actually updates
   // rather than showing the once-a-day bundle snapshot. Refreshes every 30 min.
@@ -120,8 +139,10 @@ export default function GlobalIndices() {
   };
 
   const active = TABS.find((t) => t.cat === tab)!;
-  // The Currency tab prefers live FX rows; everything else uses the bundle.
-  const items = tab === "currency" && fxRows.length ? fxRows : groups[tab];
+  // The Currency tab prefers live FX rows; Fuel uses its own panel; the rest use
+  // the bundle.
+  const items: IndexQuote[] =
+    tab === "fuel" ? [] : tab === "currency" && fxRows.length ? fxRows : groups[tab];
   // Currency + Depository Receipts are a small fixed set — show them as a compact
   // list instead of cards. Indices stay as cards. All open a TradingView chart.
   const asList = tab === "currency" || tab === "depository";
@@ -144,7 +165,11 @@ export default function GlobalIndices() {
           >
             {t.label}
             <span className="gidx-tab-count">
-              {t.cat === "currency" && fxRows.length ? fxRows.length : groups[t.cat].length}
+              {t.cat === "fuel"
+                ? (fuel ? fuel.india.length + fuel.global.length : 0)
+                : t.cat === "currency" && fxRows.length
+                  ? fxRows.length
+                  : groups[t.cat].length}
             </span>
           </button>
         ))}
@@ -154,13 +179,19 @@ export default function GlobalIndices() {
         <div className="gidx-panel-head">
           {active.sub && <span className="gidx-panel-sub">{active.sub}</span>}
           <span className="gidx-asof">
-            {tab === "currency" && fx
-              ? `Live rates${fx.updated ? ` · ${fx.updated}` : ""}`
-              : lastUpdated(items)}
+            {tab === "fuel"
+              ? fuel?.meta?.data_date
+                ? `Updated ${fuel.meta.data_date}`
+                : ""
+              : tab === "currency" && fx
+                ? `Live rates${fx.updated ? ` · ${fx.updated}` : ""}`
+                : lastUpdated(items)}
           </span>
         </div>
 
-        {loading && !data ? (
+        {tab === "fuel" ? (
+          <FuelPanel data={fuel} />
+        ) : loading && !data ? (
           <p className="gidx-empty">Loading…</p>
         ) : items.length === 0 ? (
           <p className="gidx-empty">{active.empty}</p>

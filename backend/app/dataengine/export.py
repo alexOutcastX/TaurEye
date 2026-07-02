@@ -293,6 +293,23 @@ def export_indices(out: Path, *, gz: bool) -> dict:
     return {"file": str(path), "count": n, "raw": raw, "gz": gzb}
 
 
+def export_fuel(out: Path, *, gz: bool) -> dict:
+    """Daily retail fuel prices (India cities + global) scraped from public
+    aggregators. Fail-soft: partial or empty data still writes a valid file so
+    the app's Fuel tab degrades gracefully rather than 404-ing."""
+    try:
+        from .fuel import build_fuel_bundle
+        data = build_fuel_bundle()
+    except Exception as e:  # never abort the export on a flaky scrape
+        data = {"meta": {"error": f"{type(e).__name__}: {e}"}, "india": [], "global": []}
+    data.setdefault("meta", {})["generated_at"] = _now()
+    path = out / "fuel.json"
+    raw, gzb = _write(path, data, gz=gz)
+    n = len(data.get("india", [])) + len(data.get("global", []))
+    print(f"[export] fuel: {n} rows -> {path}  ({raw} B raw, {gzb} B gz)")
+    return {"file": str(path), "count": n, "raw": raw, "gz": gzb}
+
+
 def export_reports(out: Path, *, gz: bool, top_n: int | None = None) -> dict:
     """Per-stock templated reports (ZERO LLM cost) → reports/<SYMBOL>.json, read
     from the just-written metrics.json so computed indicators are reused. Served
@@ -449,7 +466,8 @@ def export_funda(out: Path, *, gz: bool) -> dict:
 
 def cmd_export(out: str | None, *, window: int, gz: bool,
                fundamentals: bool, metrics: bool, ohlc: bool, candles: bool,
-               indices: bool = False, everything: bool = False, funda: bool = False) -> None:
+               indices: bool = False, everything: bool = False, funda: bool = False,
+               fuel: bool = False) -> None:
     """Dispatch. With no specific flag, export the lightweight client bundle —
     fundamentals + metrics + indices (the screener data + ticker snapshot, ~0.7
     MB gz total). The big universe-wide ohlc.json and the per-symbol candles/
@@ -465,7 +483,7 @@ def cmd_export(out: str | None, *, window: int, gz: bool,
     client can discover the bundle from one fetch."""
     out_dir = Path(out) if out else DEFAULT_OUT
     if everything:
-        fundamentals = metrics = indices = candles = True
+        fundamentals = metrics = indices = candles = fuel = True
     if not (fundamentals or metrics or ohlc or candles or indices):
         # default = the on-device screener bundle + ticker snapshot
         fundamentals = metrics = indices = True
@@ -480,6 +498,8 @@ def cmd_export(out: str | None, *, window: int, gz: bool,
         files["reports"] = export_reports(out_dir, gz=gz)
     if indices:
         files["indices"] = export_indices(out_dir, gz=gz)
+    if fuel:
+        files["fuel"] = export_fuel(out_dir, gz=gz)
     if ohlc:
         files["ohlc"] = export_ohlc(out_dir, window=window, gz=gz)
     if candles:
