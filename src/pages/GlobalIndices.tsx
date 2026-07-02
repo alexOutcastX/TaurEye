@@ -3,6 +3,7 @@ import { api } from "../api/client";
 import type { IndexQuote, IndicesResponse } from "../api/types";
 import { fmtNum, fmtPct, fmtStamp, signClass } from "../lib/format";
 import { openExternal, tradingViewUrl } from "../lib/tradingview";
+import { getFxRates, convert, FX_PAIRS, type FxRates } from "../lib/fx";
 import "./GlobalIndices.css";
 
 type Cat = "domestic" | "international" | "currency" | "depository";
@@ -53,6 +54,33 @@ export default function GlobalIndices() {
   const [data, setData] = useState<IndicesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Cat>("domestic");
+  const [fx, setFx] = useState<FxRates | null>(null);
+
+  // Live currency rates (free, no-key API) so the Currency tab actually updates
+  // rather than showing the once-a-day bundle snapshot. Refreshes every 30 min.
+  useEffect(() => {
+    let alive = true;
+    getFxRates().then((r) => alive && setFx(r));
+    const id = setInterval(() => getFxRates(true).then((r) => alive && setFx(r)), 30 * 60_000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
+
+  // Currency rows computed live from the FX rates (USD-based cross rates).
+  const fxRows = useMemo<IndexQuote[]>(() => {
+    if (!fx) return [];
+    return FX_PAIRS.map(([from, to]) => ({
+      key: `${from}${to}`,
+      label: `${from}/${to}`,
+      value: convert(fx, 1, from, to),
+      change_pct: null,
+      category: "currency" as const,
+      country: null,
+      data_date: null,
+    })).filter((q) => q.value != null);
+  }, [fx]);
 
   useEffect(() => {
     let alive = true;
@@ -92,7 +120,8 @@ export default function GlobalIndices() {
   };
 
   const active = TABS.find((t) => t.cat === tab)!;
-  const items = groups[tab];
+  // The Currency tab prefers live FX rows; everything else uses the bundle.
+  const items = tab === "currency" && fxRows.length ? fxRows : groups[tab];
   // Currency + Depository Receipts are a small fixed set — show them as a compact
   // list instead of cards. Indices stay as cards. All open a TradingView chart.
   const asList = tab === "currency" || tab === "depository";
@@ -114,7 +143,9 @@ export default function GlobalIndices() {
             onClick={() => setTab(t.cat)}
           >
             {t.label}
-            <span className="gidx-tab-count">{groups[t.cat].length}</span>
+            <span className="gidx-tab-count">
+              {t.cat === "currency" && fxRows.length ? fxRows.length : groups[t.cat].length}
+            </span>
           </button>
         ))}
       </div>
@@ -122,7 +153,11 @@ export default function GlobalIndices() {
       <div className="gidx-panel" role="tabpanel">
         <div className="gidx-panel-head">
           {active.sub && <span className="gidx-panel-sub">{active.sub}</span>}
-          <span className="gidx-asof">{lastUpdated(items)}</span>
+          <span className="gidx-asof">
+            {tab === "currency" && fx
+              ? `Live rates${fx.updated ? ` · ${fx.updated}` : ""}`
+              : lastUpdated(items)}
+          </span>
         </div>
 
         {loading && !data ? (

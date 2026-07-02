@@ -61,6 +61,28 @@
   outline: none;
 }
 .calc-suffix { color: var(--text-faint); font-size: 13px; padding-left: 6px; }
+.calc-input select {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 15px;
+  padding: 10px 0;
+  width: 100%;
+  outline: none;
+  cursor: pointer;
+}
+.calc-swap {
+  align-self: flex-start;
+  padding: 6px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.calc-swap:hover { color: var(--text); border-color: var(--border-strong); }
 
 .calc-seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; }
 .calc-seg button {
