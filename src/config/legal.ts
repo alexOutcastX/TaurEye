@@ -22,6 +22,7 @@ export const LEGAL = {
 export const LEGAL_DOCS = [
   { key: "terms", title: "Terms of Service" },
   { key: "privacy", title: "Privacy Policy" },
+  { key: "cookies", title: "Cookie Policy" },
   { key: "refund", title: "Refund & Cancellation" },
   { key: "disclaimer", title: "Disclaimer" },
 ] as const;

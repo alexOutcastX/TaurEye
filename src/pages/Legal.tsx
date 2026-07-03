@@ -33,6 +33,7 @@ export default function Legal() {
         </p>
         {key === "terms" && <Terms />}
         {key === "privacy" && <Privacy />}
+        {key === "cookies" && <Cookies />}
         {key === "refund" && <Refund />}
         {key === "disclaimer" && <Disclaimer />}
 
@@ -246,14 +247,16 @@ function Privacy() {
       <p>
         We share data with service providers strictly to run the Service: hosting
         and database/auth (Supabase), payment processing (Razorpay), and, where
-        enabled, advertising (Google AdMob) and AI inference providers for the AI
-        features. Each processes data under its own terms.
+        enabled, advertising (Google AdSense on the web and AdMob in the app) and
+        AI inference providers for the AI features. Each processes data under its
+        own terms.
       </p>
 
       <h2>4. Cookies &amp; local storage</h2>
       <p>
         We use local storage and similar technologies to keep you signed in and to
-        store your preferences and (for guests) a local credit ledger.
+        store your preferences and (for guests) a local credit ledger. See our{" "}
+        <Link to="/legal/cookies">Cookie Policy</Link> for a full breakdown.
       </p>
 
       <h2>5. Retention</h2>
@@ -282,6 +285,98 @@ function Privacy() {
       <h2>9. Grievance contact</h2>
       <p>
         For privacy questions or grievances, contact our grievance officer at{" "}
+        <a href={`mailto:${email}`}>{email}</a>.
+      </p>
+    </>
+  );
+}
+
+function Cookies() {
+  return (
+    <>
+      <p>
+        This Cookie Policy explains how {product}, operated by {entity}, uses
+        cookies, browser local storage and similar technologies (together,
+        “cookies”) on our website and app, and how you can control them. It should
+        be read alongside our <Link to="/legal/privacy">Privacy Policy</Link>.
+      </p>
+
+      <h2>1. What these technologies are</h2>
+      <p>
+        Cookies are small files a site stores on your device. {product} is a
+        client-side app, so it relies mostly on your browser’s{" "}
+        <strong>local storage</strong> (not traditional cookies) to work, and some
+        third-party services we use may set their own cookies. We treat all of
+        these the same way in this policy.
+      </p>
+
+      <h2>2. Categories we use</h2>
+      <ul>
+        <li>
+          <strong>Strictly necessary.</strong> Required for the Service to
+          function. These keep you signed in (your authentication session, managed
+          by Supabase), remember your theme and table/column preferences, and —
+          for guests — hold a local credit ledger. The Service will not work
+          properly without them, so they are not optional.
+        </li>
+        <li>
+          <strong>Functional.</strong> Remember choices you make (e.g. saved
+          layouts, dismissed notices) to improve your experience.
+        </li>
+        <li>
+          <strong>Payments.</strong> Our payment gateway (Razorpay) may set cookies
+          during checkout to process your transaction securely and prevent fraud.
+        </li>
+        <li>
+          <strong>Advertising (where enabled).</strong> When ads are turned on, we
+          use <strong>Google AdSense</strong> on the web and{" "}
+          <strong>Google AdMob</strong> in the mobile app. Google and its partners
+          may set cookies or use your device advertising identifier to serve ads,
+          limit how often you see an ad, measure performance and — only where you
+          have consented — personalise ads. See{" "}
+          <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">
+            Google’s advertising technologies page
+          </a>{" "}
+          for details.
+        </li>
+      </ul>
+      <p>
+        We do <strong>not</strong> use third-party website analytics or tracking
+        cookies for profiling beyond what is described above.
+      </p>
+
+      <h2>3. Your choices</h2>
+      <ul>
+        <li>
+          <strong>Browser settings.</strong> You can block or delete cookies and
+          clear local storage from your browser settings. Note that blocking
+          strictly-necessary storage will sign you out and may break core features.
+        </li>
+        <li>
+          <strong>Ad personalisation.</strong> You can manage personalised ads at{" "}
+          <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer">
+            Google Ad Settings
+          </a>
+          . On mobile you can reset or limit your advertising ID in your device’s
+          privacy settings.
+        </li>
+        <li>
+          <strong>Consent.</strong> Where the law requires your consent (including
+          under India’s Digital Personal Data Protection Act, 2023), we will ask
+          before using non-essential cookies, and you may withdraw consent at any
+          time.
+        </li>
+      </ul>
+
+      <h2>4. Changes</h2>
+      <p>
+        We may update this Cookie Policy as our services or the law change. The
+        “Last updated” date above reflects the current version.
+      </p>
+
+      <h2>5. Contact</h2>
+      <p>
+        Questions about our use of cookies? Email{" "}
         <a href={`mailto:${email}`}>{email}</a>.
       </p>
     </>
