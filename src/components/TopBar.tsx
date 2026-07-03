@@ -105,24 +105,26 @@ export default function TopBar() {
             Sign in
           </Link>
 
-          <nav className={"topnav" + (menuOpen ? " open" : "")}>
-            {PUBLIC_NAV.map(({ to, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === "/"}
-                className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
-                onClick={() => setMenuOpen(false)}
-              >
-                <span>{label}</span>
-              </NavLink>
-            ))}
-          </nav>
-
           <div className="topbar-right">
             <ThemeToggle />
           </div>
         </header>
+
+        {/* Page nav — its own full-width bar below the branding bar (collapses
+            into the hamburger drawer on narrow screens). */}
+        <nav className={"topnav" + (menuOpen ? " open" : "")}>
+          {PUBLIC_NAV.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === "/"}
+              className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
+              onClick={() => setMenuOpen(false)}
+            >
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
         {backdrop}
       </>
     );
@@ -166,30 +168,6 @@ export default function TopBar() {
           Sign out
         </button>
 
-        <nav className={"topnav" + (menuOpen ? " open" : "")}>
-          {NAV.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
-              onClick={() => setMenuOpen(false)}
-            >
-              <Icon />
-              <span>{label}</span>
-            </NavLink>
-          ))}
-
-          {/* Public pages — only rendered inside the mobile drawer (see CSS). */}
-          <div className="nav-extra">
-            <span className="nav-extra-label">More</span>
-            {CONTENT.map(({ to, label }) => (
-              <Link key={to} to={to} className="nav-extra-link" onClick={() => setMenuOpen(false)}>
-                {label}
-              </Link>
-            ))}
-          </div>
-        </nav>
-
         <div className="topbar-right">
           <ThemeToggle />
           <CreditsBadge />
@@ -201,6 +179,33 @@ export default function TopBar() {
 
         <ScripSearch />
       </header>
+
+      {/* Page nav — its own full-width bar below the branding bar so the long
+          app nav never crowds the branding row (which used to push "Sign out"
+          off-screen). Collapses into the hamburger drawer on narrow screens. */}
+      <nav className={"topnav" + (menuOpen ? " open" : "")}>
+        {NAV.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
+            onClick={() => setMenuOpen(false)}
+          >
+            <Icon />
+            <span>{label}</span>
+          </NavLink>
+        ))}
+
+        {/* Public pages — only rendered inside the mobile drawer (see CSS). */}
+        <div className="nav-extra">
+          <span className="nav-extra-label">More</span>
+          {CONTENT.map(({ to, label }) => (
+            <Link key={to} to={to} className="nav-extra-link" onClick={() => setMenuOpen(false)}>
+              {label}
+            </Link>
+          ))}
+        </div>
+      </nav>
       {backdrop}
     </>
   );
