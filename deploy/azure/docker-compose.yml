@@ -24,6 +24,9 @@ services:
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-https://api.taureye.com}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
         VITE_OAUTH_PROVIDERS: ${VITE_OAUTH_PROVIDERS:-}
+        VITE_ADSENSE_CLIENT: ${VITE_ADSENSE_CLIENT:-}
+        VITE_ADSENSE_SLOT_SCREENER: ${VITE_ADSENSE_SLOT_SCREENER:-}
+        VITE_ADSENSE_SLOT_WALLET: ${VITE_ADSENSE_SLOT_WALLET:-}
     image: taureye-web
     container_name: taureye-web
     restart: unless-stopped
