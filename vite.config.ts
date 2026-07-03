@@ -1,16 +1,36 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Emit /ads.txt at build time from VITE_ADSENSE_CLIENT so Google AdSense can
-// verify the domain (required for ads to serve). No-op when the id is unset.
-function adsTxt(client: string): Plugin {
+// Google AdSense wiring, all driven by VITE_ADSENSE_CLIENT. No-op when unset, so
+// ads stay OFF by default. When set, at build time we:
+//   1. inject the canonical AdSense loader into <head> on every page — this is
+//      the "AdSense code snippet" Google looks for to verify site ownership and
+//      is the recommended placement for serving ads.
+//   2. emit /ads.txt (google.com, pub-XXXX, DIRECT, f08c47fec0942fa0) — the
+//      "Ads.txt snippet" verification method + required for ads to serve.
+function adsense(client: string): Plugin {
+  const id = client.trim()
+  const pub = id.replace(/^ca-/, '') // ca-pub-XXXX -> pub-XXXX
   return {
-    name: 'taureye-ads-txt',
+    name: 'taureye-adsense',
     apply: 'build',
-    generateBundle() {
-      const id = client.trim()
+    transformIndexHtml() {
       if (!id) return
-      const pub = id.replace(/^ca-/, '') // ca-pub-XXXX -> pub-XXXX
+      return [
+        {
+          tag: 'script',
+          attrs: {
+            async: true,
+            src: `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${id}`,
+            crossorigin: 'anonymous',
+            'data-taureye-adsense': '1',
+          },
+          injectTo: 'head',
+        },
+      ]
+    },
+    generateBundle() {
+      if (!id) return
       this.emitFile({
         type: 'asset',
         fileName: 'ads.txt',
@@ -25,7 +45,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const adsenseClient = env.VITE_ADSENSE_CLIENT || process.env.VITE_ADSENSE_CLIENT || ''
   return {
-    plugins: [react(), adsTxt(adsenseClient)],
+    plugins: [react(), adsense(adsenseClient)],
     server: {
       // Bind 0.0.0.0 so any machine on the same LAN can open the app at
       // http://<this-PC-IP>:5174. The /api proxy below runs on this machine and
