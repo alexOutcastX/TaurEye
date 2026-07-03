@@ -296,7 +296,7 @@ function Cookies() {
     <>
       <p>
         This Cookie Policy explains how {product}, operated by {entity}, uses
-        cookies, browser local storage and similar technologies (together,
+        cookies, browser local storage, and similar technologies (together,
         “cookies”) on our website and app, and how you can control them. It should
         be read alongside our <Link to="/legal/privacy">Privacy Policy</Link>.
       </p>
@@ -332,8 +332,8 @@ function Cookies() {
           use <strong>Google AdSense</strong> on the web and{" "}
           <strong>Google AdMob</strong> in the mobile app. Google and its partners
           may set cookies or use your device advertising identifier to serve ads,
-          limit how often you see an ad, measure performance and — only where you
-          have consented — personalise ads. See{" "}
+          limit how often you see an ad, measure performance and, only where you
+          have consented, personalise ads. See{" "}
           <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">
             Google’s advertising technologies page
           </a>{" "}
