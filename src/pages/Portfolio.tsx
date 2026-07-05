@@ -547,7 +547,7 @@ export default function Portfolio() {
               Delete
             </button>
           )}
-          <button className="pf-btn" onClick={onExportCsv} title="Download holdings as CSV">
+          <button className="pf-btn" onClick={onExportCsv} title="Back up positions as CSV (re-importable)">
             ↓ CSV
           </button>
           <button className="pf-btn" onClick={() => fileRef.current?.click()} title="Import holdings from CSV">
@@ -564,6 +564,14 @@ export default function Portfolio() {
               e.target.value = "";
             }}
           />
+          {rows.length > 0 && (
+            <ExportMenu
+              filename={`taureye-portfolio-${active?.name ?? "holdings"}`}
+              title={`Portfolio — ${active?.name ?? ""}`}
+              subtitle={`${rows.length} holding${rows.length === 1 ? "" : "s"}`}
+              getData={pfExport}
+            />
+          )}
         </div>
       </header>
       {csvMsg && <p className="pf-csvmsg">{csvMsg}</p>}
@@ -682,12 +690,6 @@ export default function Portfolio() {
               {rows.length > 0 && (
                 <div className="pf-toolbar">
                   <ColumnMenu defs={PF_COLS} prefs={holdingCols.prefs} onChange={holdingCols.setPrefs} onReset={holdingCols.reset} />
-                  <ExportMenu
-                    filename={`taureye-portfolio-${active?.name ?? "holdings"}`}
-                    title={`Portfolio — ${active?.name ?? ""}`}
-                    subtitle={`${rows.length} holding${rows.length === 1 ? "" : "s"}`}
-                    getData={pfExport}
-                  />
                 </div>
               )}
             </div>
