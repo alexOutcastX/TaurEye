@@ -424,13 +424,20 @@ def main() -> None:
                    fuel=args.fuel)
     elif args.cmd == "fuel":
         # Fetch + print daily fuel prices (for validating/tuning the scrapers).
-        from .fuel import build_fuel_bundle
+        from .fuel import build_fuel_bundle, diagnostics
         b = build_fuel_bundle()
-        print(f"India: {len(b['india'])} cities, Global: {len(b['global'])} countries")
+        print(f"India: {len(b['india'])} cities, Global: {len(b['global'])} countries "
+              f"(global source: {b['meta']['source_global']})")
         for r in b["india"]:
-            print(f"  {r['city']:12} petrol={r['petrol']} diesel={r['diesel']}")
+            print(f"  {r['city']:12} petrol={r['petrol']} diesel={r['diesel']} "
+                  f"cng={r['cng']} lpg={r['lpg']}")
         for r in b["global"][:20]:
             print(f"  {r['country']:22} petrol={r['petrol']} diesel={r['diesel']}")
+        diags = diagnostics()
+        if diags:
+            print(f"-- diagnostics ({len(diags)} misses) --")
+            for d in diags[:25]:
+                print(f"  {d}")
 
 
 if __name__ == "__main__":

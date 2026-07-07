@@ -184,21 +184,81 @@ _SECTOR_INDICES: list[tuple[str, str]] = [
 ]
 
 
+# NSE "Industry" (macro sector) labels → the short names shown in the app's
+# sector heatmap. Unmapped labels pass through verbatim.
+_INDUSTRY_LABEL = {
+    "Information Technology": "IT",
+    "Fast Moving Consumer Goods": "FMCG",
+    "Oil Gas & Consumable Fuels": "Oil & Gas",
+    "Metals & Mining": "Metals",
+    "Automobile and Auto Components": "Automobile",
+    "Media Entertainment & Publication": "Media",
+    "Telecommunication": "Telecom",
+}
+
+# niftyindices.com publishes plain constituent CSVs (Company Name, Industry,
+# Symbol, Series, ISIN). Unlike the nseindia.com JSON API these are not behind
+# Akamai bot management, so they work from datacenter IPs. Total-market covers
+# ~750 names; nifty500 is the backup.
+_NIFTYINDICES_CSVS = [
+    "https://niftyindices.com/IndexConstituent/ind_niftytotalmarket_list.csv",
+    "https://www.niftyindices.com/IndexConstituent/ind_nifty500list.csv",
+]
+
+
+def _sectors_from_csv() -> dict[str, str]:
+    """Fallback sector map when the NSE JSON API is bot-blocked (the normal
+    case from cloud/datacenter IPs): symbol -> sector from the niftyindices
+    constituent CSVs' Industry column."""
+    import csv
+    import io
+
+    from .http import get_session
+
+    for url in _NIFTYINDICES_CSVS:
+        name = url.rsplit("/", 1)[-1]
+        try:
+            r = get_session().get(url, timeout=20, headers={"Referer": "https://niftyindices.com/"})
+            if r.status_code != 200 or not r.text or r.text.lstrip().startswith("<"):
+                log(f"  sectors       csv {name}: HTTP {r.status_code} (skipped)")
+                continue
+            out: dict[str, str] = {}
+            for row in csv.DictReader(io.StringIO(r.text)):
+                cells = {(k or "").strip().lower(): (v or "").strip() for k, v in row.items()}
+                sym = cells.get("symbol", "").upper()
+                industry = cells.get("industry", "")
+                if sym and industry:
+                    out[sym] = _INDUSTRY_LABEL.get(industry, industry)
+            if out:
+                log(f"  sectors       csv fallback {name}: {len(out)} symbols")
+                return out
+            log(f"  sectors       csv {name}: no rows parsed (skipped)")
+        except Exception as e:  # noqa: BLE001
+            log(f"  sectors       csv {name}: {type(e).__name__} (skipped)")
+    return {}
+
+
 def update_sectors() -> dict:
     """Populate securities.sector from NSE sectoral-index constituents (free, no
-    paid API). Only fills rows whose sector is currently empty/Unknown, so any
-    richer EODHD/manual classification is preserved. Fail-soft: a blocked index
-    (or no curl_cffi) just contributes nothing and never breaks the nightly run.
+    paid API), falling back to the niftyindices.com constituent CSVs when the
+    JSON API is bot-blocked. Only fills rows whose sector is currently
+    empty/Unknown, so any richer EODHD/manual classification is preserved.
+    Fail-soft: nothing here ever breaks the nightly run.
     """
     init_db()
     try:
         from curl_cffi import requests as cr
     except Exception as e:  # noqa: BLE001
-        log(f"  sectors       SKIP (curl_cffi unavailable: {type(e).__name__})")
-        return {"updated": 0, "indices": 0}
+        log(f"  sectors       curl_cffi unavailable ({type(e).__name__}) — using CSV fallback")
+        cr = None
 
     sym_sector: dict[str, str] = {}
     n_idx = 0
+    if cr is None:
+        sym_sector = _sectors_from_csv()
+        if not sym_sector:
+            return {"updated": 0, "indices": 0}
+        return _apply_sectors(sym_sector, n_idx)
     # The equity-stockIndices JSON API sits behind Akamai bot management: it only
     # accepts a session carrying the bm_* cookies issued when you load the homepage
     # AND an actual market-data HTML page first. Priming only the homepage (the old
@@ -250,13 +310,20 @@ def update_sectors() -> dict:
                     continue  # skip the index summary row / non-tickers
                 sym_sector.setdefault(sym, label)  # first (most specific) wins
     except Exception as e:  # noqa: BLE001
-        log(f"  sectors       FAIL {type(e).__name__}: {e}")
-        return {"updated": 0, "indices": n_idx}
+        log(f"  sectors       API FAIL {type(e).__name__}: {e}")
 
+    # The JSON API is routinely bot-blocked from cloud IPs — fall back to the
+    # plain constituent CSVs so the sector heatmap still gets populated.
+    if not sym_sector:
+        sym_sector = _sectors_from_csv()
     if not sym_sector:
         log(f"  sectors       no constituents fetched ({n_idx} indices reached)")
         return {"updated": 0, "indices": n_idx}
+    return _apply_sectors(sym_sector, n_idx)
 
+
+def _apply_sectors(sym_sector: dict[str, str], n_idx: int) -> dict:
+    """Write a symbol→sector map to the DB (only rows still empty/Unknown)."""
     updated = 0
     with session() as conn:
         for sym, label in sym_sector.items():
