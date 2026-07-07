@@ -5,15 +5,16 @@ Scraped nightly from free public aggregators and published as /data/fuel.json
 fetched or parsed is skipped so the rest of the bundle still publishes.
 
 SOURCES (free, no key):
-  - India:  goodreturns.in per-city petrol/diesel pages
-  - Global: globalpetrolprices.com gasoline/diesel country tables
+  - India:  goodreturns.in per-city pages — petrol, diesel, CNG, LPG
+  - Global: globalpetrolprices.com country tables; falls back to
+    numbeo.com gasoline rankings (petrol only) when GPP is unreachable.
 
-⚠️  VALIDATION NOTE: these sites publish HTML (no official API), so the regex
-parsers below are best-effort and WILL need tuning against the live markup on
-first run. Use `python -m backend.app.dataengine.run fuel` on the VM to fetch
-and print what was parsed, then adjust the patterns / city slugs as needed.
-Premium petrol (XP95/Speed/Power), CNG and LPG are not consistently published
-free per city — those fields stay null until a source is wired for them.
+⚠️  VALIDATION NOTE: these sites publish HTML (no official API), so the parsers
+below are best-effort. Use `python -m backend.app.dataengine.run fuel` on the VM
+to fetch and print what was parsed — it also prints per-source diagnostics
+(HTTP status / parse misses) so a blocked or re-skinned source is obvious.
+Premium petrol (XP95/Speed/Power) has no reliable free per-city source and
+stays null; the app hides columns with no data.
 """
 from __future__ import annotations
 
@@ -21,6 +22,13 @@ import re
 from datetime import date
 
 from .http import get_session
+
+# Per-source fetch/parse diagnostics for the `run fuel` validator.
+_DIAG: list[str] = []
+
+
+def diagnostics() -> list[str]:
+    return list(_DIAG)
 
 
 def _get(url: str, timeout: float = 8.0) -> str | None:
@@ -31,9 +39,11 @@ def _get(url: str, timeout: float = 8.0) -> str | None:
         r = get_session().get(url, timeout=timeout)
         if r.status_code == 200 and r.text:
             return r.text
-    except Exception:
-        pass
+        _DIAG.append(f"{url} -> HTTP {r.status_code}")
+    except Exception as e:  # noqa: BLE001
+        _DIAG.append(f"{url} -> {type(e).__name__}")
     return None
+
 
 # Major Indian cities → (display name, state, goodreturns url slug).
 INDIA_CITIES: list[tuple[str, str, str]] = [
@@ -54,65 +64,134 @@ INDIA_CITIES: list[tuple[str, str, str]] = [
     ("Patna", "Bihar", "patna"),
 ]
 
-_GR_PETROL = "https://www.goodreturns.in/petrol-price-in-{slug}.html"
-_GR_DIESEL = "https://www.goodreturns.in/diesel-price-in-{slug}.html"
-_GPP_PETROL = "https://www.globalpetrolprices.com/gasoline_prices/"
-_GPP_DIESEL = "https://www.globalpetrolprices.com/diesel_prices/"
+# goodreturns city pages per fuel. CNG/LPG pages don't exist for every city —
+# misses are fine (the field stays null and the app hides empty columns).
+_GR_URL = {
+    "petrol": "https://www.goodreturns.in/petrol-price-in-{slug}.html",
+    "diesel": "https://www.goodreturns.in/diesel-price-in-{slug}.html",
+    "cng": "https://www.goodreturns.in/cng-price-in-{slug}.html",
+    "lpg": "https://www.goodreturns.in/lpg-price-in-{slug}.html",
+}
 
-# A ₹ price like "96.72" — the first plausible fuel price near the top of a page.
-_PRICE = re.compile(r"₹\s*([0-9]{1,3}(?:\.[0-9]{1,2})?)")
-_PRICE_ALT = re.compile(r"(?:Rs\.?|INR)\s*([0-9]{1,3}\.[0-9]{1,2})", re.I)
+# Plausible retail bands per fuel (₹). Prices outside are parse noise, not data.
+_BAND = {
+    "petrol": (60.0, 160.0),   # ₹/L
+    "diesel": (55.0, 140.0),   # ₹/L
+    "cng": (40.0, 150.0),      # ₹/kg
+    "lpg": (400.0, 1500.0),    # ₹ / 14.2kg domestic cylinder
+}
+
+_RUPEE = r"(?:₹|Rs\.?|INR)\s*([0-9]{2,4}(?:\.[0-9]{1,2})?)"
+_PRICE_ANY = re.compile(_RUPEE, re.I)
+# A "Jul 06, 2026"-style date cell followed shortly by a ₹ price — goodreturns'
+# last-10-days table, newest row first. The most reliable anchor on the page.
+_DATE_PRICE = re.compile(
+    r">((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s*\d{4})<[^₹R]{0,240}?" + _RUPEE,
+    re.I | re.S,
+)
 
 
-def _first_price(html: str) -> float | None:
-    for rx in (_PRICE, _PRICE_ALT):
-        m = rx.search(html)
+def _in_band(v: float, fuel: str) -> bool:
+    lo, hi = _BAND[fuel]
+    return lo <= v <= hi
+
+
+def _parse_city_price(html: str, city: str, fuel: str) -> float | None:
+    """Layered parse of a goodreturns city page — most-anchored first:
+    1. newest row of the date/price history table,
+    2. first price after the city's name,
+    3. first in-band price anywhere (legacy heuristic).
+    Every layer enforces the fuel's plausibility band."""
+    m = _DATE_PRICE.search(html)
+    if m:
+        try:
+            v = float(m.group(2))
+            if _in_band(v, fuel):
+                return v
+        except ValueError:
+            pass
+    at = html.lower().find(city.lower())
+    if at != -1:
+        m = _PRICE_ANY.search(html, at, at + 1200)
         if m:
             try:
                 v = float(m.group(1))
-                if 40 <= v <= 250:  # sanity: retail petrol/diesel band (₹/L)
+                if _in_band(v, fuel):
                     return v
             except ValueError:
                 pass
+    for m in _PRICE_ANY.finditer(html):
+        try:
+            v = float(m.group(1))
+        except ValueError:
+            continue
+        if _in_band(v, fuel):
+            return v
     return None
 
 
-def _scrape_gr(url: str) -> float | None:
-    html = _get(url)
-    return _first_price(html) if html else None
-
-
 def scrape_india() -> list[dict]:
-    """Per-city petrol + diesel (goodreturns). Cities that fail are skipped; if
-    the first few cities all fail the source is likely down/blocked, so bail."""
+    """Per-city petrol/diesel/CNG/LPG (goodreturns). Cities that fail are
+    skipped. Each fuel goes dead after 3 straight misses with no earlier hit —
+    so a missing CNG/LPG section doesn't cost a timeout on every city, and a
+    fully blocked source bails out early."""
     rows: list[dict] = []
-    misses = 0
+    misses = dict.fromkeys(_GR_URL, 0)
+    hits = dict.fromkeys(_GR_URL, 0)
+
+    def fetch(fuel: str, slug: str, city: str) -> float | None:
+        if misses[fuel] >= 3 and hits[fuel] == 0:
+            return None  # source dead for this fuel — stop paying timeouts
+        html = _get(_GR_URL[fuel].format(slug=slug))
+        v = _parse_city_price(html, city, fuel) if html else None
+        if v is None:
+            misses[fuel] += 1
+            if html is not None:
+                _DIAG.append(f"{fuel}/{slug}: fetched but no in-band price parsed")
+        else:
+            hits[fuel] += 1
+        return v
+
     for name, state, slug in INDIA_CITIES:
-        petrol = _scrape_gr(_GR_PETROL.format(slug=slug))
-        diesel = _scrape_gr(_GR_DIESEL.format(slug=slug))
-        if petrol is None and diesel is None:
-            misses += 1
-            if misses >= 3 and not rows:
-                break  # source unreachable — don't grind through every city
+        petrol = fetch("petrol", slug, name)
+        diesel = fetch("diesel", slug, name)
+        if petrol is None and diesel is None and not rows and misses["petrol"] >= 3:
+            break  # goodreturns itself is unreachable — don't grind every city
+        cng = fetch("cng", slug, name)
+        lpg = fetch("lpg", slug, name)
+        if petrol is None and diesel is None and cng is None and lpg is None:
             continue
-        misses = 0
         rows.append(
             {
                 "city": name,
                 "state": state,
                 "petrol": petrol,
-                "premium_petrol": None,  # not on the free source
+                "premium_petrol": None,  # no reliable free per-city source
                 "diesel": diesel,
-                "cng": None,
-                "lpg": None,
+                "cng": cng,
+                "lpg": lpg,
             }
         )
     return rows
 
 
+_GPP_PETROL = "https://www.globalpetrolprices.com/gasoline_prices/"
+_GPP_DIESEL = "https://www.globalpetrolprices.com/diesel_prices/"
+_NUMBEO_PETROL = "https://www.numbeo.com/gas-prices/rankings_by_country.jsp"
+
 # globalpetrolprices lists rows like: <country> ... <price> (USD/litre).
 _GPP_ROW = re.compile(
     r'graph_outer_div[^>]*>.*?>([A-Z][A-Za-z .&\'-]{2,40})</a>.*?([0-9]\.[0-9]{2,3})',
+    re.S,
+)
+# Looser fallback for a re-skinned GPP: country link followed by a price.
+_GPP_ROW_ALT = re.compile(
+    r'href="/[a-z_]+/(?:[A-Za-z-]+)/"[^>]*>([A-Z][A-Za-z .&\'-]{2,40})</a>[^0-9]{0,160}([0-9]\.[0-9]{2,3})',
+    re.S,
+)
+# Numbeo ranking rows: country cell then a USD price cell.
+_NUMBEO_ROW = re.compile(
+    r'cityOrCountryInIndexesTable[^>]*>(?:<a[^>]*>)?\s*([A-Z][A-Za-z .&\'-]{2,40})\s*(?:</a>)?</td>\s*<td[^>]*>\s*([0-9]\.[0-9]{2})',
     re.S,
 )
 
@@ -122,14 +201,37 @@ def _scrape_gpp(url: str) -> dict[str, float]:
     html = _get(url, timeout=10.0)
     if not html:
         return out
-    for m in _GPP_ROW.finditer(html):
+    for rx in (_GPP_ROW, _GPP_ROW_ALT):
+        for m in rx.finditer(html):
+            country = m.group(1).strip()
+            try:
+                price = float(m.group(2))
+            except ValueError:
+                continue
+            if country and 0.1 <= price <= 5.0:  # USD/L sanity band
+                out.setdefault(country, price)
+        if out:
+            break
+    if not out:
+        _DIAG.append(f"{url}: fetched but no rows parsed")
+    return out
+
+
+def _scrape_numbeo_petrol() -> dict[str, float]:
+    out: dict[str, float] = {}
+    html = _get(_NUMBEO_PETROL, timeout=10.0)
+    if not html:
+        return out
+    for m in _NUMBEO_ROW.finditer(html):
         country = m.group(1).strip()
         try:
             price = float(m.group(2))
         except ValueError:
             continue
-        if country and 0.1 <= price <= 5.0:  # USD/L sanity band
+        if country and 0.1 <= price <= 5.0:
             out.setdefault(country, price)
+    if not out:
+        _DIAG.append(f"{_NUMBEO_PETROL}: fetched but no rows parsed")
     return out
 
 
@@ -142,9 +244,14 @@ GLOBAL_PREFERRED = [
 
 
 def scrape_global() -> list[dict]:
-    """Per-country petrol + diesel (globalpetrolprices, USD/litre)."""
+    """Per-country petrol + diesel in USD/litre. globalpetrolprices first;
+    numbeo (petrol only) as the fallback when GPP is blocked/unparseable."""
     petrol = _scrape_gpp(_GPP_PETROL)
     diesel = _scrape_gpp(_GPP_DIESEL)
+    source = "globalpetrolprices.com"
+    if not petrol and not diesel:
+        petrol = _scrape_numbeo_petrol()
+        source = "numbeo.com"
     countries = list(dict.fromkeys([*GLOBAL_PREFERRED, *petrol.keys()]))
     rows: list[dict] = []
     for c in countries:
@@ -153,12 +260,14 @@ def scrape_global() -> list[dict]:
         if p is None and d is None:
             continue
         rows.append({"country": c, "petrol": p, "diesel": d, "lpg": None, "currency": "USD", "unit": "litre"})
+    scrape_global.last_source = source  # type: ignore[attr-defined]
     return rows
 
 
 def build_fuel_bundle() -> dict:
     """Assemble the fuel.json payload. Each source is isolated so a failure in
     one still yields the other."""
+    _DIAG.clear()
     try:
         india = scrape_india()
     except Exception:
@@ -171,7 +280,7 @@ def build_fuel_bundle() -> dict:
         "meta": {
             "data_date": date.today().isoformat(),
             "source_india": "goodreturns.in",
-            "source_global": "globalpetrolprices.com",
+            "source_global": getattr(scrape_global, "last_source", "globalpetrolprices.com"),
         },
         "india": india,
         "global": world,
