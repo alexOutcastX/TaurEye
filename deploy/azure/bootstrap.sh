@@ -161,8 +161,8 @@ for _ in $(seq 1 60); do
 done
 
 if [ ! -f .state/schema-applied ]; then
-  log "Applying the TaurEye schema (schema → credits → referrals → subscriptions → harden-grants)…"
-  for f in schema credits referrals subscriptions harden-grants; do
+  log "Applying the TaurEye schema (schema → credits → referrals → subscriptions → analytics → harden-grants)…"
+  for f in schema credits referrals subscriptions analytics harden-grants; do
     sup exec -T db psql -U postgres -d postgres < "$REPO_ROOT/supabase/$f.sql"
   done
   touch .state/schema-applied

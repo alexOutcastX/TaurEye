@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { claimPendingReferral, pendingRefCode } from "../lib/referral";
+import { track } from "../lib/analytics";
 
 type User = { id?: string; name: string; email: string } | null;
 
@@ -91,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string): Promise<Result> => {
     if (cloud && supabase) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error) track("sign_in", { method: "password" });
       return error ? { error: error.message } : {};
     }
     setUser({ name: nameFromEmail(email), email });
@@ -100,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string): Promise<Result> => {
     if (cloud && supabase) {
       const { error } = await supabase.auth.signUp({ email, password });
+      if (!error) track("sign_up", { method: "password" });
       return error ? { error: error.message } : {};
     }
     setUser({ name: nameFromEmail(email), email });
@@ -112,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Providers must be enabled in Supabase → Authentication → Providers.
   const oauth = async (provider: OAuthProvider): Promise<Result> => {
     if (!cloud || !supabase) return { error: "Social sign-in needs the cloud backend." };
+    track("oauth_start", { provider });
     const { Capacitor } = await import("@capacitor/core");
     if (Capacitor.isNativePlatform()) {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -169,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const bypass = () => setUser({ name: "Guest", email: "guest@taureye.local" });
 
   const signOut = async () => {
+    track("sign_out");
     if (cloud && supabase) await supabase.auth.signOut();
     setUser(null);
   };

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ColDef, ColPrefs } from "../lib/columns";
 import { exportCsv, exportPdf, exportXlsx, type ExportColumn, type ExportRow } from "../lib/exporters";
+import { track } from "../lib/analytics";
 import "./TableTools.css";
 
 /**
@@ -133,6 +134,7 @@ export function ExportMenu({
       return;
     }
     setBusy(true);
+    track("export", { format: fmt, table: filename, rows: rows.length });
     try {
       if (fmt === "csv") exportCsv(filename, columns, rows);
       else if (fmt === "xlsx") await exportXlsx(filename, columns, rows, title.slice(0, 28));
