@@ -1,10 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Public, crawlable pages. Update the domain to your production host. -->
+<!-- Public, crawlable pages on https://taureye.com (the production host).
+     /app/* (the logged-in app) and /admin/ are intentionally absent — they are
+     disallowed in robots.txt. Keep the blog list in sync with
+     src/content/articles.ts when articles are added. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://taureye.app/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
-  <url><loc>https://taureye.app/login</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://taureye.app/legal/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://taureye.app/legal/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://taureye.app/legal/refund</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://taureye.app/legal/disclaimer</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://taureye.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://taureye.com/login</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://taureye.com/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://taureye.com/blog</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://taureye.com/blog/how-to-use-a-stock-screener</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/blog/understanding-rsi</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/blog/moving-averages-50-200-dma</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/blog/read-candlestick-charts</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/blog/market-cap-large-mid-small</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/blog/nifty-sensex-explained</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/blog/india-vix</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/blog/volume-and-relative-volume</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/blog/market-breadth-advance-decline</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/blog/corporate-actions-adjusted-prices</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/blog/build-your-first-screen</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/blog/adrs-gdrs-explained</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://taureye.com/legal/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://taureye.com/legal/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://taureye.com/legal/cookies</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://taureye.com/legal/refund</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://taureye.com/legal/disclaimer</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>
