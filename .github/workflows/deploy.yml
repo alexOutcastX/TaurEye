@@ -54,6 +54,8 @@ jobs:
           VITE_ADSENSE_CLIENT: ${{ vars.VITE_ADSENSE_CLIENT }}
           VITE_ADSENSE_SLOT_SCREENER: ${{ vars.VITE_ADSENSE_SLOT_SCREENER }}
           VITE_ADSENSE_SLOT_WALLET: ${{ vars.VITE_ADSENSE_SLOT_WALLET }}
+          # Google Analytics 4 measurement id (public). Unset = no tag.
+          VITE_GA_ID: ${{ vars.VITE_GA_ID }}
 
       - name: Configure SSH
         run: |
