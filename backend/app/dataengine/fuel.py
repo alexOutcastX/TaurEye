@@ -46,8 +46,11 @@ def _get(url: str, timeout: float = 8.0) -> str | None:
 
 
 # Major Indian cities → (display name, state, goodreturns url slug).
+# NOTE: Delhi is "new-delhi" on goodreturns — the "delhi" pages redirect to a
+# generic listing whose first price is another city's (that's how Delhi briefly
+# published Mumbai's ₹111.21 for petrol/diesel/CNG alike).
 INDIA_CITIES: list[tuple[str, str, str]] = [
-    ("Delhi", "Delhi", "delhi"),
+    ("Delhi", "Delhi", "new-delhi"),
     ("Mumbai", "Maharashtra", "mumbai"),
     ("Bengaluru", "Karnataka", "bangalore"),
     ("Chennai", "Tamil Nadu", "chennai"),
@@ -159,6 +162,17 @@ def scrape_india() -> list[dict]:
             break  # goodreturns itself is unreachable — don't grind every city
         cng = fetch("cng", slug, name)
         lpg = fetch("lpg", slug, name)
+        # Redirect guard: distinct fuels never share the exact same price to the
+        # paisa. Identical values mean the city's pages redirected to a common
+        # listing and we parsed the same stranger's price N times — keep petrol
+        # (the least likely to be absent) and drop the clones.
+        if petrol is not None:
+            if diesel == petrol:
+                diesel = None
+                _DIAG.append(f"{slug}: diesel == petrol ({petrol}) — dropped as redirect artifact")
+            if cng == petrol:
+                cng = None
+                _DIAG.append(f"{slug}: cng == petrol ({petrol}) — dropped as redirect artifact")
         if petrol is None and diesel is None and cng is None and lpg is None:
             continue
         rows.append(
@@ -262,6 +276,51 @@ def scrape_global() -> list[dict]:
         rows.append({"country": c, "petrol": p, "diesel": d, "lpg": None, "currency": "USD", "unit": "litre"})
     scrape_global.last_source = source  # type: ignore[attr-defined]
     return rows
+
+
+def _ctx(html: str, at: int, span: int = 150) -> str:
+    """A compact one-line context window around a match, for probe output."""
+    return " ".join(html[max(0, at - span): at + span].split())
+
+
+def probe(target: str) -> None:
+    """Print what a fuel source actually serves, to tune the parsers without
+    guessing. Targets:
+      global           — GPP gasoline/diesel pages + the numbeo fallback
+      <fuel>:<slug>    — one goodreturns city page, e.g. petrol:new-delhi
+    """
+    _DIAG.clear()
+    if target == "global":
+        for url in (_GPP_PETROL, _GPP_DIESEL, _NUMBEO_PETROL):
+            html = _get(url, timeout=10.0)
+            print(f"== {url}")
+            if not html:
+                print(f"   FETCH FAILED: {_DIAG[-1] if _DIAG else 'unknown'}")
+                continue
+            print(f"   {len(html)} bytes")
+            for name in ("India", "United States"):
+                at = html.find(name)
+                print(f"   ctx[{name}]: {_ctx(html, at) if at != -1 else '(not found)'}")
+            hits = list(re.finditer(r"[0-9]\.[0-9]{2,3}", html))
+            print(f"   {len(hits)} price-like tokens; first 3 in context:")
+            for m in hits[:3]:
+                print(f"     … {_ctx(html, m.start(), 100)}")
+        return
+    fuel, _, slug = target.partition(":")
+    if fuel not in _GR_URL or not slug:
+        print(f"usage: fuel-probe global | <{'|'.join(_GR_URL)}>:<slug>")
+        return
+    url = _GR_URL[fuel].format(slug=slug)
+    html = _get(url)
+    print(f"== {url}")
+    if not html:
+        print(f"   FETCH FAILED: {_DIAG[-1] if _DIAG else 'unknown'}")
+        return
+    print(f"   {len(html)} bytes; parsed -> {_parse_city_price(html, slug.replace('-', ' '), fuel)}")
+    for i, m in enumerate(_PRICE_ANY.finditer(html)):
+        if i >= 5:
+            break
+        print(f"   ₹match {m.group(1)}: … {_ctx(html, m.start(), 110)}")
 
 
 def build_fuel_bundle() -> dict:
