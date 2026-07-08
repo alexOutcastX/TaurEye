@@ -91,3 +91,4 @@ selfhost/
 deploy/azure/.env
 deploy/azure/data/
 deploy/azure/supabase-docker/
+dist-admin/

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { ExportMenu } from "../components/TableTools";
-import "./Admin.css";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { isSupabaseConfigured, supabase } from "../src/lib/supabase";
+import { ExportMenu } from "../src/components/TableTools";
+import "./admin.css";
 
-// Admin-only product analytics. Every read goes through admin-gated SECURITY
-// DEFINER RPCs (supabase/analytics.sql) — a non-admin gets "not authorized"
-// from Postgres, so this page is a viewer, not a gate.
+// Standalone admin console. Sign in with an admin account (app_admins —
+// supabase/analytics.sql); every read goes through admin-gated SECURITY
+// DEFINER RPCs, so this UI is a viewer, not a gate.
 
 interface Overview {
   total_users: number;
@@ -45,19 +45,82 @@ const fmtDay = (iso: string) =>
 const fmtWhen = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—";
 
-export default function Admin() {
-  const [state, setState] = useState<"loading" | "no-cloud" | "denied" | "ok" | "error">(
-    isSupabaseConfigured ? "loading" : "no-cloud",
+function Login({ onError }: { onError: string | null }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(onError);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    setBusy(true);
+    setError(null);
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (err) setError(err.message);
+    // success → onAuthStateChange in AdminApp re-renders into the dashboard
+  };
+
+  return (
+    <div className="adm-login">
+      <form className="adm-login-card" onSubmit={submit}>
+        <h1>TaurEye Admin</h1>
+        <p className="adm-note">Sign in with an admin account.</p>
+        <input
+          type="email"
+          placeholder="Email"
+          autoComplete="username"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        {error && <p className="adm-login-err">{error}</p>}
+        <button type="submit" disabled={busy}>
+          {busy ? "Signing in…" : "Sign in"}
+        </button>
+      </form>
+    </div>
   );
+}
+
+export default function AdminApp() {
+  const [authed, setAuthed] = useState<boolean | null>(isSupabaseConfigured ? null : false);
+  const [who, setWho] = useState<string>("");
+  const [state, setState] = useState<"loading" | "denied" | "ok" | "error">("loading");
   const [overview, setOverview] = useState<Overview | null>(null);
   const [daily, setDaily] = useState<Daily[]>([]);
   const [top, setTop] = useState<TopEvent[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [hover, setHover] = useState<number | null>(null);
 
+  // Session lifecycle.
   useEffect(() => {
     if (!supabase) return;
+    void supabase.auth.getSession().then(({ data }) => {
+      setAuthed(!!data.session);
+      setWho(data.session?.user.email ?? "");
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setAuthed(!!s);
+      setWho(s?.user.email ?? "");
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  // Load the dashboards once signed in.
+  useEffect(() => {
+    if (!supabase || !authed) return;
     let alive = true;
+    setState("loading");
     void (async () => {
       const [ov, dl, te, us] = await Promise.all([
         supabase.rpc("analytics_overview"),
@@ -80,42 +143,58 @@ export default function Admin() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [authed]);
 
   const maxActive = useMemo(() => Math.max(1, ...daily.map((d) => d.active_users)), [daily]);
 
-  if (state === "no-cloud") {
+  if (!isSupabaseConfigured) {
     return (
       <section className="adm">
-        <h1>Analytics</h1>
-        <p className="adm-note">Analytics needs the cloud backend (Supabase) — not available in this build.</p>
+        <h1>TaurEye Admin</h1>
+        <p className="adm-note">This build has no cloud backend configured (VITE_SUPABASE_URL).</p>
       </section>
     );
   }
+  if (authed === null) {
+    return (
+      <section className="adm">
+        <p className="adm-note">Loading…</p>
+      </section>
+    );
+  }
+  if (!authed) return <Login onError={null} />;
+
+  const signOut = () => {
+    void supabase?.auth.signOut();
+  };
+
   if (state === "denied") {
     return (
       <section className="adm">
-        <h1>Analytics</h1>
+        <h1>TaurEye Admin</h1>
         <p className="adm-note">
-          Not authorized. Add your account to <code>app_admins</code> (see supabase/analytics.sql).
+          <strong>{who}</strong> is not an admin. Add the account to <code>app_admins</code>{" "}
+          (see supabase/analytics.sql), then reload.
         </p>
+        <button className="adm-signout" onClick={signOut}>Sign out</button>
       </section>
     );
   }
   if (state === "error") {
     return (
       <section className="adm">
-        <h1>Analytics</h1>
+        <h1>TaurEye Admin</h1>
         <p className="adm-note">
           Couldn't load analytics — is <code>supabase/analytics.sql</code> applied on the server?
         </p>
+        <button className="adm-signout" onClick={signOut}>Sign out</button>
       </section>
     );
   }
   if (state === "loading") {
     return (
       <section className="adm">
-        <h1>Analytics</h1>
+        <h1>TaurEye Admin</h1>
         <p className="adm-note">Loading…</p>
       </section>
     );
@@ -136,8 +215,11 @@ export default function Admin() {
   return (
     <section className="adm">
       <header className="adm-head">
-        <h1>Analytics</h1>
+        <h1>TaurEye Admin</h1>
         <span className="adm-sub">Product usage · last 30 days</span>
+        <span className="adm-spacer" />
+        <span className="adm-who">{who}</span>
+        <button className="adm-signout" onClick={signOut}>Sign out</button>
       </header>
 
       <div className="adm-stats">

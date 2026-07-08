@@ -37,9 +37,13 @@ ENV VITE_DATA_SOURCE=$VITE_DATA_SOURCE \
     VITE_ADSENSE_SLOT_SCREENER=$VITE_ADSENSE_SLOT_SCREENER \
     VITE_ADSENSE_SLOT_WALLET=$VITE_ADSENSE_SLOT_WALLET
 RUN npm run build
+# The admin console is a SEPARATE bundle (never part of the user SPA / mobile
+# OTA) served under /admin/ — see vite.admin.config.ts.
+RUN npm run build:admin
 
 FROM nginx:1.27-alpine
 # Reuse the existing site config (SPA fallback + /data bundle with CORS + gzip).
 COPY deploy/nginx-taureye.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/dist-admin /usr/share/nginx/admin
 EXPOSE 80

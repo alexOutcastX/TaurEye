@@ -25,7 +25,6 @@ import Portfolio from "./pages/Portfolio";
 import Calculators from "./pages/Calculators";
 import Refer from "./pages/Refer";
 import Settings from "./pages/Settings";
-import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
 import { trackPageView } from "./lib/analytics";
@@ -119,7 +118,6 @@ export default function App() {
         <Route path="wallet" element={<Wallet />} />
         <Route path="refer" element={<Refer />} />
         <Route path="settings" element={<Settings />} />
-        <Route path="admin" element={<Admin />} />
       </Route>
 
         <Route path="*" element={<NotFound />} />

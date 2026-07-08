@@ -1,8 +1,58 @@
-.adm { display: flex; flex-direction: column; gap: var(--sp-4); max-width: 1100px; }
-.adm-head { display: flex; align-items: baseline; gap: 12px; }
+/* Standalone admin console (served at /admin/, outside the user app). */
+.adm { display: flex; flex-direction: column; gap: var(--sp-4); max-width: 1100px; margin: 0 auto; padding: var(--sp-5); }
+.adm-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .adm-head h1, .adm > h1 { margin: 0; font-size: 24px; }
 .adm-sub { color: var(--text-faint); font-size: 13px; }
 .adm-note { color: var(--text-muted); }
+.adm-spacer { flex: 1; }
+.adm-who { color: var(--text-faint); font-size: 13px; }
+.adm-signout {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  border-radius: var(--r-sm);
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.adm-signout:hover { color: var(--text); border-color: var(--text-faint); }
+
+/* sign-in */
+.adm-login { min-height: 100dvh; display: grid; place-items: center; padding: var(--sp-5); }
+.adm-login-card {
+  width: min(360px, 92vw);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 22px;
+}
+.adm-login-card h1 { margin: 0; font-size: 20px; }
+.adm-login-card input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 9px 11px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+.adm-login-card input:focus { border-color: var(--accent); }
+.adm-login-card button {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  border-radius: var(--r-md);
+  padding: 9px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.adm-login-card button:disabled { opacity: 0.6; }
+.adm-login-err { color: var(--down); font-size: 13px; margin: 0; }
 
 /* stat tiles */
 .adm-stats {
