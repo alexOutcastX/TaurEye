@@ -297,6 +297,11 @@ def _gpp_country_usd(html: str) -> float | None:
     """The USD/litre value on a GPP country page: a decimal adjacent to the
     'U.S. Dollar'/'USD' label (either order)."""
     for rx in (
+        # Highest priority: the body sentence "The current <fuel> price in X is
+        # INR nn.nn per liter or USD n.nn per liter" — today's price. Without
+        # this the first USD on some pages is the meta description's DECADE
+        # AVERAGE ("The average gasoline price during that period is USD 0.87").
+        re.compile(r"current[^.]{0,200}?USD\s*([0-9]+\.[0-9]{2,3})\s*per\s*lit", re.I | re.S),
         re.compile(r"([0-9]+\.[0-9]{2,3})\s*(?:<[^>]*>\s*)*(?:U\.S\. Dollar|USD)"),
         re.compile(r"(?:U\.S\. Dollar|USD)[^0-9]{0,120}?([0-9]+\.[0-9]{2,3})", re.S),
     ):
