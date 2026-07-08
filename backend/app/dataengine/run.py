@@ -335,6 +335,8 @@ def main() -> None:
     epp.add_argument("symbol", nargs="?", default="RELIANCE")
     sub.add_parser("readjust")
     sub.add_parser("fuel", help="fetch + print daily fuel prices (validate the scrapers)")
+    fpr = sub.add_parser("fuel-probe", help="dump a fuel source's live markup context (parser tuning)")
+    fpr.add_argument("target", help="'global' or <fuel>:<slug>, e.g. petrol:new-delhi")
     sub.add_parser("status")
     ip = sub.add_parser("inspect", help="diagnose one symbol's price spine (ISIN map, last dates)")
     ip.add_argument("symbol")
@@ -422,6 +424,9 @@ def main() -> None:
                    ohlc=args.ohlc, candles=args.candles,
                    indices=args.indices, everything=args.everything, funda=args.funda,
                    fuel=args.fuel)
+    elif args.cmd == "fuel-probe":
+        from .fuel import probe
+        probe(args.target)
     elif args.cmd == "fuel":
         # Fetch + print daily fuel prices (for validating/tuning the scrapers).
         from .fuel import build_fuel_bundle, diagnostics
