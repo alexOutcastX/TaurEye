@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   getSettings,
   onSettingsChange,
@@ -7,6 +8,7 @@ import {
   SETTING_VARS,
   type AppSettings,
 } from "../lib/settings";
+import { supabase } from "../lib/supabase";
 import "./Settings.css";
 
 const FIELDS: { key: keyof AppSettings; label: string; desc: string }[] = [
@@ -57,6 +59,19 @@ function themeValue(key: keyof AppSettings): string {
 export default function Settings() {
   const [s, setS] = useState<AppSettings>(getSettings());
   useEffect(() => onSettingsChange(() => setS(getSettings())), []);
+
+  // Show the analytics link only to admins (app_admins via supabase/analytics.sql).
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    if (!supabase) return;
+    let alive = true;
+    void supabase.rpc("is_admin").then(({ data }) => {
+      if (alive) setIsAdmin(data === true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   return (
     <section className="settings">
@@ -114,6 +129,21 @@ export default function Settings() {
         Overrides apply on both the light and dark themes until you reset them.
         Leaving a colour unset keeps the theme default — white on black, black on white.
       </p>
+
+      {isAdmin && (
+        <div className="set-card">
+          <h2 className="set-card-title">Admin</h2>
+          <div className="set-row">
+            <div className="set-row-main">
+              <span className="set-label">Product analytics</span>
+              <p className="set-desc">Usage dashboards: active users, feature adoption, per-account activity.</p>
+            </div>
+            <div className="set-controls">
+              <Link to="/app/admin" className="set-clear">Open analytics →</Link>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

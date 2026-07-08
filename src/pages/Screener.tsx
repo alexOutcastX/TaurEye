@@ -25,6 +25,7 @@ import { COSTS } from "../lib/economy";
 import { PRESETS, type Preset } from "../config/presets";
 import { decodeScreen, shareUrl } from "../lib/shareScreen";
 import { copyToClipboard } from "../lib/referral";
+import { track } from "../lib/analytics";
 import "./Screener.css";
 
 const OPS: { value: Operator; label: string }[] = [
@@ -251,6 +252,7 @@ export default function Screener() {
     setError(null);
     try {
       const res = await api.screen(r);
+      track("screen_run", { filters: r.filters.length, results: res.count });
       setRows(res.results);
       setCount(res.count);
       cachedRows = res.results;

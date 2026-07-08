@@ -22,7 +22,8 @@ begin
   foreach f in array array[
     'public.current_balance(uuid)',   -- internal: takes an arbitrary uid
     'public.handle_new_user()',       -- on_auth_user_created trigger (signup bonus)
-    'public.rls_auto_enable()'        -- schema bootstrap helper, if present
+    'public.rls_auto_enable()',       -- schema bootstrap helper, if present
+    'public._require_admin()'         -- internal admin gate (analytics.sql)
   ] loop
     if to_regprocedure(f) is not null then
       execute format('revoke execute on function %s from public, anon, authenticated', f);
@@ -41,7 +42,14 @@ begin
     'public.claim_daily(integer)',
     'public.claim_referral(text)',
     'public.my_referrals()',
-    'public.is_pro()'
+    'public.is_pro()',
+    -- analytics (all self-check is_admin() internally; see analytics.sql)
+    'public.is_admin()',
+    'public.analytics_overview()',
+    'public.analytics_daily(int)',
+    'public.analytics_top_events(int)',
+    'public.analytics_users(int)',
+    'public.analytics_purge(int)'
   ] loop
     if to_regprocedure(f) is not null then
       execute format('revoke execute on function %s from public, anon', f);
