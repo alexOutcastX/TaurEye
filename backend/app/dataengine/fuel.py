@@ -279,13 +279,91 @@ GLOBAL_PREFERRED = [
     "Russia", "Brazil", "South Africa", "Pakistan", "Sri Lanka", "Nepal", "Bangladesh",
 ]
 
+# globalpetrolprices' PER-COUNTRY pages are server-rendered (unlike the JS-drawn
+# main list) — country name -> their URL slug.
+_GPP_COUNTRY = "https://www.globalpetrolprices.com/{slug}/{fuel}_prices/"
+_GPP_SLUGS = {
+    "India": "India", "United States": "USA", "United Kingdom": "United-Kingdom",
+    "United Arab Emirates": "United-Arab-Emirates", "Singapore": "Singapore",
+    "Australia": "Australia", "Canada": "Canada", "Germany": "Germany",
+    "France": "France", "Japan": "Japan", "China": "China",
+    "Saudi Arabia": "Saudi-Arabia", "Russia": "Russia", "Brazil": "Brazil",
+    "South Africa": "South-Africa", "Pakistan": "Pakistan",
+    "Sri Lanka": "Sri-Lanka", "Nepal": "Nepal", "Bangladesh": "Bangladesh",
+}
+
+
+def _gpp_country_usd(html: str) -> float | None:
+    """The USD/litre value on a GPP country page: a decimal adjacent to the
+    'U.S. Dollar'/'USD' label (either order)."""
+    for rx in (
+        re.compile(r"([0-9]+\.[0-9]{2,3})\s*(?:<[^>]*>\s*)*(?:U\.S\. Dollar|USD)"),
+        re.compile(r"(?:U\.S\. Dollar|USD)[^0-9]{0,120}?([0-9]+\.[0-9]{2,3})", re.S),
+    ):
+        m = rx.search(html)
+        if m:
+            try:
+                v = float(m.group(1))
+            except ValueError:
+                continue
+            if 0.05 <= v <= 6.0:
+                return v
+    return None
+
+
+def _scrape_gpp_countries(fuel: str) -> dict[str, float]:
+    """fuel = 'gasoline' | 'diesel'. One request per preferred country with a
+    3-miss early abort (each page is server-rendered HTML)."""
+    out: dict[str, float] = {}
+    misses = 0
+    for country, slug in _GPP_SLUGS.items():
+        html = _get(_GPP_COUNTRY.format(slug=slug, fuel=fuel), timeout=10.0)
+        v = _gpp_country_usd(html) if html else None
+        if v is None:
+            misses += 1
+            if html is not None:
+                _DIAG.append(f"gpp/{slug}/{fuel}: fetched but no USD price parsed")
+            if misses >= 3 and not out:
+                break
+            continue
+        out[country] = v
+    return out
+
+
+# The world-average sentence IS server-rendered on the GPP main pages (probe-
+# confirmed), so this row can always publish even when everything else is blocked.
+_GPP_AVG = re.compile(
+    r"average price of (?:gasoline|diesel)[^0-9]{0,120}?([0-9]+\.[0-9]{1,3})\s*U\.S\. Dollar",
+    re.S,
+)
+
+
+def _gpp_world_average(url: str) -> float | None:
+    html = _get(url, timeout=10.0)
+    if not html:
+        return None
+    m = _GPP_AVG.search(html)
+    if not m:
+        return None
+    try:
+        v = float(m.group(1))
+    except ValueError:
+        return None
+    return v if 0.1 <= v <= 5.0 else None
+
 
 def scrape_global() -> list[dict]:
-    """Per-country petrol + diesel in USD/litre. globalpetrolprices first;
-    numbeo (petrol only) as the fallback when GPP is blocked/unparseable."""
+    """Per-country petrol + diesel in USD/litre, in fallback order:
+    1. GPP main-page bulk lists (cheap, but JS-rendered these days),
+    2. GPP per-country pages (server-rendered; the reliable path),
+    3. numbeo country pages (petrol only),
+    4. the GPP world-average sentence — guaranteed floor so the tab is never empty."""
     petrol = _scrape_gpp(_GPP_PETROL)
     diesel = _scrape_gpp(_GPP_DIESEL)
     source = "globalpetrolprices.com"
+    if not petrol and not diesel:
+        petrol = _scrape_gpp_countries("gasoline")
+        diesel = _scrape_gpp_countries("diesel")
     if not petrol and not diesel:
         petrol = _scrape_numbeo_petrol()
         source = "numbeo.com"
@@ -297,6 +375,15 @@ def scrape_global() -> list[dict]:
         if p is None and d is None:
             continue
         rows.append({"country": c, "petrol": p, "diesel": d, "lpg": None, "currency": "USD", "unit": "litre"})
+    if not rows:
+        avg_p = _gpp_world_average(_GPP_PETROL)
+        avg_d = _gpp_world_average(_GPP_DIESEL)
+        source = "globalpetrolprices.com (world average)"
+        if avg_p is not None or avg_d is not None:
+            rows.append({
+                "country": "World average", "petrol": avg_p, "diesel": avg_d,
+                "lpg": None, "currency": "USD", "unit": "litre",
+            })
     scrape_global.last_source = source  # type: ignore[attr-defined]
     return rows
 
@@ -327,6 +414,19 @@ def probe(target: str) -> None:
                 hits = rx.findall(html)
                 sample = f"  e.g. {hits[0]}" if hits else ""
                 print(f"   regex#{i}: {len(hits)} matches{sample}")
+            m = _GPP_AVG.search(html)
+            print(f"   world-average parse -> {m.group(1) if m else None}")
+        for slug, fuel_kind in (("India", "gasoline"), ("USA", "gasoline"), ("India", "diesel")):
+            url = _GPP_COUNTRY.format(slug=slug, fuel=fuel_kind)
+            html = _get(url, timeout=10.0)
+            print(f"== {url}")
+            if not html:
+                print(f"   FETCH FAILED: {_DIAG[-1] if _DIAG else 'unknown'}")
+                continue
+            print(f"   {len(html)} bytes; parsed -> {_gpp_country_usd(html)}")
+            for label in ("U.S. Dollar", "USD"):
+                at = html.find(label)
+                print(f"   ctx[{label}]: {_ctx(html, at, 160) if at != -1 else '(not found)'}")
         for c in ("India", "United States"):
             url = _NUMBEO_COUNTRY.format(c=quote(c))
             html = _get(url, timeout=10.0)
