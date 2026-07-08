@@ -191,23 +191,25 @@ def scrape_india() -> list[dict]:
 
 _GPP_PETROL = "https://www.globalpetrolprices.com/gasoline_prices/"
 _GPP_DIESEL = "https://www.globalpetrolprices.com/diesel_prices/"
-_NUMBEO_PETROL = "https://www.numbeo.com/gas-prices/rankings_by_country.jsp"
+# Numbeo's rankings page 404s now; the per-country pages are static HTML and
+# can render in USD directly.
+_NUMBEO_COUNTRY = "https://www.numbeo.com/gas-prices/country_result.jsp?country={c}&displayCurrency=USD"
 
-# globalpetrolprices lists rows like: <country> ... <price> (USD/litre).
+# globalpetrolprices' per-country list is rendered by JS, but the data ships in
+# the page as inline chart pairs: ["Country", 1.23]. That's the primary parse.
+_GPP_DATA_PAIR = re.compile(
+    r'\[\s*"([A-Z][A-Za-z .&\'()-]{2,40})"\s*,\s*([0-9]+\.[0-9]{2,3})\s*\]',
+)
+# Legacy/fallback shapes in case the embedding changes back to server-rendered rows.
 _GPP_ROW = re.compile(
     r'graph_outer_div[^>]*>.*?>([A-Z][A-Za-z .&\'-]{2,40})</a>.*?([0-9]\.[0-9]{2,3})',
     re.S,
 )
-# Looser fallback for a re-skinned GPP: country link followed by a price.
 _GPP_ROW_ALT = re.compile(
     r'href="/[a-z_]+/(?:[A-Za-z-]+)/"[^>]*>([A-Z][A-Za-z .&\'-]{2,40})</a>[^0-9]{0,160}([0-9]\.[0-9]{2,3})',
     re.S,
 )
-# Numbeo ranking rows: country cell then a USD price cell.
-_NUMBEO_ROW = re.compile(
-    r'cityOrCountryInIndexesTable[^>]*>(?:<a[^>]*>)?\s*([A-Z][A-Za-z .&\'-]{2,40})\s*(?:</a>)?</td>\s*<td[^>]*>\s*([0-9]\.[0-9]{2})',
-    re.S,
-)
+_GPP_REGEXES = (_GPP_DATA_PAIR, _GPP_ROW, _GPP_ROW_ALT)
 
 
 def _scrape_gpp(url: str) -> dict[str, float]:
@@ -215,7 +217,7 @@ def _scrape_gpp(url: str) -> dict[str, float]:
     html = _get(url, timeout=10.0)
     if not html:
         return out
-    for rx in (_GPP_ROW, _GPP_ROW_ALT):
+    for rx in _GPP_REGEXES:
         for m in rx.finditer(html):
             country = m.group(1).strip()
             try:
@@ -224,28 +226,49 @@ def _scrape_gpp(url: str) -> dict[str, float]:
                 continue
             if country and 0.1 <= price <= 5.0:  # USD/L sanity band
                 out.setdefault(country, price)
-        if out:
+        # A real country list has dozens of rows; a couple of hits is JS noise.
+        if len(out) >= 10:
             break
+        out.clear()
     if not out:
         _DIAG.append(f"{url}: fetched but no rows parsed")
     return out
 
 
+def _numbeo_gas_usd(html: str) -> float | None:
+    """Price from a numbeo country page rendered in USD: the value following
+    the "Gasoline (1 liter)" row label."""
+    at = html.find("Gasoline (1 liter)")
+    if at == -1:
+        return None
+    m = re.search(r"([0-9]+(?:\.[0-9]{1,2})?)\s*(?:&nbsp;|\s)*\$", html[at: at + 600])
+    if not m:
+        return None
+    try:
+        v = float(m.group(1))
+    except ValueError:
+        return None
+    return v if 0.1 <= v <= 5.0 else None
+
+
 def _scrape_numbeo_petrol() -> dict[str, float]:
+    """Per-country gasoline (USD/L) from numbeo country pages — one request per
+    preferred country, early-abort if the site is down/blocked."""
+    from urllib.parse import quote
+
     out: dict[str, float] = {}
-    html = _get(_NUMBEO_PETROL, timeout=10.0)
-    if not html:
-        return out
-    for m in _NUMBEO_ROW.finditer(html):
-        country = m.group(1).strip()
-        try:
-            price = float(m.group(2))
-        except ValueError:
+    misses = 0
+    for c in GLOBAL_PREFERRED:
+        html = _get(_NUMBEO_COUNTRY.format(c=quote(c)), timeout=10.0)
+        v = _numbeo_gas_usd(html) if html else None
+        if v is None:
+            misses += 1
+            if html is not None:
+                _DIAG.append(f"numbeo/{c}: fetched but no gasoline price parsed")
+            if misses >= 3 and not out:
+                break  # source unreachable/re-skinned — stop paying timeouts
             continue
-        if country and 0.1 <= price <= 5.0:
-            out.setdefault(country, price)
-    if not out:
-        _DIAG.append(f"{_NUMBEO_PETROL}: fetched but no rows parsed")
+        out[c] = v
     return out
 
 
@@ -291,20 +314,29 @@ def probe(target: str) -> None:
     """
     _DIAG.clear()
     if target == "global":
-        for url in (_GPP_PETROL, _GPP_DIESEL, _NUMBEO_PETROL):
+        from urllib.parse import quote
+
+        for url in (_GPP_PETROL, _GPP_DIESEL):
             html = _get(url, timeout=10.0)
             print(f"== {url}")
             if not html:
                 print(f"   FETCH FAILED: {_DIAG[-1] if _DIAG else 'unknown'}")
                 continue
             print(f"   {len(html)} bytes")
-            for name in ("India", "United States"):
-                at = html.find(name)
-                print(f"   ctx[{name}]: {_ctx(html, at) if at != -1 else '(not found)'}")
-            hits = list(re.finditer(r"[0-9]\.[0-9]{2,3}", html))
-            print(f"   {len(hits)} price-like tokens; first 3 in context:")
-            for m in hits[:3]:
-                print(f"     … {_ctx(html, m.start(), 100)}")
+            for i, rx in enumerate(_GPP_REGEXES):
+                hits = rx.findall(html)
+                sample = f"  e.g. {hits[0]}" if hits else ""
+                print(f"   regex#{i}: {len(hits)} matches{sample}")
+        for c in ("India", "United States"):
+            url = _NUMBEO_COUNTRY.format(c=quote(c))
+            html = _get(url, timeout=10.0)
+            print(f"== {url}")
+            if not html:
+                print(f"   FETCH FAILED: {_DIAG[-1] if _DIAG else 'unknown'}")
+                continue
+            at = html.find("Gasoline (1 liter)")
+            print(f"   {len(html)} bytes; parsed -> {_numbeo_gas_usd(html)}")
+            print(f"   ctx[Gasoline]: {_ctx(html, at, 200) if at != -1 else '(label not found)'}")
         return
     fuel, _, slug = target.partition(":")
     if fuel not in _GR_URL or not slug:
