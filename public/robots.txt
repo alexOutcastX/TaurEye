@@ -2,6 +2,6 @@
 User-agent: *
 Allow: /
 Disallow: /app/
+Disallow: /admin/
 
-# Set your production domain here once HTTPS is live:
-# Sitemap: https://taureye.app/sitemap.xml
+Sitemap: https://taureye.com/sitemap.xml
