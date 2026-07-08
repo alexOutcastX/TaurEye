@@ -67,11 +67,25 @@ fi
 } > "$OVR"
 
 echo "==> Wrote $OVR. Enabled providers: $(cut -f1 "$STORE" | paste -sd, -)"
+
+# Supabase's .env pins an explicit COMPOSE_FILE list, which DISABLES compose's
+# automatic docker-compose.override.yml pickup — append ours or the override
+# silently never applies.
+if grep -q '^COMPOSE_FILE=' .env 2>/dev/null \
+   && ! grep '^COMPOSE_FILE=' .env | grep -q 'docker-compose.override.yml'; then
+  sed -i 's|^COMPOSE_FILE=.*|&:docker-compose.override.yml|' .env
+  echo "==> Appended docker-compose.override.yml to COMPOSE_FILE in supabase-docker/.env"
+fi
+
 echo "==> Restarting auth..."
-sudo docker compose up -d auth
-sleep 4
+sudo docker compose up -d --force-recreate auth
+sleep 5
 echo "==> Verify (want \"${PROVIDER}\":true):"
-curl -s https://api.taureye.com/auth/v1/settings | grep -o "\"${PROVIDER}\":[a-z]*" || echo "(could not read settings — check 'docker compose logs auth')"
+# Kong requires an API key even on /settings — read the anon key from the app .env.
+ANON="$(grep '^VITE_SUPABASE_ANON_KEY=' ../.env 2>/dev/null | head -1 | cut -d= -f2-)"
+curl -s https://api.taureye.com/auth/v1/settings ${ANON:+-H "apikey: $ANON"} \
+  | grep -o "\"${PROVIDER}\":[a-z]*" \
+  || echo "(could not read settings — check 'docker compose logs auth')"
 echo
 echo "Next: make sure VITE_OAUTH_PROVIDERS in deploy/azure/.env lists '$PROVIDER', then:"
 echo "  cd \"$(dirname "$(pwd)")\" && sudo docker compose up -d --build web"
