@@ -246,10 +246,11 @@ function Privacy() {
       <h2>3. Sharing &amp; processors</h2>
       <p>
         We share data with service providers strictly to run the Service: hosting
-        and database/auth (Supabase), payment processing (Razorpay), and, where
-        enabled, advertising (Google AdSense on the web and AdMob in the app) and
-        AI inference providers for the AI features. Each processes data under its
-        own terms.
+        and database/auth (Supabase), payment processing (Razorpay), usage
+        analytics (Google Analytics, plus first-party product events we store
+        ourselves), and, where enabled, advertising (Google AdSense on the web and
+        AdMob in the app) and AI inference providers for the AI features. Each
+        processes data under its own terms.
       </p>
 
       <h2>4. Cookies &amp; local storage</h2>
@@ -328,6 +329,21 @@ function Cookies() {
           during checkout to process your transaction securely and prevent fraud.
         </li>
         <li>
+          <strong>Analytics.</strong> We use <strong>Google Analytics</strong> to
+          understand how the Service is used (pages visited, approximate location,
+          device type). Google sets cookies (e.g. <code>_ga</code>) to distinguish
+          visitors and measure sessions. We also record basic product events
+          (e.g. sign-ins, screens run) against your account to operate and improve
+          the Service. See{" "}
+          <a href="https://policies.google.com/technologies/cookies" target="_blank" rel="noopener noreferrer">
+            how Google uses cookies
+          </a>
+          ; you can opt out of Google Analytics with the{" "}
+          <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer">
+            browser opt-out add-on
+          </a>.
+        </li>
+        <li>
           <strong>Advertising (where enabled).</strong> When ads are turned on, we
           use <strong>Google AdSense</strong> on the web and{" "}
           <strong>Google AdMob</strong> in the mobile app. Google and its partners
@@ -341,8 +357,8 @@ function Cookies() {
         </li>
       </ul>
       <p>
-        We do <strong>not</strong> use third-party website analytics or tracking
-        cookies for profiling beyond what is described above.
+        We do <strong>not</strong> use tracking or profiling cookies beyond what is
+        described above.
       </p>
 
       <h2>3. Your choices</h2>

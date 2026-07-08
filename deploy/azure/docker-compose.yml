@@ -27,6 +27,8 @@ services:
         VITE_ADSENSE_CLIENT: ${VITE_ADSENSE_CLIENT:-}
         VITE_ADSENSE_SLOT_SCREENER: ${VITE_ADSENSE_SLOT_SCREENER:-}
         VITE_ADSENSE_SLOT_WALLET: ${VITE_ADSENSE_SLOT_WALLET:-}
+        # Google Analytics 4 (public measurement id; override in .env if it changes)
+        VITE_GA_ID: ${VITE_GA_ID:-G-G1HT6F4ND3}
     image: taureye-web
     container_name: taureye-web
     restart: unless-stopped

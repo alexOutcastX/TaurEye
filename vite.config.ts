@@ -40,12 +40,45 @@ function adsense(client: string): Plugin {
   }
 }
 
+// Google Analytics (GA4, gtag.js) — the exact snippet from the GA "Install
+// manually" screen, injected into <head> on every page at build time. Driven by
+// VITE_GA_ID (G-XXXXXXXXXX); unset = no tag, so dev/local builds stay untracked.
+// GA4's enhanced measurement detects History API changes, so SPA route changes
+// count as page views without extra code.
+function gaTag(measurementId: string): Plugin {
+  const id = measurementId.trim()
+  return {
+    name: 'taureye-ga',
+    apply: 'build',
+    transformIndexHtml() {
+      if (!id) return
+      return [
+        {
+          tag: 'script',
+          attrs: { async: true, src: `https://www.googletagmanager.com/gtag/js?id=${id}` },
+          injectTo: 'head',
+        },
+        {
+          tag: 'script',
+          children:
+            `window.dataLayer = window.dataLayer || [];` +
+            `function gtag(){dataLayer.push(arguments);}` +
+            `gtag('js', new Date());` +
+            `gtag('config', '${id}');`,
+          injectTo: 'head',
+        },
+      ]
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const adsenseClient = env.VITE_ADSENSE_CLIENT || process.env.VITE_ADSENSE_CLIENT || ''
+  const gaId = env.VITE_GA_ID || process.env.VITE_GA_ID || ''
   return {
-    plugins: [react(), adsense(adsenseClient)],
+    plugins: [react(), adsense(adsenseClient), gaTag(gaId)],
     server: {
       // Bind 0.0.0.0 so any machine on the same LAN can open the app at
       // http://<this-PC-IP>:5174. The /api proxy below runs on this machine and
