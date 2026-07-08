@@ -1,8 +1,12 @@
 # Product analytics (user-account usage)
 
 TaurEye tracks lightweight product events into the self-hosted Supabase and
-shows admin-only dashboards at **`/app/admin`** (also linked from Settings when
-you're an admin).
+shows admin-only dashboards in a **separate admin console** at
+**`https://taureye.com/admin/`**. The console is its own mini-app
+(`admin/` → `npm run build:admin` → `dist-admin/`, served by nginx under
+`/admin/` with `noindex`): it is NOT part of the user-facing SPA, has no link
+anywhere in the app, and never ships in the mobile OTA bundle. It has its own
+email/password sign-in; only accounts in `app_admins` can see data.
 
 ## What's collected
 
@@ -31,11 +35,11 @@ sudo docker exec -i supabase-db psql -U postgres -d postgres -c \
      select id, 'owner' from auth.users where email = 'you@example.com'
    on conflict do nothing;"
 
-# 3. rebuild web so the tracker + admin page ship
+# 3. rebuild web so the tracker + the /admin/ console ship
 cd deploy/azure && sudo docker compose up -d --build web
 ```
 
-Then open https://taureye.com/app/admin (sign in with the admin account).
+Then open https://taureye.com/admin/ and sign in with the admin account.
 
 ## Dashboards
 
