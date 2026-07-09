@@ -1,0 +1,6 @@
+/* Tutorial renders inside PublicLayout (.pub-main), so it inherits the shared
+   content styles. A little extra spacing for the numbered quick-start. */
+.tut ol { margin: 0 0 var(--sp-4); padding-left: 1.4rem; }
+.tut ol li { margin: 6px 0; }
+.tut h2 { margin-top: var(--sp-6); }
+.tut h3 { margin-top: var(--sp-5); color: var(--text); }

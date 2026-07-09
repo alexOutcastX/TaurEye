@@ -27,6 +27,7 @@ const NAV = [
 // nav when logged in, and as the primary nav when logged out.
 const CONTENT = [
   { to: "/", label: "Home" },
+  { to: "/tutorial", label: "Guide" },
   { to: "/blog", label: "Insights" },
   { to: "/about", label: "About Us" },
   { to: "/contact", label: "Contact Us" },
@@ -38,6 +39,7 @@ const CONTENT = [
 // are grouped into the "Policies" dropdown instead of scattered inline. Both
 // collapse into the hamburger drawer (which uses CONTENT above) at <=980px.
 const BRAND_LINKS = [
+  { to: "/tutorial", label: "Guide" },
   { to: "/blog", label: "Insights" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },
@@ -46,6 +48,7 @@ const BRAND_LINKS = [
 // Public nav shown on the content pages when logged out (a focused subset).
 const PUBLIC_NAV = [
   { to: "/", label: "Home" },
+  { to: "/tutorial", label: "Guide" },
   { to: "/blog", label: "Insights" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },

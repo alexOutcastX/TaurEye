@@ -58,6 +58,7 @@ export default function Login() {
       <div className="login-body">
         <AuthPanel />
         <nav className="login-links">
+          <Link to="/tutorial">Guide</Link>
           <Link to="/blog">Insights</Link>
           <Link to="/about">About</Link>
           <Link to="/contact">Contact</Link>
