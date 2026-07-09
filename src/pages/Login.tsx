@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AuthPanel from "../components/AuthPanel";
 import BullMark from "../components/BullMark";
@@ -19,6 +19,25 @@ const BullScene = lazy(() => import("../components/BullScene"));
  * Native start + web /login.
  */
 export default function Login() {
+  // Defer the WebGL bull to browser-idle (static mark until then); skip on
+  // reduced-motion. Keeps the sign-in screen's Total Blocking Time low.
+  const [showBull, setShowBull] = useState(false);
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    let idle = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (w.requestIdleCallback) idle = w.requestIdleCallback(() => setShowBull(true), { timeout: 3000 });
+    else timer = setTimeout(() => setShowBull(true), 1500);
+    return () => {
+      if (idle && w.cancelIdleCallback) w.cancelIdleCallback(idle);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
   return (
     <div className="login-wrap">
       <div className="login-brand">
@@ -26,11 +45,15 @@ export default function Login() {
         <img src="/wordmark.png" alt="TaurEye" className="login-wordmark" />
       </div>
       <div className="login-mid">
-        <ErrorBoundary fallback={<BullMark size={150} />}>
-          <Suspense fallback={<BullMark size={150} />}>
-            <BullScene className="login-bull3d" />
-          </Suspense>
-        </ErrorBoundary>
+        {!showBull ? (
+          <BullMark size={150} />
+        ) : (
+          <ErrorBoundary fallback={<BullMark size={150} />}>
+            <Suspense fallback={<BullMark size={150} />}>
+              <BullScene className="login-bull3d" />
+            </Suspense>
+          </ErrorBoundary>
+        )}
       </div>
       <div className="login-body">
         <AuthPanel />
