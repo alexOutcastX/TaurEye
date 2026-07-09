@@ -305,7 +305,7 @@ Sort the results by **% Chg** or **Volume** to bring the most active names to th
 Click **Chart** on a row to study the price action, and **Report** for the factual company page. The screen surfaces candidates; the judgement is yours.
 
 ## Step 5 — save and share
-**Save** the screen so you can re-run it tomorrow on fresh end-of-day data, and **Share** it — the link reproduces your exact filters and lists the matched stocks, so anyone you send it to sees the same scan.
+**Save** the screen and it becomes a one-click scan against each night's fresh data, and **Share** it — the link reproduces your exact filters and lists the matched stocks, so anyone you send it to sees the same scan.
 
 ## Plain-English screening
 You can also describe a screen in words and let the natural-language screener translate it into filters — handy when you know what you want but not which column it maps to.
@@ -475,11 +475,11 @@ Indicators behave differently in different regimes, and it is worth rehearsing M
 
 **Bear phase.** Everything inverts. MACD lives below zero, bullish daily crosses become counter-trend bounces that fade near the zero line, and the zero line itself acts like a ceiling. Traders who flip their playbook (fade strength rather than buy it) find MACD as useful on the way down as on the way up — but most retail participants do not flip, and the indicator gets blamed for what is really a regime-reading failure.
 
-**Sideways churn.** The honest answer: MACD is close to useless in a genuine range, and the sooner you recognise a range, the sooner you can either stand aside or switch to range tools (support/resistance, %B). The bands of profitability for MACD systems in backtests almost always come from trending segments; the losses come from the chop.
+**Sideways churn.** The blunt answer: MACD is close to useless in a genuine range, and the sooner you recognise a range, the sooner you can either stand aside or switch to range tools (support/resistance, %B). The bands of profitability for MACD systems in backtests almost always come from trending segments; the losses come from the chop.
 
-## Frequently asked questions
+## Common questions
 
-**Does MACD work on intraday charts?** The arithmetic works on any timeframe, but noise scales up as the timeframe shrinks. On a 5-minute chart the indicator responds to microstructure — order flow, news blips — where whipsaw dominates. TaurEye is an end-of-day platform precisely because daily and weekly signals carry more signal per unit of noise for non-professional traders.
+**Does MACD work on intraday charts?** The arithmetic works on any timeframe, but noise scales up as the timeframe shrinks. On a 5-minute chart the indicator responds to microstructure — order flow, news blips — where whipsaw dominates. TaurEye is an end-of-day platform for this very reason: daily and weekly signals carry more signal per unit of noise for non-professional traders.
 
 **Is a bigger histogram bar better?** Bigger bars mean faster momentum, but "better" depends on position in the move. Explosive histogram expansion at the *start* of a trend (after a squeeze or base) is constructive; the same expansion after months of rally is often a climax signature.
 
@@ -489,11 +489,11 @@ Indicators behave differently in different regimes, and it is worth rehearsing M
 
 **Can MACD be used for exits?** Yes — arguably better than for entries. A trailing exit on a bearish signal-line cross gives a trend room while defining when momentum has objectively rolled over. It will always give back some open profit (lag again), which is the tuition every trend-following exit pays.
 
-## The bottom line
+## Where this leaves you
 
 MACD endures because it compresses a genuinely useful idea — the convergence and divergence of two trend proxies — into one glanceable panel. Used as a regime and momentum descriptor, stacked with trend and liquidity filters, and read with an awareness of its lag, it earns its place on the chart. Used as an oracle, it disappoints exactly as often as any other single indicator.
 
-*Everything above is educational information, not investment advice. Indicators describe the past; they do not predict the future. Do your own research and consult a SEBI-registered adviser before investing.*`,
+*This article is for learning, not advice. An indicator can only describe what prices have already done — nothing here predicts what they will do next. Please do your own research, and speak to a SEBI-registered adviser before putting money at risk.*`,
   },
   {
     slug: "bollinger-bands-and-atr-volatility-guide",
@@ -534,7 +534,7 @@ A band touch is information, not instruction: it says price is at the outer edge
 
 The most celebrated Bollinger pattern is the **squeeze**: the bands contract to their narrowest width in months because price has gone unusually quiet. Volatility is strongly *cyclical* — quiet periods tend to be followed by loud ones and vice versa — so an extreme squeeze marks conditions where a large move has better-than-usual odds of starting soon.
 
-Two honest caveats. The squeeze says nothing about **direction** — the expansion can break either way, and the first move is sometimes a head-fake against the eventual trend. And "soon" is elastic — squeezes can tighten further before resolving. Traders typically wait for the expansion itself (a close outside the bands with volume) rather than positioning inside the squeeze.
+Two caveats before anyone gets excited. The squeeze says nothing about **direction** — the expansion can break either way, and the first move is sometimes a head-fake against the eventual trend. And "soon" is elastic — squeezes can tighten further before resolving. Traders typically wait for the expansion itself (a close outside the bands with volume) rather than positioning inside the squeeze.
 
 ### %B and bandwidth
 
@@ -572,7 +572,7 @@ Suppose a mid cap has spent eight weeks in a tightening range around ₹840. Ban
 
 The squeeze has resolved upward. The bands begin expanding; ATR ticks up within days as bar sizes grow. A trader who takes the breakout might place a stop 2.5 × ATR below entry — about 28 rupees at the new ATR of 11-and-rising — and size the position so that those 28 rupees times the share count equals a pre-decided fraction of capital. Whether *this particular* breakout works is unknowable in advance; the process guarantees only that the risk was defined by the stock's own behaviour, not by hope.
 
-Now run the counterfactual: the same close at ₹868, but with the bands already wide after a month-long rally and ATR at 30. That is not a squeeze resolution — it is a late-stage thrust in an already-loud trend, with triple the stop distance and a materially different risk profile. Identical price event; opposite volatility context. This is precisely the distinction these tools exist to make visible.
+Now run the counterfactual: the same close at ₹868, but with the bands already wide after a month-long rally and ATR at 30. That is not a squeeze resolution — it is a late-stage thrust in an already-loud trend, with triple the stop distance and a materially different risk profile. Identical price event; opposite volatility context. This is the distinction these tools exist to make visible.
 
 ## Reading band shapes: M-tops and W-bottoms
 
@@ -595,13 +595,13 @@ A screening habit that pays for itself quickly: know the typical ATR% terrain of
 
 The practical use: set your screener's ATR% range to match both your holding period and your stomach, and let the filter enforce the discipline your enthusiasm won't. A positional investor has no business being surprised that a 6% ATR stock produced a 15% adverse week; the number was on the label.
 
-## Frequently asked questions
+## Questions that come up
 
 **Which settings should I use for the bands?** The 20-period, 2-standard-deviation default is the reference standard and the right starting point. Shortening the window makes the envelope twitchier; widening the deviation to 2.5 or 3 captures more extreme excursions only. Changing settings to make past signals look better is curve-fitting, not analysis.
 
 **Is a close outside the bands a signal by itself?** No — statistically it happens regularly and in trends it happens *persistently*. It is a volatility event that demands context: fresh expansion out of a squeeze reads very differently from the fifteenth consecutive close hugging the band.
 
-**ATR or standard deviation — which is the better volatility measure?** They usually agree, but ATR incorporates gaps (via true range) while close-based standard deviation does not. In a gap-prone market like India's — earnings nights, global overnight moves — ATR is the more honest description of what a holder actually experiences.
+**ATR or standard deviation — which is the better volatility measure?** They usually agree, but ATR incorporates gaps (via true range) while close-based standard deviation does not. In a gap-prone market like India's — earnings nights, global overnight moves — ATR is the truer description of what a holder actually experiences.
 
 **Do the bands work on weekly charts?** Yes, and weekly squeezes are rarer and more consequential than daily ones — they mark multi-month compressions that often precede a stock's defining move of the year. The trade-off, as always, is patience: weekly setups take weeks to resolve.
 
@@ -623,13 +623,13 @@ If you want to put all of this to work tomorrow morning, here is a conservative 
 
 The philosophy embedded in the recipe: volatility filters select *conditions*, trend filters select *direction of least resistance*, and volume confirms *participation*. No step predicts anything — each simply stacks the situation a little further from randomness. Position sizing with ATR, as described above, then converts whatever happens next into a bounded, pre-accepted outcome rather than a surprise.
 
-## The bottom line
+## Putting the two to work
 
 Volatility tools do not tell you where price is going; they tell you what kind of ride to expect and how to prepare for it. Bollinger Bands turn dispersion into a picture — squeezes, expansions, band-walks. ATR turns it into a number you can build stops and position sizes from. Learn to read the first and budget with the second, and most of the "surprises" in a trading month become things you had already measured.
 
 You can screen for both in TaurEye — try **ATR %** filters in the [Screener](/app/screener), and pair them with trend conditions like [distance from the 50- and 200-DMA](/blog/moving-averages-50-200-dma) to separate quiet trends from quiet drifts.
 
-*Educational information only — not investment advice. Volatility statistics describe past behaviour and can change without warning. Consult a SEBI-registered adviser before acting on any market decision.*`,
+*Written for education, not as a recommendation. Volatility measured from history can shift abruptly and without notice; treat every statistic here as context, not certainty. A SEBI-registered adviser is the right person to consult before any market decision.*`,
   },
   {
     slug: "fibonacci-retracements-guide",
@@ -641,7 +641,7 @@ You can screen for both in TaurEye — try **ATR %** filters in the [Screener](/
     readMins: 13,
     body: `No tool in technical analysis attracts more mystique than Fibonacci retracements — and none needs demystifying more. Strip away the golden-ratio romance and what remains is a genuinely practical instrument: a systematic way of mapping *where a pullback sits relative to the move that preceded it*, so that traders across the market are watching the same shelves at the same time.
 
-This guide covers where the levels come from, how to draw them properly (the step most people get wrong), what each zone conventionally means, how professionals combine them with other evidence, and the honest case for and against the whole exercise.
+This guide covers where the levels come from, how to draw them properly (the step most people get wrong), what each zone conventionally means, how professionals combine them with other evidence, and the case for and against the whole exercise, argued both ways.
 
 ## Where the numbers come from
 
@@ -671,7 +671,7 @@ Convention assigns each band a personality. Treat these as base rates and tenden
 - **38.2% — the strong-trend pullback.** The classic "healthy correction" in a robust advance. Many continuation setups — flags, three-week pullbacks to a rising 20-day average — bottom out in this vicinity.
 - **50% — the psychological midpoint.** Half the move surrendered. Enough fear to shake out weak hands, not enough to break the structure. A vast amount of practical support/resistance work happens around halves, Fibonacci or not.
 - **61.8% — the golden zone and the line of debate.** The last conventional station where a pullback is still a pullback. Bulls defend it loudly; that is exactly why its *failure* is informative — a decisive close through 61.8% converts many holders' theses from "buying opportunity" to "something is wrong".
-- **78.6% — the deep test.** Price has taken back almost everything. Occasionally a violent shakeout ends here and the trend resurrects (the "deep retracement, strong hand-off" pattern), but the base rate honesty is: most moves that give back this much were not resuming trends but topping structures.
+- **78.6% — the deep test.** Price has taken back almost everything. Occasionally a violent shakeout ends here and the trend resurrects (the "deep retracement, strong hand-off" pattern), but the sober base rate: most moves that give back this much were not resuming trends but topping structures.
 
 Beyond 100% lies *extension* territory — 127.2%, 161.8% — used for projecting targets rather than retracements, a topic of its own.
 
@@ -703,11 +703,11 @@ The tool mirrors cleanly. In a decline, retracements mark where *bounces* tend t
 
 It is worth naming the difference between this framework and the reflex it superficially resembles. "Buying the dip" as commonly practised has no definition of *dip*, no invalidation price and no answer to "what if it keeps falling?" — it is averaging down wearing a strategy's clothes. Retracement analysis, done properly, supplies all three: the dip is measured against a specific swing; the zones define where interest is warranted and where the structure fails (a decisive loss of the 61.8% region); and position size is set against the distance to that failure point. Same instinct — trends pull back and resume — but one version is a plan with an exit, and the other is a hope with a cost basis. The lines on the chart matter less than the discipline they scaffold.
 
-## The honest case against — and what survives it
+## The case against — and what survives it
 
-Rigorous studies of Fibonacci levels struggle to show that 38.2% or 61.8% attract reversals more than nearby arbitrary percentages once you account for how often prices pause *anywhere*. Confirmation bias does heavy lifting: the level that "worked" is remembered, the three that sliced through are forgotten. Anchor choice is subjective enough that two honest analysts draw different maps of the same chart.
+Rigorous studies of Fibonacci levels struggle to show that 38.2% or 61.8% attract reversals more than nearby arbitrary percentages once you account for how often prices pause *anywhere*. Confirmation bias does heavy lifting: the level that "worked" is remembered, the three that sliced through are forgotten. Anchor choice is subjective enough that two careful analysts draw different maps of the same chart.
 
-All true — and yet the practical defence stands on two legs that do not require mysticism. First, **coordination**: enough participants watch these exact levels that order flow really does cluster near them, especially on widely-followed index and large-cap charts. Second, **discipline**: the retracement framework forces a trader to pre-define locations, invalidation points and risk *before* the emotional moment arrives. A map that is only approximately right but is drawn in advance beats improvisation that is occasionally brilliant. Use the levels as scaffolding for planning, demand confluence and confirmation before acting, and the golden ratio can stay in the sunflowers where it belongs.
+All of that is true — and yet the practical defence stands on two legs that do not require mysticism. First, **coordination**: enough participants watch these exact levels that order flow really does cluster near them, especially on widely-followed index and large-cap charts. Second, **discipline**: the retracement framework forces a trader to pre-define locations, invalidation points and risk *before* the emotional moment arrives. A map that is only approximately right but is drawn in advance beats improvisation that is occasionally brilliant. Use the levels as scaffolding for planning, demand confluence and confirmation before acting, and the golden ratio can stay in the sunflowers where it belongs.
 
 ## Extensions: projecting beyond the high
 
@@ -721,9 +721,9 @@ Extensions also mark where *measured-move symmetry* lives: the tendency of a sec
 
 Watch any budget-day or results-season broadcast and you will hear index retracement levels quoted with striking specificity. There is a structural reason the tool is *more* meaningful on NIFTY and BANKNIFTY than on an individual small cap: participation density. Index derivatives are among the most liquid instruments in the country; tens of thousands of participants — institutional desks, prop firms, option writers — mark the same swings on the same charts. Their collective orders around the 38.2% or 61.8% of a well-defined index swing create genuine liquidity shelves, visible in how often intraday moves stall and rotate near broadcast levels.
 
-Two practical consequences. First, on indices, prefer the *most obvious* swing anchors precisely because obviousness is what recruits the crowd — the pandemic low, the recent all-time high, the correction extremes every analyst cites. Second, on thinly-followed stocks, invert the humility: your beautifully drawn levels may be watched by nobody, so demand stronger non-Fibonacci confluence (structure, volume, averages) before trusting them.
+Two practical consequences. First, on indices, prefer the *most obvious* swing anchors for the simple reason that obviousness is what recruits the crowd — the pandemic low, the recent all-time high, the correction extremes every analyst cites. Second, on thinly-followed stocks, invert the humility: your beautifully drawn levels may be watched by nobody, so demand stronger non-Fibonacci confluence (structure, volume, averages) before trusting them.
 
-## Frequently asked questions
+## Quick answers to common doubts
 
 **Do professionals really use this, or is it retail folklore?** Both. Systematic funds generally do not encode golden ratios; discretionary traders, prop desks and a large share of technical practitioners worldwide keep retracement grids on their charts — if only because everyone else does. The tool's institutional footprint is strongest in FX and index futures, weakest in illiquid single names.
 
@@ -743,11 +743,11 @@ Two practical consequences. First, on indices, prefer the *most obvious* swing a
 - **Precision worship.** These are zones, not laser lines. Give levels a buffer proportional to the stock's ATR.
 - **Fibonacci everything.** Retracements on 15-minute charts of illiquid small caps measure noise with elegant arithmetic.
 
-## The bottom line
+## A closing word on the mystique
 
 Fibonacci retracements convert the vague question "has this pulled back enough?" into a structured one: "how much of the driving swing has been surrendered, and does that shelf coincide with independent support?" That reframing — from prophecy to cartography — is the entire, sufficient case for the tool. Draw the dominant swing, respect confluence, demand confirmation, and let the mystique remain a marketing story.
 
-*Educational content only — not investment advice or a recommendation. Technical levels describe past price structure and carry no guarantee of future behaviour. Consult a SEBI-registered adviser before making investment decisions.*`,
+*Shared purely to explain a charting technique — it is not advice, and no level drawn from past prices guarantees anything about future ones. Before acting on any market view, talk it through with a SEBI-registered adviser.*`,
   },
   {
     slug: "trading-styles-explained",
@@ -773,7 +773,7 @@ Think of styles as positions on a single dial: **holding period**. As the dial t
 
 **The leverage dimension.** Brokers offer intraday margin, letting traders control positions larger than their capital. Leverage amplifies both directions and is the accelerant in most blow-up stories. It deserves respect bordering on fear.
 
-**The honest statistics.** SEBI's own published research on equity F&O and intraday participation found that the overwhelming majority of individual intraday and derivatives traders lose money over a year — with losses concentrated among the most active. Anyone entering this style should read that research first and assume they are not the exception until years of records prove otherwise.
+**The uncomfortable statistics.** SEBI's own published research on equity F&O and intraday participation found that the overwhelming majority of individual intraday and derivatives traders lose money over a year — with losses concentrated among the most active. Anyone entering this style should read that research first and assume they are not the exception until years of records prove otherwise.
 
 **Who it fits.** Full-time availability, fast and calm decision-making under pressure, fanatical record-keeping, and capital whose loss would not damage your life. **Who it doesn't:** anyone with a day job (structurally impossible to do well part-time), anyone who ruminates over losses, anyone who needs the money.
 
@@ -783,7 +783,7 @@ Think of styles as positions on a single dial: **holding period**. As the dial t
 
 **The game.** Capturing one "swing" of the market's breath — typically three days to three weeks. A swing trader tries to board a short-term trend after it shows itself and disembark before the next meaningful counter-move. The unit of work is the *setup*: a repeatable price-volume configuration (pullback-to-support in an uptrend, range breakout after a squeeze, gap-and-base) with defined entry, stop and target.
 
-**What it demands.** An hour or so of focused work per day, after the close — which is precisely why it is the natural style for employed people. The routine: update watchlists, run screens on fresh EOD data, review open positions against their plans, place next-day orders. Overnight and weekend gap risk replaces the intraday trader's second-by-second risk: a stock can open far through your stop on news, so position sizing must assume stops are approximate, not guaranteed.
+**What it demands.** An hour or so of focused work per day, after the close — which is exactly why it is the natural style for employed people. The routine: update watchlists, run screens on fresh EOD data, review open positions against their plans, place next-day orders. Overnight and weekend gap risk replaces the intraday trader's second-by-second risk: a stock can open far through your stop on news, so position sizing must assume stops are approximate, not guaranteed.
 
 **The toolkit.** Almost entirely technical: [moving averages](/blog/moving-averages-50-200-dma) for trend context, [RSI](/blog/understanding-rsi) or MACD for momentum state, ATR for sizing stops, relative volume for participation, and support/resistance for locations. Fundamentals enter mainly as a calendar item — knowing when earnings land so you can decide whether to hold through the coin-flip.
 
@@ -809,7 +809,7 @@ Think of styles as positions on a single dial: **holding period**. As the dial t
 
 **The advantages are structural, not cleverness-based.** Time arbitrage: almost nobody in the market can genuinely wait three years, so patience itself is an edge. Costs asymptote to zero: a position held five years pays five years of *no* churn. India's long-term capital gains regime taxes patience more gently than activity. And compounding does the heavy lifting silently — the eighth year of a compounder earns more rupees than the first three combined.
 
-**The demands are real nonetheless.** Deep research or honest index-fund humility; the stomach to hold through 30–40% drawdowns that visit even great businesses each decade; and immunity to the comparison disease — watching traders post monthly wins while your thesis needs years. Historically, investors' *behaviour* (buying euphoria, selling despair) has cost them more than their *selections*.
+**The demands are real nonetheless.** Deep research or the humility of an index fund; the stomach to hold through 30–40% drawdowns that visit even great businesses each decade; and immunity to the comparison disease — watching traders post monthly wins while your thesis needs years. Historically, investors' *behaviour* (buying euphoria, selling despair) has cost them more than their *selections*.
 
 ## Choosing: an honest self-audit
 
@@ -843,7 +843,7 @@ Every step down the holding-period dial multiplies your cost base, and costs are
 - **Slippage asymmetry.** The faster the style, the more your assumed prices diverge from filled prices, and always adversely on average. Backtests that ignore slippage flatter fast styles most.
 - **The hidden cost of attention.** Screens consume cognition. A style that requires six market-hours of vigilance prices in an unquantified salary you pay yourself from your own focus — worth counting honestly against its returns.
 
-## Frequently asked questions
+## Reader questions
 
 **Can I do more than one style at once?** Yes — with separate capital, separate rules and ideally separate accounts or at least separate journals. The core-and-satellite structure formalises this. What fails is running two styles inside one position or one undifferentiated P&L, where the styles' contradictory rules cancel into improvisation.
 
@@ -851,7 +851,7 @@ Every step down the holding-period dial multiplies your cost base, and costs are
 
 **How long before I know if a style suits me?** A hundred decisions or a full market cycle, whichever your style reaches first. An intraday trader meets a hundred decisions in a month; an investor may need five years. Journal from day one — the record, not the memory, is what you will actually learn from.
 
-**Do I need derivatives for the faster styles?** No, and SEBI's studies argue most individuals shouldn't: cash-equity swing trading with honest position sizing expresses nearly every directional idea with bounded, unlevered risk. Derivatives add leverage and time-decay dimensions that punish imprecision — see the [hedging guide](/blog/hedging-equity-portfolio-guide) for their risk-management uses, which is a different application than speculation.
+**Do I need derivatives for the faster styles?** No, and SEBI's studies argue most individuals shouldn't: cash-equity swing trading with disciplined position sizing expresses nearly every directional idea with bounded, unlevered risk. Derivatives add leverage and time-decay dimensions that punish imprecision — see the [hedging guide](/blog/hedging-equity-portfolio-guide) for their risk-management uses, which is a different application than speculation.
 
 ## Style drift: the silent account-killer
 
@@ -859,11 +859,11 @@ Whatever you choose, the discipline that outranks all others is refusing to migr
 
 A screener helps precisely here: encode each style's rules as saved screens — a swing scan for pullbacks in uptrends, a positional scan for weekly breakouts above the 200-DMA, an investor's scan for quality metrics — and let the [Screener](/app/screener) hand each "you" its own candidates. Different games, different filters, same disciplined pipeline.
 
-## The bottom line
+## Choosing your game
 
 There is no best style — there is only the style whose demands you can actually meet, whose pace matches your temperament, and whose maths you are willing to respect. Pick deliberately, size your apprenticeship humbly, journal everything, and guard the boundary between games. The market punishes few things as reliably as playing two styles with one position.
 
-*Educational content only — not investment advice. Trading, particularly intraday and leveraged trading, carries substantial risk of loss; SEBI's published studies show most individual active traders lose money. Consult a SEBI-registered investment adviser before acting.*`,
+*This piece exists to inform, not to recommend. Active trading — especially intraday and anything leveraged — carries a serious risk of loss, and SEBI's own studies found that most individuals who try it lose money. Take professional advice from a SEBI-registered adviser before you begin.*`,
   },
   {
     slug: "investing-styles-value-growth-momentum-quality",
@@ -923,7 +923,7 @@ The practical takeaway from the research is double-edged. Yes, the factors have 
 
 Plot the strategy indices against each other and the lesson leaps out: leadership rotates, unpredictably and for years at a time. Momentum dominates trending bull phases and gets destroyed at turns. Value shines in recoveries and rising-rate regimes, hibernates during liquidity-flooded growth manias. Quality defends in downturns and lags in rip-roaring junk rallies. Growth feasts on falling rates and starves when the discount rate on far-future earnings climbs.
 
-This rotation is not a flaw to be solved but the mechanism that *preserves* the premiums: each style's periodic winter shakes off enough followers that the reward survives for those who remain. Three practical responses exist. **Commit** to one style that fits your temperament and endure its cycles. **Diversify** across two or three styles whose winters differ — value-plus-momentum is the classic pairing precisely because their failure regimes are near-opposites. Or **time** the styles — the option everyone attempts and almost nobody, including professionals, does well persistently.
+This rotation is not a flaw to be solved but the mechanism that *preserves* the premiums: each style's periodic winter shakes off enough followers that the reward survives for those who remain. Three practical responses exist. **Commit** to one style that fits your temperament and endure its cycles. **Diversify** across two or three styles whose winters differ — value-plus-momentum is the classic pairing because their failure regimes are near-opposites. Or **time** the styles — the option everyone attempts and almost nobody, including professionals, does well persistently.
 
 ## Screening each style
 
@@ -970,7 +970,7 @@ Neither is wrong. What is wrong is not knowing — because unknown style tilts g
 
 ## Frequently asked questions
 
-**Which style performs best in India?** Over the published history of the NSE strategy indices, momentum and quality variants have had celebrated runs, value had a famous long winter followed by a violent revival, and the ranking depends heavily on the window you choose — which is itself the lesson. Base-rate honesty: dispersion between styles across decades is smaller than the dispersion between *investors' ability to stick with any of them*.
+**Which style performs best in India?** Over the published history of the NSE strategy indices, momentum and quality variants have had celebrated runs, value had a famous long winter followed by a violent revival, and the ranking depends heavily on the window you choose — which is itself the lesson. The sober reading: dispersion between styles across decades is smaller than the dispersion between *investors' ability to stick with any of them*.
 
 **Are these only for stock-pickers?** No — index products tracking the NIFTY strategy indices let you own a style wholesale. Owning the factor via a fund removes single-stock risk and adds a different one: the certainty that you will watch your chosen style lose to its rivals for stretches, in public.
 
@@ -978,11 +978,11 @@ Neither is wrong. What is wrong is not knowing — because unknown style tilts g
 
 **How do I know my style fits me?** Look at your reactions, not your beliefs: if watching a holding hit new highs makes you comfortable and averaging into a falling knife makes you ill, you are temperamentally momentum/growth; if buying panic feels natural and chasing strength feels reckless, you lean value. The style you can execute during a drawdown is your style; the rest is literature.
 
-## The bottom line
+## Owning your style
 
 Value, growth, momentum and quality are not marketing labels — they are four durable, evidence-backed answers to why any stock should earn you anything, each with its own measurement kit, native trap and seasonal winter. Choose consciously, screen concretely, compare within sectors, and above all match the style to the investor you actually are on your worst market day. The factor premiums are real, but they are paid out only to those still holding the ticket when spring returns.
 
-*Educational content only — not investment advice or a recommendation of any strategy, index or security. Factor premiums are historical averages, not guarantees, and every style described here has experienced multi-year losses. Consult a SEBI-registered investment adviser before investing.*`,
+*None of the styles discussed here is being recommended — the aim is only to explain the vocabulary. Factor premiums are averages from history, every style has endured multi-year losing stretches, and your outcomes may differ from any backtest. Consult a SEBI-registered adviser before investing.*`,
   },
   {
     slug: "how-global-markets-affect-indian-stocks",
@@ -1036,7 +1036,7 @@ Beyond the mechanical channels sits a behavioural one: global risk appetite, pro
 
 Indian traders inherit a world that traded while they slept. The daily relay: New York's close sets the tone; Asia opens first and reacts; GIFT NIFTY futures trade through the night and by morning embody the market's guess at India's open; Europe's afternoon session overlaps India's close and can bend the final hour. This is why [global index levels](/app/indices) — S&P 500, NASDAQ, Nikkei, FTSE — sit on TaurEye's ticker: not decoration, but the first read on the tone Indian assets will inherit.
 
-The gap open is the channel's signature. An overnight Fed shock does not wait for Indian participants to react in an orderly queue — it lands entirely in the opening print, which is precisely why overnight positions carry a category of risk (gap risk) that no intraday stop-loss can bound, and why [position sizing](/blog/trading-styles-explained) has to assume stops are approximate.
+The gap open is the channel's signature. An overnight Fed shock does not wait for Indian participants to react in an orderly queue — it lands entirely in the opening print, which is why overnight positions carry a category of risk (gap risk) that no intraday stop-loss can bound, and why [position sizing](/blog/trading-styles-explained) has to assume stops are approximate.
 
 ## Three episodes worth memorising
 
@@ -1096,11 +1096,11 @@ Then the interpretive discipline: distinguish **noise** (a red Asian session ins
 
 One habit upgrades the whole routine: write down, *before* the open, what the overnight picture implies — "gap down likely, IT should outperform on the weak rupee, avoid chasing the first bounce" — and grade yourself weekly. The point is not prediction accuracy; it is converting passive news consumption into an explicit model of the transmission channels, which is the only way the map in this article becomes reflexive knowledge rather than trivia.
 
-## The bottom line
+## Weather versus climate
 
 Indian stocks live in a global weather system: US rates set the pressure, FII flows carry the fronts, crude and the dollar are the local humidity, and risk sentiment decides whether it all arrives as drizzle or storm. Learn the channels and the overnight gap stops feeling like betrayal — it becomes the market efficiently pricing a world that never sleeps. And then remember the counterweight: over any horizon that deserves the word *investing*, earnings out-argue weather.
 
-*Educational content only — not investment advice. Macro relationships described here are historical tendencies that can and do break; nothing above predicts any market's direction. Consult a SEBI-registered investment adviser before acting.*`,
+*Offered as background reading, nothing more. The macro linkages sketched here are tendencies drawn from past episodes — they bend and sometimes break, and none of them forecasts where any market goes next. For decisions, consult a SEBI-registered investment adviser.*`,
   },
   {
     slug: "market-moving-events-india",
@@ -1164,7 +1164,7 @@ Nothing reprices Indian risk premia like national politics. General-election res
 
 What the market is actually pricing is narrower than punditry suggests: **policy continuity and coalition arithmetic**. Markets historically prefer stable majorities of *any* stripe to fragmented mandates, because capex cycles, PSU reform paths and fiscal frameworks depend on governments that can execute multi-year plans. The sectoral expression is precise: PSU banks, defence, railways and infrastructure trade as proxies for the incumbent's continuity; rural-consumption names catch bids when welfare-spending expectations rise.
 
-The practical record on trading elections is humbling — polls mislead, exit polls mislead more, and the biggest moves have come precisely when the consensus was most confident. Long-term investors who simply held through election cycles have historically fared better than those who tried to trade the binary.
+The practical record on trading elections is humbling — polls mislead, exit polls mislead more, and the biggest moves have arrived just when the consensus was most confident. Long-term investors who simply held through election cycles have historically fared better than those who tried to trade the binary.
 
 ## The quieter calendar: reshuffles, expiries, and imported nights
 
@@ -1182,9 +1182,9 @@ The principles above were learned expensively. Three sessions that every Indian 
 
 **Budget day, July 2024.** A modern illustration of the market's most sensitive budget nerve: among hundreds of announcements, the items that hit equities hardest were the increases in capital-gains taxes and the securities transaction tax on derivatives — taxes *on markets themselves*. The index swung sharply intraday on those paragraphs and largely ignored much larger spending numbers. Lesson: the market grades budgets selfishly. Fiscal arithmetic matters over quarters; changes to the taxation of investing itself reprice within minutes.
 
-**March 2020 — the unscheduled kind.** A reminder that the calendar is only half the event universe. Pandemic panic produced consecutive circuit-halting falls, an emergency inter-meeting RBI rate action, and correlation-one selling in which event playbooks built for scheduled announcements were useless. Unscheduled shocks are precisely why the baseline defences — position sizing, diversification, no leverage you cannot survive — must be in place *permanently* rather than assembled per event.
+**March 2020 — the unscheduled kind.** A reminder that the calendar is only half the event universe. Pandemic panic produced consecutive circuit-halting falls, an emergency inter-meeting RBI rate action, and correlation-one selling in which event playbooks built for scheduled announcements were useless. Unscheduled shocks are the reason the baseline defences — position sizing, diversification, no leverage you cannot survive — must be in place *permanently* rather than assembled per event.
 
-## Frequently asked questions
+## Common questions, answered
 
 **Should I trade the budget or stay out?** The base rates favour staying out: budget-day intraday reversals are frequent and violent, and IV crush punishes option buyers regardless of direction. If you must engage, the survivable versions are small, defined-risk, and decided in advance — or simply trading the *post-event* trend once the market has voted.
 
@@ -1208,7 +1208,7 @@ None of this requires becoming an event trader. It requires not being ambushed:
 
 The same event calendar produces opposite correct behaviours depending on the seat, and comparing them clarifies your own.
 
-**The intraday trader** treats events as volatility merchandise: either the day's expanded ranges are the product being traded — with smaller size to compensate for the wilder bars — or the day is skipped entirely because spreads widen and stops slip precisely when they matter. What this seat never does is carry a full-sized directional bet *into* the announcement; that is gambling wearing a trading costume.
+**The intraday trader** treats events as volatility merchandise: either the day's expanded ranges are the product being traded — with smaller size to compensate for the wilder bars — or the day is skipped entirely because spreads widen and stops slip at the very moments they matter. What this seat never does is carry a full-sized directional bet *into* the announcement; that is gambling wearing a trading costume.
 
 **The swing trader** manages the calendar defensively: no new full positions inside the two-day window before a holding's results, existing winners partially banked or consciously held with the gap risk priced into the sizing, and the post-event drift — the tendency of decisive surprises to keep travelling for days — treated as the actual opportunity. The event itself is a coin-flip; the *reaction* to the event is a setup.
 
@@ -1218,11 +1218,11 @@ The same event calendar produces opposite correct behaviours depending on the se
 
 One calendar, four playbooks — and the common thread is that every seat decides its behaviour *before* the event, which is the entire discipline this article exists to argue for.
 
-## The bottom line
+## Living with the calendar
 
 India's market year is a drumbeat of scheduled information: the budget prices policy, the RBI prices money, earnings price execution, elections price continuity, and the imported American calendar prices the world's discount rate. Each event moves prices through the gap between expectation and outcome — which means the preparation that matters is not predicting outcomes but knowing the expectations, the exposure, and your own pre-written response. The calendar is public; being surprised by it is optional. Put the dates in your diary this weekend, pre-write your responses for the quarter, size every position as if its worst scheduled event were tomorrow — and the drumbeat becomes rhythm instead of ambush, information instead of adrenaline.
 
-*Educational content only — not investment advice. Event-driven trading involves substantial risk, including gap risk that stop-losses cannot bound. Historical event reactions do not predict future ones. Consult a SEBI-registered investment adviser before acting.*`,
+*An explainer, not a strategy recommendation. Trading around events carries real hazards — gap risk in particular, which no stop-loss can cap — and the way markets reacted to past events tells you little about the next one. Please involve a SEBI-registered adviser in your decisions.*`,
   },
   {
     slug: "inflation-interest-rates-and-equities",
@@ -1329,11 +1329,11 @@ India's inflation machinery has an external circuit that completes the picture. 
 
 The loop also explains a pattern equity investors observe every cycle: the interest-rate *differential* between India and the US quietly disciplines the MPC. If the Fed holds policy tight while India cuts aggressively, the narrowing gap makes rupee assets less attractive to foreign capital, pressuring the currency, importing inflation, and undoing the cut's intent. Indian easing cycles therefore tend to wait on, or at least rhyme with, global ones — a constraint worth remembering whenever domestic data alone seems to argue for a pivot that never comes. For portfolio purposes the loop yields one clean heuristic: sustained rupee weakness alongside rising crude is the macro combination that most reliably precedes hawkish surprises, and the [ticker's USD-INR and crude dials](/app/indices) are the two-second daily check on whether that combination is assembling.
 
-## The bottom line
+## What to actually do with all this
 
 Inflation sets the price of money; the price of money sets the discount on every future rupee; and equities are nothing but claims on future rupees. That chain — CPI to repo rate to bond yield to P/E multiple, with the sector rotation and pricing-power audit riding alongside — is the deep machinery beneath years of market headlines. You cannot forecast it reliably; no one can — the humility of professional macro forecasting records is well documented. But an investor who understands *which* phase the machine is in, and what their portfolio's exposure to the next phase looks like, has replaced the most expensive kind of surprise with the cheapest kind of preparation. Watch the CPI's composition rather than its headline, keep the 10-year yield on your daily glance, know your book's duration before the market reminds you of it, and treat every confident rate prediction — including your own — as a scenario to be sized for rather than a certainty to be bet on.
 
-*Educational content only — not investment advice or an economic forecast. Macro relationships are historical tendencies with meaningful exceptions. Consult a SEBI-registered investment adviser before making investment decisions.*`,
+*To be read as an economics explainer, not as a forecast or advice — the relationships described have held on average and failed at important moments. Investment decisions deserve the attention of a SEBI-registered adviser.*`,
   },
   {
     slug: "reading-financial-statements-guide",
@@ -1442,7 +1442,7 @@ Between annual-report deep dives sit twelve quarterly check-ins per year for a t
 
 Ten minutes, four quarters a year, and you will know your companies better than the vast majority of their shareholders — a low bar that is nonetheless the durable retail edge.
 
-## Frequently asked questions
+## Questions worth asking
 
 **Do I need accounting knowledge to start?** No — you need arithmetic and scepticism. Every term above is learnable in an afternoon; the durable skill is the habit of cross-checking statements against each other, which no credential teaches.
 
@@ -1454,25 +1454,25 @@ Ten minutes, four quarters a year, and you will know your companies better than 
 
 **How many years of data are enough?** Five as the working minimum — enough to span a demand cycle and expose whether margins and cash conversion are structural or cyclical. Ten is better for cyclical sectors, where a five-year window can catch only the upswing and flatter every ratio in the file. One year is a photograph; a decade is a biography.
 
-**Can screeners do this for me?** They can rank and filter every ratio discussed here — that is precisely their job — but the red-flag work (pledging trends, related parties, auditor notes, contingent liabilities) lives in documents no ratio fully captures. Screen wide, then read deep: the machine narrows the field, the hour of reading makes the decision.
+**Can screeners do this for me?** They can rank and filter every ratio discussed here — that is their job — but the red-flag work (pledging trends, related parties, auditor notes, contingent liabilities) lives in documents no ratio fully captures. Screen wide, then read deep: the machine narrows the field, the hour of reading makes the decision.
 
-## The bottom line
+## The habit that compounds
 
 Financial statements are the only channel through which a company must, by law and audit, tell you what actually happened — everything else you hear is marketing, including sometimes the price itself. Read the three statements as one interlocking story, trend the six core ratios within the sector, run the Indian red-flag sweep, and give every serious holding its annual hour. The market will always know the story before you; your edge is knowing whether the story is *true*. Start this weekend with one company you already own: pull its last annual report, run the one-hour routine, and write the three-line verdict. Whatever you conclude, you will never again be the shareholder who knows the ticker better than the business — and that single upgrade compounds across every position you ever hold.
 
-*Educational content only — not investment advice or a recommendation. Financial analysis reduces but never eliminates the risk of loss, and reported financials can themselves be misstated. Consult a SEBI-registered investment adviser before investing.*`,
+*Meant to teach a reading method, not to endorse any security. Careful analysis lowers risk but never removes it — and remember that published accounts can themselves be wrong. A SEBI-registered investment adviser should be part of any real decision.*`,
   },
   {
     slug: "hedging-equity-portfolio-guide",
     title: "Hedging an Equity Portfolio: Diversification, Derivatives and Beta",
     summary:
-      "Hedging is buying insurance for a portfolio — always at a price. The full toolkit explained: diversification, asset allocation, index futures and options, beta arithmetic, and the honest costs that make 'when' matter as much as 'how'.",
+      "Hedging is buying insurance for a portfolio — always at a price. The full toolkit explained: diversification, asset allocation, index futures and options, beta arithmetic, and the real costs that make 'when' matter as much as 'how'.",
     category: "Risk",
     date: "2026-07-07",
     readMins: 14,
     body: `Every investor eventually meets the thought: *I don't want to sell my portfolio, but I'm worried about a fall. Can't I protect it?* The answer is yes — the toolbox is called hedging — but every tool in it obeys one iron law: **protection costs return.** There is no arrangement, simple or exotic, that removes downside while keeping full upside for free; anyone offering one is mispricing something, usually your trust.
 
-This guide covers the honest toolkit in ascending order of complexity: the structural hedges everyone should use (diversification and asset allocation), the measurement layer (beta — knowing what you're hedging), and the explicit instruments (index futures and options), with the costs, the arithmetic and the failure modes stated plainly. It is written for understanding, not as encouragement to trade derivatives — SEBI's own studies document how badly leveraged instruments have treated most individual participants.
+This guide covers the honest toolkit in ascending order of complexity: the structural hedges everyone should use (diversification and asset allocation), the measurement layer (beta — knowing what you're hedging), and the explicit instruments (index futures and options), with costs, arithmetic and failure modes spelled out. It is written for understanding, not as encouragement to trade derivatives — SEBI's own studies document how badly leveraged instruments have treated most individual participants.
 
 ## What hedging actually is
 
@@ -1517,11 +1517,11 @@ Futures suit large, index-like portfolios facing a defined window of risk — an
 
 Buying an **index put option** is the closest instrument to true insurance: pay a premium today for the right to sell the index at a chosen strike. If the market crashes, the put's value explodes toward the difference; if the market rallies, you lose *only* the premium while the portfolio runs. Asymmetry is the entire appeal — downside floor, upside kept.
 
-The premium is where the romance ends. Out-of-the-money index puts cost real money, and they expire: a rolling programme of monthly protection can consume several percent of portfolio value annually — enough to convert an average equity decade into a mediocre one. Costs scale with fear itself (implied volatility), so insurance is *most expensive exactly when everyone wants it* — buying puts after the crash has begun is buying umbrellas mid-downpour at auction prices. And precision matters: strike distance, expiry, and [IV crush around events](/blog/market-moving-events-india) each reshape what you actually bought.
+The premium is where the romance ends. Out-of-the-money index puts cost real money, and they expire: a rolling programme of monthly protection can consume several percent of portfolio value annually — enough to convert an average equity decade into a mediocre one. Costs scale with fear itself (implied volatility), so insurance is *most expensive at the exact moment everyone wants it* — buying puts after the crash has begun is buying umbrellas mid-downpour at auction prices. And precision matters: strike distance, expiry, and [IV crush around events](/blog/market-moving-events-india) each reshape what you actually bought.
 
 Variants exist to cheapen the insurance — **collars** (fund the put by selling a call above, capping upside), **put spreads** (sell a lower put to cheapen the one you own, flooring the protection) — each an explicit trade of coverage for cost. All obey the law: less premium, less protection.
 
-**Covered calls** — selling calls against holdings for income — deserve an honest note because they are marketed as hedging. They are not: the premium collected softens small dips by its own amount and does *nothing* against a crash, while the sold call caps every large rally. It is an income strategy with a haircut, not insurance.
+**Covered calls** — selling calls against holdings for income — deserve a frank note because they are marketed as hedging. They are not: the premium collected softens small dips by its own amount and does *nothing* against a crash, while the sold call caps every large rally. It is an income strategy with a haircut, not insurance.
 
 ## Choosing: a decision framework
 
@@ -1541,13 +1541,13 @@ The beta-adjusted exposure is ₹27.5 lakh. The choices, honestly priced:
 - **Do nothing.** Accept that a severe adverse outcome could mark the portfolio down 12–15% temporarily. For an investor with a decade's horizon and no leverage, this is a legitimate, historically defensible answer — the one most long-term wealth has actually chosen.
 - **Cut beta.** Trim the two highest-beta positions by a third, raising ~15% cash. The portfolio's election sensitivity drops meaningfully, no premium is paid, and the cash doubles as post-event opportunity fund. Costs: some capital-gains tax and the chance of watching the trimmed names rally.
 - **Buy a put.** An index put a few percent out of the money covering the event, sized to the ₹27.5 lakh exposure. Pre-event implied volatility makes it expensive — perhaps 1.5–2% of portfolio value for a few weeks of cover. If the result is benign, that premium is gone by design; if it is severe, the put pays a large fraction of the drawdown. The investor must write down, before buying, that the *expected* outcome is losing the premium.
-- **Short futures.** Full symmetric neutralisation — and full surrender of the relief-rally upside that election results also historically deliver, plus margin management through the volatility. For this investor's profile, usually the wrong tool: it converts an investment portfolio into a flat book at precisely the moment of maximum potential upside dispersion.
+- **Short futures.** Full symmetric neutralisation — and full surrender of the relief-rally upside that election results also historically deliver, plus margin management through the volatility. For this investor's profile, usually the wrong tool: it converts an investment portfolio into a flat book at the very moment of maximum potential upside dispersion.
 
 There is no universally correct row in that table — there is only matching the tool to horizon, tax position and temperament, with the costs written down *before* the event rather than discovered after. That writing-down is the actual hedge.
 
 ## The failure modes, collected
 
-The craft's graveyard has recurring headstones. **Hedging after the fall** — insurance bought at peak fear, paying crash prices for protection against a crash that already happened. **The forgotten hedge** — puts that expired or futures that rolled off while the owner believed themselves protected. **The profitable-hedge celebration** — closing a winning hedge early "to book profit", thereby standing unprotected for the second leg down. **Under-sizing via ignored beta.** **Cash-flow death** — correct futures hedges abandoned at margin calls. **Complexity creep** — multi-leg structures whose actual payoff diagram the owner could not draw, which is the reliable sign it should not be owned. Every one of these is a process failure, not an instrument failure; the fixes are diaries, rules and sizing, not better predictions.
+The craft's graveyard has recurring headstones. **Hedging after the fall** — insurance bought at peak fear, at crash prices for protection against a crash that already happened. **The forgotten hedge** — puts that expired or futures that rolled off while the owner believed themselves protected. **The profitable-hedge celebration** — closing a winning hedge early "to book profit", thereby standing unprotected for the second leg down. **Under-sizing via ignored beta.** **Cash-flow death** — correct futures hedges abandoned at margin calls. **Complexity creep** — multi-leg structures whose actual payoff diagram the owner could not draw, which is the reliable sign it should not be owned. Every one of these is a process failure, not an instrument failure; the fixes are diaries, rules and sizing, not better predictions.
 
 ## Frequently asked questions
 
@@ -1555,19 +1555,19 @@ The craft's graveyard has recurring headstones. **Hedging after the fall** — i
 
 **What about "buying gold as a hedge" — how much?** Historical Indian allocations that meaningfully cushioned equity drawdowns sat in the 5–15% range. Below that, the cushion is cosmetic; far above it, the portfolio becomes a view on gold rather than a hedged equity book. The discipline that matters more than the number: rebalancing — trimming whichever side has run and refilling the other — is what converts the low correlation into realised benefit.
 
-**Can I hedge with an inverse or short position in specific stocks?** Shorting individual stocks in the cash market is effectively unavailable to Indian retail investors beyond intraday, and single-stock futures carry concentrated, lot-sized risk. In practice, index-level instruments plus portfolio construction are the retail-accessible toolkit; single-name shorting is a professional's game with a professional's failure modes.
+**Can I hedge with an inverse or short position in specific stocks?** Shorting individual stocks in the cash market is effectively unavailable to Indian retail investors beyond intraday, and single-stock futures carry concentrated, lot-sized risk. In practice, index-level instruments plus portfolio construction make up the retail-accessible toolkit; single-name shorting is a professional's game with a professional's failure modes.
 
 **Doesn't a stop-loss do the same job as a hedge?** They overlap but differ where it hurts: a stop-loss is an *exit plan* that fails exactly during gaps and panics — the [events](/blog/market-moving-events-india) that open 8% through your level execute nowhere near it. A put's protection, by contrast, is contractual at the strike. You pay for that difference; whether it is worth paying is the entire premium question this article circles.
 
 **When is the cheapest time to hedge?** When nobody wants to: calm markets, low implied volatility, no visible clouds. Which is, of course, exactly when hedging feels most unnecessary — the psychological tax that keeps insurance premiums profitable for their sellers across every market and century. If your process includes periodic protection, calendarise it; moods will always vote against buying umbrellas in sunshine.
 
-**How do I know whether my past hedges were worth it?** Audit them like trades: log every hedge with its cost, its window, and what it paid (usually nothing — that is insurance working as designed). Over the years the ledger answers the only question that matters: did the premiums bought at your actual timing and prices reduce drawdowns enough to justify their drag? Most people who run this audit honestly discover their structural layers — allocation, diversification, sizing — did the real protecting, and their instrument hedges were mostly tuition. That discovery, at the cost of a spreadsheet, is itself one of the best returns in this entire article.
+**How do I know whether my past hedges were worth it?** Audit them like trades: log every hedge with its cost, its window, and what it paid (usually nothing — that is insurance working as designed). Over the years the ledger answers the only question that matters: did the premiums bought at your actual timing and prices reduce drawdowns enough to justify their drag? Most people who run this audit candidly discover their structural layers — allocation, diversification, sizing — did the real protecting, and their instrument hedges were mostly tuition. That discovery, at the cost of a spreadsheet, is itself one of the best returns in this entire article.
 
-## The bottom line
+## Protection, honestly priced
 
-Hedging is the deliberate purchase of a narrower range of outcomes, and it is priced fairly or worse almost all the time. Build the free layers first — diversification across stocks, sectors and asset classes; know your beta and let sizing do the quiet work; and reserve the explicit instruments for measured exposures over defined windows, entered before fear reprices them. A portfolio that needs constant insurance is mis-built; a portfolio that never considers it is unexamined. The mature position is in between: structure for resilience, insure occasionally, and accept — in writing, to yourself — that the cost of protection is the return you agreed not to make. Begin with the free audit: measure your portfolio's beta and factor tilts this week, check your equity/debt/gold split against the sleep test, and only then ask whether any instrument still has a job left to do. In most portfolios, honestly built structure leaves insurance with pleasantly little work.
+Hedging is the deliberate purchase of a narrower range of outcomes, and the market prices it fairly or worse almost all the time. Build the free layers first — diversification across stocks, sectors and asset classes; know your beta and let sizing do the quiet work; and reserve the explicit instruments for measured exposures over defined windows, entered before fear reprices them. A portfolio that needs constant insurance is mis-built; a portfolio that never considers it is unexamined. The mature position is in between: structure for resilience, insure occasionally, and accept — in writing, to yourself — that the cost of protection is the return you agreed not to make. Begin with the free audit: measure your portfolio's beta and factor tilts this week, check your equity/debt/gold split against the sleep test, and only then ask whether any instrument still has a job left to do. In most portfolios, well-built structure leaves insurance with pleasantly little work.
 
-*Educational content only — NOT investment advice and NOT a recommendation to trade derivatives. Futures and options involve leverage and can produce losses exceeding the amounts committed; SEBI's published studies show a large majority of individual derivatives traders lose money. Consult a SEBI-registered investment adviser before implementing any hedging strategy.*`,
+*Published to explain how hedging works — emphatically NOT a suggestion to trade derivatives. Futures and options are leveraged instruments whose losses can exceed what you commit, and SEBI's research shows the large majority of individual derivatives traders end up losing. Do not implement any hedging strategy without guidance from a SEBI-registered investment adviser.*`,
   },
 ];
 

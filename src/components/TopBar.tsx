@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import Logo from "./Logo";
@@ -54,6 +54,9 @@ export default function TopBar() {
   const nav = useNavigate();
   // On mobile the nav collapses into a hideable left drawer; this toggles it.
   const [menuOpen, setMenuOpen] = useState(false);
+  // Desktop "More" dropdown (content pages) at the end of the nav bar.
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
 
   // Close the drawer on Escape for keyboard/back-friendly dismissal.
   useEffect(() => {
@@ -64,6 +67,23 @@ export default function TopBar() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [menuOpen]);
+
+  // Close the More dropdown on outside click / Escape.
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMoreOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [moreOpen]);
 
   const handleSignOut = () => {
     setMenuOpen(false);
@@ -195,6 +215,32 @@ export default function TopBar() {
             <span>{label}</span>
           </NavLink>
         ))}
+
+        {/* Public/content pages on DESKTOP: a "More" dropdown at the end of the
+            nav bar (hidden <=980px, where the drawer's list below covers it). */}
+        <div className="nav-more" ref={moreRef}>
+          <button
+            type="button"
+            className={"nav-item nav-more-btn" + (moreOpen ? " active" : "")}
+            aria-haspopup="menu"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((v) => !v)}
+          >
+            <span>More</span>
+            <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+          {moreOpen && (
+            <div className="nav-more-pop" role="menu">
+              {CONTENT.map(({ to, label }) => (
+                <Link key={to} to={to} className="nav-more-link" onClick={() => setMoreOpen(false)}>
+                  {label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Public pages — only rendered inside the mobile drawer (see CSS). */}
         <div className="nav-extra">
