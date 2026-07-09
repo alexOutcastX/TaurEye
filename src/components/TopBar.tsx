@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { LEGAL_DOCS } from "../config/legal";
 import Logo from "./Logo";
 import ScripSearch from "./ScripSearch";
 import CreditsBadge from "./CreditsBadge";
@@ -33,15 +34,13 @@ const CONTENT = [
   { to: "/legal/terms", label: "Terms & Conditions" },
 ];
 
-// Content-page links shown inline on the branding bar (desktop). Concise labels
-// so they sit comfortably beside the app chrome; collapse into the hamburger
-// drawer (which uses CONTENT above) at <=980px.
+// Content-page links shown inline on the branding bar (desktop). The legal docs
+// are grouped into the "Policies" dropdown instead of scattered inline. Both
+// collapse into the hamburger drawer (which uses CONTENT above) at <=980px.
 const BRAND_LINKS = [
   { to: "/blog", label: "Insights" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },
-  { to: "/legal/privacy", label: "Privacy" },
-  { to: "/legal/terms", label: "Terms" },
 ];
 
 // Public nav shown on the content pages when logged out (a focused subset).
@@ -65,6 +64,9 @@ export default function TopBar() {
   const nav = useNavigate();
   // On mobile the nav collapses into a hideable left drawer; this toggles it.
   const [menuOpen, setMenuOpen] = useState(false);
+  // "Policies" dropdown (legal docs) on the branding bar.
+  const [policiesOpen, setPoliciesOpen] = useState(false);
+  const policiesRef = useRef<HTMLDivElement>(null);
 
   // Close the drawer on Escape for keyboard/back-friendly dismissal.
   useEffect(() => {
@@ -75,6 +77,23 @@ export default function TopBar() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [menuOpen]);
+
+  // Close the Policies dropdown on outside click / Escape.
+  useEffect(() => {
+    if (!policiesOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (policiesRef.current && !policiesRef.current.contains(e.target as Node)) setPoliciesOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPoliciesOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [policiesOpen]);
 
   const handleSignOut = () => {
     setMenuOpen(false);
@@ -175,8 +194,9 @@ export default function TopBar() {
           <AlertsBell />
         </div>
 
-        {/* Content pages as inline buttons on the branding bar (desktop). These
-            collapse into the hamburger drawer at <=980px (see CSS). */}
+        {/* Content pages as inline buttons on the branding bar (desktop), plus a
+            "Policies" dropdown for the legal docs. Both collapse into the
+            hamburger drawer at <=980px (see CSS). */}
         <nav className="brand-links">
           {BRAND_LINKS.map(({ to, label }) => (
             <NavLink
@@ -187,6 +207,35 @@ export default function TopBar() {
               {label}
             </NavLink>
           ))}
+
+          <div className="brand-more" ref={policiesRef}>
+            <button
+              type="button"
+              className={"brand-link brand-more-btn" + (policiesOpen ? " active" : "")}
+              aria-haspopup="menu"
+              aria-expanded={policiesOpen}
+              onClick={() => setPoliciesOpen((v) => !v)}
+            >
+              <span>Policies</span>
+              <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+            {policiesOpen && (
+              <div className="brand-more-pop" role="menu">
+                {LEGAL_DOCS.map((d) => (
+                  <Link
+                    key={d.key}
+                    to={`/legal/${d.key}`}
+                    className="brand-more-link"
+                    onClick={() => setPoliciesOpen(false)}
+                  >
+                    {d.title}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         <button type="button" className="signout-btn" onClick={handleSignOut}>
