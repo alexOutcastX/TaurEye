@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import bullObjSrc from "../assets/bullhead.obj?raw";
-import BullMark from "./BullMark";
+import BullHero from "./BullHero";
 
 /**
  * Low-poly bull head (user-supplied OBJ) rendered with Three.js — the Landing
@@ -172,7 +172,7 @@ export default function BullScene({ className }: { className?: string }) {
   }, []);
 
   return failed ? (
-    <BullMark size={220} className={className} />
+    <BullHero size={220} className={className} />
   ) : (
     <div ref={mountRef} className={className} aria-hidden="true" />
   );

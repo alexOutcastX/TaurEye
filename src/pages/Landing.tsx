@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import AuthPanel from "../components/AuthPanel";
-import BullMark from "../components/BullMark";
+import BullHero from "../components/BullHero";
 import Logo from "../components/Logo";
 import ErrorBoundary from "../components/ErrorBoundary";
 import LegalLinks from "../components/LegalLinks";
@@ -104,10 +104,10 @@ export default function Landing() {
 
         <div className="lp-hero-visual">
           {native || !showBull ? (
-            <BullMark size={220} className="lp-bull-fallback" />
+            <BullHero size={220} className="lp-bull-fallback" />
           ) : (
-            <ErrorBoundary fallback={<BullMark size={220} className="lp-bull-fallback" />}>
-              <Suspense fallback={<BullMark size={220} className="lp-bull-fallback" />}>
+            <ErrorBoundary fallback={<BullHero size={220} className="lp-bull-fallback" />}>
+              <Suspense fallback={<BullHero size={220} className="lp-bull-fallback" />}>
                 <BullScene className="lp-bull" />
               </Suspense>
             </ErrorBoundary>

@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AuthPanel from "../components/AuthPanel";
-import BullMark from "../components/BullMark";
+import BullHero from "../components/BullHero";
 import ErrorBoundary from "../components/ErrorBoundary";
 import Logo from "../components/Logo";
 import LegalLinks from "../components/LegalLinks";
@@ -46,10 +46,10 @@ export default function Login() {
       </div>
       <div className="login-mid">
         {!showBull ? (
-          <BullMark size={150} />
+          <BullHero size={150} />
         ) : (
-          <ErrorBoundary fallback={<BullMark size={150} />}>
-            <Suspense fallback={<BullMark size={150} />}>
+          <ErrorBoundary fallback={<BullHero size={150} />}>
+            <Suspense fallback={<BullHero size={150} />}>
               <BullScene className="login-bull3d" />
             </Suspense>
           </ErrorBoundary>
