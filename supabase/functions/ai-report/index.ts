@@ -13,10 +13,9 @@
 // Secrets: reuses ANTHROPIC_API_KEY (already set for ai-analysis).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import Anthropic from "npm:@anthropic-ai/sdk@0";
+import { callLLM, llmConfigured, llmProvider } from "../_shared/llm.ts";
 
 const REPORT_COST = 5; // keep in sync with COSTS.advancedReport in src/lib/economy.ts
-const MODEL = "claude-haiku-4-5";
 
 const DISCLAIMER =
   "This report is informational and educational only and is NOT investment advice. " +
@@ -61,8 +60,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) return json({ configured: false, text: null, disclaimer: DISCLAIMER });
+  if (!llmConfigured()) return json({ configured: false, text: null, disclaimer: DISCLAIMER });
 
   const authHeader = req.headers.get("Authorization") ?? "";
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -93,26 +91,19 @@ Deno.serve(async (req) => {
     if (CHARGE) await admin.from("credit_transactions").insert({ user_id: user.id, delta: REPORT_COST, reason: "advanced_report_refund" });
   };
 
-  try {
-    const anthropic = new Anthropic({ apiKey });
-    const facts = body.facts ? JSON.stringify(body.facts).slice(0, 5000) : "(none)";
-    const pats = body.patterns ? JSON.stringify(body.patterns).slice(0, 1200) : "(none)";
-    const cas = body.corpActions ? JSON.stringify(body.corpActions).slice(0, 2500) : "(none)";
-    const msg = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 1400,
-      system: SYSTEM,
-      messages: [{
-        role: "user",
-        content: `Write the report for ${symbol}.\nMETRICS (JSON): ${facts}\nDETECTED PATTERNS (JSON): ${pats}\nCORPORATE ACTIONS (JSON): ${cas}`,
-      }],
-    });
-    const text = msg.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("\n").trim();
-    if (!text) { await refund(); return json({ configured: true, text: null, error: "empty_response", disclaimer: DISCLAIMER }, 502); }
-    await admin.from("ai_jobs").insert({ user_id: user.id, symbol, prompt_type: "report", status: "done", cost_credits: REPORT_COST });
-    return json({ configured: true, text, disclaimer: DISCLAIMER });
-  } catch (e) {
+  const facts = body.facts ? JSON.stringify(body.facts).slice(0, 5000) : "(none)";
+  const pats = body.patterns ? JSON.stringify(body.patterns).slice(0, 1200) : "(none)";
+  const cas = body.corpActions ? JSON.stringify(body.corpActions).slice(0, 2500) : "(none)";
+  const result = await callLLM({
+    system: SYSTEM,
+    user: `Write the report for ${symbol}.\nMETRICS (JSON): ${facts}\nDETECTED PATTERNS (JSON): ${pats}\nCORPORATE ACTIONS (JSON): ${cas}`,
+    maxTokens: 1400,
+  });
+  if (!result.text) {
     await refund();
-    return json({ configured: true, text: null, error: String(e), disclaimer: DISCLAIMER }, 502);
+    return json({ configured: true, text: null, error: result.error ?? "empty_response", disclaimer: DISCLAIMER }, 502);
   }
+  console.log(`ai-report ok symbol=${symbol} provider=${llmProvider()}`);
+  await admin.from("ai_jobs").insert({ user_id: user.id, symbol, prompt_type: "report", status: "done", cost_credits: REPORT_COST });
+  return json({ configured: true, text: result.text, disclaimer: DISCLAIMER });
 });

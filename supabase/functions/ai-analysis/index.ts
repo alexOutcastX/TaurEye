@@ -17,10 +17,9 @@
 // charge. Keep the metered model at Haiku/Sonnet; never Opus on this path.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import Anthropic from "npm:@anthropic-ai/sdk@0";
+import { callLLM, llmConfigured, llmProvider } from "../_shared/llm.ts";
 
 const AI_COST = 10; // keep in sync with COSTS.aiAnalysis in src/lib/economy.ts
-const MODEL = "claude-haiku-4-5";
 
 const DISCLAIMER =
   "AI commentary is informational only and is NOT investment advice. " +
@@ -52,8 +51,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) {
+  if (!llmConfigured()) {
     return json({ configured: false, text: null, disclaimer: DISCLAIMER });
   }
 
@@ -111,47 +109,30 @@ Deno.serve(async (req) => {
     });
   };
 
-  // 2) Call Claude.
-  try {
-    const anthropic = new Anthropic({ apiKey });
-    const facts = body.facts ? JSON.stringify(body.facts).slice(0, 4000) : "(no metrics supplied)";
-    const msg = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 600,
-      system: SYSTEM,
-      messages: [
-        {
-          role: "user",
-          content: `Explain the factual picture for ${symbol}. Data snapshot (JSON):\n${facts}`,
-        },
-      ],
-    });
+  // 2) Call the LLM via the shared router (OmniRoute if configured, else Anthropic).
+  const facts = body.facts ? JSON.stringify(body.facts).slice(0, 4000) : "(no metrics supplied)";
+  const result = await callLLM({
+    system: SYSTEM,
+    user: `Explain the factual picture for ${symbol}. Data snapshot (JSON):\n${facts}`,
+    maxTokens: 600,
+  });
 
-    const text = msg.content
-      .filter((b) => b.type === "text")
-      .map((b) => (b as { text: string }).text)
-      .join("\n")
-      .trim();
-
-    if (!text) {
-      await refund();
-      return json({ configured: true, text: null, error: "empty_response", disclaimer: DISCLAIMER }, 502);
-    }
-
-    await admin.from("ai_jobs").insert({
-      user_id: user.id,
-      symbol,
-      prompt_type: "analysis",
-      status: "done",
-      cost_credits: AI_COST,
-    });
-
-    return json({ configured: true, text, disclaimer: DISCLAIMER });
-  } catch (e) {
+  if (!result.text) {
     await refund();
     return json(
-      { configured: true, text: null, error: String(e), disclaimer: DISCLAIMER },
+      { configured: true, text: null, error: result.error ?? "empty_response", disclaimer: DISCLAIMER },
       502,
     );
   }
+
+  console.log(`ai-analysis ok symbol=${symbol} provider=${llmProvider()}`);
+  await admin.from("ai_jobs").insert({
+    user_id: user.id,
+    symbol,
+    prompt_type: "analysis",
+    status: "done",
+    cost_credits: AI_COST,
+  });
+
+  return json({ configured: true, text: result.text, disclaimer: DISCLAIMER });
 });
