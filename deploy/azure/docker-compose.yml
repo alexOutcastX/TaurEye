@@ -79,3 +79,25 @@ services:
     command: daemon --docker
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  # ---- OmniRoute: self-hosted AI gateway (OpenAI-compatible, many providers) ----
+  # The AI Edge Functions (ai-analysis, ai-report) call this instead of Anthropic
+  # directly when their OMNIROUTE_URL secret is set. Published on loopback for the
+  # dashboard (SSH-tunnel to http://localhost:20128). For the Supabase edge-runtime
+  # to reach it, connect this container to the Supabase network — see
+  # docs/OMNIROUTE.md.  Opt-in: only starts with `--profile ai`.
+  omniroute:
+    image: diegosouzapw/omniroute:latest
+    container_name: taureye-omniroute
+    restart: unless-stopped
+    profiles: ["ai"]
+    environment:
+      PORT: "20128"
+      DATA_DIR: /data
+      # Require a bearer token on the API (recommended once other containers can
+      # reach it). Set OMNIROUTE_API_KEY in .env and pass the same to the edge fn.
+      REQUIRE_API_KEY: ${OMNIROUTE_REQUIRE_API_KEY:-false}
+    ports:
+      - "127.0.0.1:20128:20128"   # dashboard + API on the host loopback only
+    volumes:
+      - ./data/omniroute:/data     # persist provider keys + routing config
