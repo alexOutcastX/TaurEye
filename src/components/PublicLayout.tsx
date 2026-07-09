@@ -28,6 +28,8 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         </span>
         <span className="pub-foot-note">
           Educational &amp; informational content only — not investment advice.
+          TaurEye is not a SEBI-registered investment adviser or research analyst.{" "}
+          <Link to="/legal/disclaimer">Full disclaimer</Link>.
         </span>
       </footer>
     </div>

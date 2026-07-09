@@ -5,6 +5,7 @@ import BullMark from "../components/BullMark";
 import ErrorBoundary from "../components/ErrorBoundary";
 import Logo from "../components/Logo";
 import LegalLinks from "../components/LegalLinks";
+import Disclaimer from "../components/Disclaimer";
 import "./Login.css";
 
 // 3D bull head (three.js) — lazy-loaded so it doesn't bloat startup. Falls back
@@ -40,6 +41,7 @@ export default function Login() {
         </nav>
         <LegalLinks className="login-legal" />
       </div>
+      <Disclaimer />
     </div>
   );
 }
