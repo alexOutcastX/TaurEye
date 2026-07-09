@@ -182,6 +182,34 @@ export default function TopBar() {
             <HomeIcon />
           </button>
           <AlertsBell />
+
+          {/* Content pages (Insights, About, Contact, legal) reachable from
+              every app page. On the BRANDING bar (not the nav bar) so the
+              dropdown isn't clipped by the nav bar's horizontal-scroll overflow.
+              Hidden <=980px, where the hamburger drawer lists these instead. */}
+          <div className="nav-more" ref={moreRef}>
+            <button
+              type="button"
+              className={"nav-more-btn" + (moreOpen ? " active" : "")}
+              aria-haspopup="menu"
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen((v) => !v)}
+            >
+              <span>More</span>
+              <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+            {moreOpen && (
+              <div className="nav-more-pop" role="menu">
+                {CONTENT.map(({ to, label }) => (
+                  <Link key={to} to={to} className="nav-more-link" onClick={() => setMoreOpen(false)}>
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <button type="button" className="signout-btn" onClick={handleSignOut}>
@@ -215,32 +243,6 @@ export default function TopBar() {
             <span>{label}</span>
           </NavLink>
         ))}
-
-        {/* Public/content pages on DESKTOP: a "More" dropdown at the end of the
-            nav bar (hidden <=980px, where the drawer's list below covers it). */}
-        <div className="nav-more" ref={moreRef}>
-          <button
-            type="button"
-            className={"nav-item nav-more-btn" + (moreOpen ? " active" : "")}
-            aria-haspopup="menu"
-            aria-expanded={moreOpen}
-            onClick={() => setMoreOpen((v) => !v)}
-          >
-            <span>More</span>
-            <svg viewBox="0 0 24 24" className="ico" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
-          {moreOpen && (
-            <div className="nav-more-pop" role="menu">
-              {CONTENT.map(({ to, label }) => (
-                <Link key={to} to={to} className="nav-more-link" onClick={() => setMoreOpen(false)}>
-                  {label}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Public pages — only rendered inside the mobile drawer (see CSS). */}
         <div className="nav-extra">
