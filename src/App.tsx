@@ -1,33 +1,39 @@
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
-import { useEffect, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, type ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import { useAuth } from "./auth/AuthContext";
 import { storeRefCode } from "./lib/referral";
 import AppShell from "./app/AppShell";
 import BootGate from "./components/BootGate";
-import Dashboard from "./pages/Dashboard";
-import Landing from "./pages/Landing";
-import Legal from "./pages/Legal";
-import Login from "./pages/Login";
-import ResetPassword from "./pages/ResetPassword";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Blog from "./pages/Blog";
-import Article from "./pages/Article";
-import Screener from "./pages/Screener";
-import Chart from "./pages/Chart";
-import GlobalIndices from "./pages/GlobalIndices";
-import Alerts from "./pages/Alerts";
-import Watchlist from "./pages/Watchlist";
-import Saved from "./pages/Saved";
-import Wallet from "./pages/Wallet";
-import Portfolio from "./pages/Portfolio";
-import Calculators from "./pages/Calculators";
-import Refer from "./pages/Refer";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
 import { trackPageView } from "./lib/analytics";
+
+// Entry points shown on first paint stay eager (no extra round-trip / flash).
+import Landing from "./pages/Landing";
+import Login from "./pages/Login";
+import NotFound from "./pages/NotFound";
+
+// Everything else is code-split: the landing/login pages no longer ship the
+// whole app's JS. Each page loads its own chunk only when its route is hit —
+// slashes the initial bundle (unused-JS + main-thread work → better TBT).
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Legal = lazy(() => import("./pages/Legal"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Blog = lazy(() => import("./pages/Blog"));
+const Article = lazy(() => import("./pages/Article"));
+const Screener = lazy(() => import("./pages/Screener"));
+const Chart = lazy(() => import("./pages/Chart"));
+const GlobalIndices = lazy(() => import("./pages/GlobalIndices"));
+const Alerts = lazy(() => import("./pages/Alerts"));
+const Watchlist = lazy(() => import("./pages/Watchlist"));
+const Saved = lazy(() => import("./pages/Saved"));
+const Wallet = lazy(() => import("./pages/Wallet"));
+const Portfolio = lazy(() => import("./pages/Portfolio"));
+const Calculators = lazy(() => import("./pages/Calculators"));
+const Refer = lazy(() => import("./pages/Refer"));
+const Settings = lazy(() => import("./pages/Settings"));
 
 // Product analytics: one page_view per route change (deduped in the lib).
 function PageViews() {
@@ -82,6 +88,7 @@ export default function App() {
     <>
       <ConsentBanner />
       <PageViews />
+      <Suspense fallback={null}>
       <Routes>
       <Route path="/" element={native ? <Login /> : <Landing />} />
       <Route path="/login" element={<Login />} />
@@ -122,6 +129,7 @@ export default function App() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
     </>
   );
 }

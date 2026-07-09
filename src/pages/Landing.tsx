@@ -46,6 +46,29 @@ export default function Landing() {
   // Evaluate at render time (not module load) so Capacitor is fully initialised
   // on-device — guarantees the WebGL bull is never attempted on native.
   const native = Capacitor.isNativePlatform();
+
+  // Defer the heavy three.js/WebGL bull until the browser is idle: the static
+  // SVG mark paints instantly, and the ~3s of WebGL main-thread work happens
+  // AFTER the page is interactive — big Total-Blocking-Time / Speed-Index win.
+  // Skip it entirely when the user prefers reduced motion.
+  const [showBull, setShowBull] = useState(false);
+  useEffect(() => {
+    if (native) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    let idle = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (w.requestIdleCallback) idle = w.requestIdleCallback(() => setShowBull(true), { timeout: 3000 });
+    else timer = setTimeout(() => setShowBull(true), 1500);
+    return () => {
+      if (idle && w.cancelIdleCallback) w.cancelIdleCallback(idle);
+      if (timer) clearTimeout(timer);
+    };
+  }, [native]);
+
   return (
     <div className="lp">
       <header className="lp-nav">
@@ -79,7 +102,7 @@ export default function Landing() {
         </div>
 
         <div className="lp-hero-visual">
-          {native ? (
+          {native || !showBull ? (
             <BullMark size={220} className="lp-bull-fallback" />
           ) : (
             <ErrorBoundary fallback={<BullMark size={220} className="lp-bull-fallback" />}>
