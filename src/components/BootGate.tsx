@@ -5,9 +5,16 @@ import LoadingScreen from "./LoadingScreen";
 
 // Don't let a slow OTA check delay startup beyond this — boot proceeds anyway.
 const OTA_CHECK_BUDGET_MS = 3000;
-// Always show the loading screen (running bull) for at least this long, even if
-// the data resolves sooner — a deliberate branded intro on every launch.
+// Show the branded loading screen (running bull) for at least this long on the
+// FIRST app entry of a session, even if the data resolves sooner.
 const MIN_BOOT_MS = 5000;
+
+// Has the app booted once in this session? BootGate is mounted inside the /app
+// route, so navigating to a public page (Insights, About, a legal doc) and back
+// unmounts and re-mounts it. Without this flag every such round-trip would replay
+// the 5s branded intro — a real distraction. After the first warm boot we skip
+// the gate entirely and render instantly; the data snapshot is already cached.
+let hasBooted = false;
 
 /**
  * Holds the app behind a loading screen until the backend's metrics snapshot is
@@ -17,11 +24,13 @@ const MIN_BOOT_MS = 5000;
  * /fields and /segments so the screener renders instantly once revealed.
  */
 export default function BootGate({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(false);
+  // Already booted this session → render immediately, no loading screen.
+  const [ready, setReady] = useState(hasBooted);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    if (hasBooted) return; // warm — nothing to gate
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const start = performance.now();
@@ -45,10 +54,15 @@ export default function BootGate({ children }: { children: ReactNode }) {
             // Store warmed but empty — surface it rather than showing a blank app.
             setError("No securities loaded. Run a data pull (taureye nightly).");
           } else {
-            // Keep the running-bull intro up for at least MIN_BOOT_MS.
+            // Keep the running-bull intro up for at least MIN_BOOT_MS (first
+            // launch only). Mark the session booted so later /app re-entries
+            // skip the gate.
             const wait = Math.max(0, MIN_BOOT_MS - (performance.now() - start));
             timer = setTimeout(() => {
-              if (!cancelled) setReady(true);
+              if (!cancelled) {
+                hasBooted = true;
+                setReady(true);
+              }
             }, wait);
           }
         }
