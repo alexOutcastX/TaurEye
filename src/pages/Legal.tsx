@@ -1,6 +1,6 @@
 import { Link, Navigate, useParams } from "react-router-dom";
+import PublicLayout from "../components/PublicLayout";
 import { LEGAL, LEGAL_DOCS, type LegalDocKey } from "../config/legal";
-import Logo from "../components/Logo";
 import "./Legal.css";
 
 const { product, entity, email, jurisdiction, effectiveDate } = LEGAL;
@@ -11,54 +11,33 @@ export default function Legal() {
   if (!known) return <Navigate to="/legal/terms" replace />;
   const key = known.key as LegalDocKey;
 
+  // Rendered inside PublicLayout so the top bar / footer chrome is identical to
+  // every other page (no jarring standalone layout). An in-page tab strip lets
+  // the user switch between the policy documents without leaving this view.
   return (
-    <div className="legal">
-      <header className="legal-top">
-        <Link to="/" className="legal-brand" aria-label="Home">
-          <Logo />
-        </Link>
-        <nav className="legal-nav">
-          {LEGAL_DOCS.map((d) => (
-            <Link key={d.key} to={`/legal/${d.key}`} className={d.key === key ? "active" : ""}>
-              {d.title}
-            </Link>
-          ))}
-        </nav>
-      </header>
+    <PublicLayout>
+      <nav className="legal-tabs" aria-label="Policies">
+        {LEGAL_DOCS.map((d) => (
+          <Link key={d.key} to={`/legal/${d.key}`} className={d.key === key ? "active" : ""}>
+            {d.title}
+          </Link>
+        ))}
+      </nav>
 
-      <main className="legal-doc">
-        <h1>{known.title}</h1>
-        <p className="legal-meta">
-          {product} · Last updated {effectiveDate}
-        </p>
-        {key === "terms" && <Terms />}
-        {key === "privacy" && <Privacy />}
-        {key === "cookies" && <Cookies />}
-        {key === "refund" && <Refund />}
-        {key === "disclaimer" && <Disclaimer />}
+      <h1>{known.title}</h1>
+      <p className="pub-meta">
+        {product} · Last updated {effectiveDate}
+      </p>
+      {key === "terms" && <Terms />}
+      {key === "privacy" && <Privacy />}
+      {key === "cookies" && <Cookies />}
+      {key === "refund" && <Refund />}
+      {key === "disclaimer" && <Disclaimer />}
 
-        <p className="legal-contact">
-          Questions or grievances? Contact <a href={`mailto:${email}`}>{email}</a>.
-        </p>
-      </main>
-
-      <footer className="legal-foot">
-        <span>
-          © {new Date().getFullYear()} {entity}
-        </span>
-        <span className="legal-foot-links">
-          <Link to="/">Home</Link>
-          <Link to="/blog">Insights</Link>
-          <Link to="/about">About</Link>
-          <Link to="/contact">Contact</Link>
-          {LEGAL_DOCS.map((d) => (
-            <Link key={d.key} to={`/legal/${d.key}`}>
-              {d.title}
-            </Link>
-          ))}
-        </span>
-      </footer>
-    </div>
+      <p className="legal-contact">
+        Questions or grievances? Contact <a href={`mailto:${email}`}>{email}</a>.
+      </p>
+    </PublicLayout>
   );
 }
 
