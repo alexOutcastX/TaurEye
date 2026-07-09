@@ -4,4 +4,11 @@ Allow: /
 Disallow: /app/
 Disallow: /admin/
 
+# AdSense crawler must be able to reach pages that display ads (the app's
+# screener/wallet slots live under /app/). Mediapartners-Google only feeds ad
+# serving — it does not index content into Search.
+User-agent: Mediapartners-Google
+Allow: /
+Disallow: /admin/
+
 Sitemap: https://taureye.com/sitemap.xml

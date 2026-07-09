@@ -29,7 +29,10 @@ export default function ConsentBanner() {
     <div className="consent" role="dialog" aria-label="Privacy notice">
       <p>
         We use local storage and cookies to keep you signed in and remember your
-        preferences. See our <Link to="/legal/privacy">Privacy Policy</Link>.
+        preferences, and — where enabled — Google Analytics and Google ads, which
+        set their own cookies. See our{" "}
+        <Link to="/legal/privacy">Privacy Policy</Link> and{" "}
+        <Link to="/legal/cookies">Cookie Policy</Link>.
       </p>
       <button onClick={accept} className="consent-ok">
         Got it

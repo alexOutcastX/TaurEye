@@ -47,6 +47,10 @@ export default function Legal() {
           © {new Date().getFullYear()} {entity}
         </span>
         <span className="legal-foot-links">
+          <Link to="/">Home</Link>
+          <Link to="/blog">Insights</Link>
+          <Link to="/about">About</Link>
+          <Link to="/contact">Contact</Link>
           {LEGAL_DOCS.map((d) => (
             <Link key={d.key} to={`/legal/${d.key}`}>
               {d.title}
