@@ -20,9 +20,9 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
       <footer className="pub-foot">
         <span>© {new Date().getFullYear()} {LEGAL.entity}</span>
         <span className="pub-foot-links">
-          <Link to="/tutorial">Guide</Link>
           <Link to="/about">About</Link>
           <Link to="/contact">Contact</Link>
+          <Link to="/tutorial">Tutorials</Link>
           {LEGAL_DOCS.map((d) => (
             <Link key={d.key} to={`/legal/${d.key}`}>{d.title}</Link>
           ))}

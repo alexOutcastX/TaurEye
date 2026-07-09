@@ -77,10 +77,10 @@ export default function Landing() {
           <img src="/wordmark.png" alt="TaurEye" className="lp-wordmark" />
         </div>
         <nav className="lp-nav-links">
-          <Link to="/tutorial">Guide</Link>
           <Link to="/blog">Insights</Link>
           <Link to="/about">About</Link>
           <Link to="/contact">Contact</Link>
+          <Link to="/tutorial">Tutorials</Link>
         </nav>
         <span className="lp-nav-tag">NSE / BSE end-of-day screener</span>
       </header>
@@ -160,10 +160,10 @@ export default function Landing() {
       <footer className="lp-foot">
         <span>© {new Date().getFullYear()} TaurEye · For research, not investment advice.</span>
         <span className="lp-foot-links">
-          <Link to="/tutorial">Guide</Link>
           <Link to="/blog">Insights</Link>
           <Link to="/about">About</Link>
           <Link to="/contact">Contact</Link>
+          <Link to="/tutorial">Tutorials</Link>
           <LegalLinks />
         </span>
         <span>NSE · BSE · End-of-day data</span>
