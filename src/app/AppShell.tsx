@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { initPush } from "../lib/push";
 import TopBar from "../components/TopBar";
 import IndexTicker from "../components/IndexTicker";
+import Disclaimer from "../components/Disclaimer";
 import "./AppShell.css";
 
 export default function AppShell() {
@@ -20,6 +21,7 @@ export default function AppShell() {
       <main className="content">
         <Outlet />
       </main>
+      <Disclaimer />
     </div>
   );
 }
