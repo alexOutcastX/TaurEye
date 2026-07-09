@@ -21,6 +21,7 @@ const Legal = lazy(() => import("./pages/Legal"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
+const Tutorial = lazy(() => import("./pages/Tutorial"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Article = lazy(() => import("./pages/Article"));
 const Screener = lazy(() => import("./pages/Screener"));
@@ -99,6 +100,7 @@ export default function App() {
       {/* Public content pages (no login) */}
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/tutorial" element={<Tutorial />} />
       <Route path="/blog" element={<Blog />} />
       <Route path="/blog/:slug" element={<Article />} />
 

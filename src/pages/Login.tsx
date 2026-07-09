@@ -61,6 +61,7 @@ export default function Login() {
           <Link to="/blog">Insights</Link>
           <Link to="/about">About</Link>
           <Link to="/contact">Contact</Link>
+          <Link to="/tutorial">Tutorials</Link>
         </nav>
         <LegalLinks className="login-legal" />
       </div>

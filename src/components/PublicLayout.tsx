@@ -22,6 +22,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         <span className="pub-foot-links">
           <Link to="/about">About</Link>
           <Link to="/contact">Contact</Link>
+          <Link to="/tutorial">Tutorials</Link>
           {LEGAL_DOCS.map((d) => (
             <Link key={d.key} to={`/legal/${d.key}`}>{d.title}</Link>
           ))}

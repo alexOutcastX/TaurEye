@@ -80,6 +80,7 @@ export default function Landing() {
           <Link to="/blog">Insights</Link>
           <Link to="/about">About</Link>
           <Link to="/contact">Contact</Link>
+          <Link to="/tutorial">Tutorials</Link>
         </nav>
         <span className="lp-nav-tag">NSE / BSE end-of-day screener</span>
       </header>
@@ -162,6 +163,7 @@ export default function Landing() {
           <Link to="/blog">Insights</Link>
           <Link to="/about">About</Link>
           <Link to="/contact">Contact</Link>
+          <Link to="/tutorial">Tutorials</Link>
           <LegalLinks />
         </span>
         <span>NSE · BSE · End-of-day data</span>

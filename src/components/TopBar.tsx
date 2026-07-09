@@ -30,6 +30,7 @@ const CONTENT = [
   { to: "/blog", label: "Insights" },
   { to: "/about", label: "About Us" },
   { to: "/contact", label: "Contact Us" },
+  { to: "/tutorial", label: "Tutorials" },
   { to: "/legal/privacy", label: "Privacy Policy" },
   { to: "/legal/terms", label: "Terms & Conditions" },
 ];
@@ -41,6 +42,7 @@ const BRAND_LINKS = [
   { to: "/blog", label: "Insights" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },
+  { to: "/tutorial", label: "Tutorials" },
 ];
 
 // Public nav shown on the content pages when logged out (a focused subset).
@@ -49,6 +51,7 @@ const PUBLIC_NAV = [
   { to: "/blog", label: "Insights" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },
+  { to: "/tutorial", label: "Tutorials" },
 ];
 
 /**
