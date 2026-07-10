@@ -23,6 +23,7 @@ export default function BullHero({ size = 220, className }: { size?: number; cla
       height={Math.round((size * 708) / 772)}
       className={className}
       style={{ objectFit: "contain" }}
+      fetchPriority="high"
       onError={() => setFailed(true)}
     />
   );

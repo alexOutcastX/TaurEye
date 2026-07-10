@@ -4,6 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import AuthPanel from "../components/AuthPanel";
 import BullHero from "../components/BullHero";
 import Logo from "../components/Logo";
+import Wordmark from "../components/Wordmark";
 import ErrorBoundary from "../components/ErrorBoundary";
 import LegalLinks from "../components/LegalLinks";
 import { useLazyReveal } from "../lib/useLazyReveal";
@@ -60,7 +61,7 @@ export default function Landing() {
       <header className="lp-nav">
         <div className="lp-brand">
           <Logo size={30} withWordmark={false} />
-          <img src="/wordmark.png" alt="TaurEye" className="lp-wordmark" />
+          <Wordmark className="lp-wordmark" />
         </div>
         <nav className="lp-nav-links">
           <Link to="/blog">Insights</Link>
