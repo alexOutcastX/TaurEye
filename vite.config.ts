@@ -2,33 +2,26 @@ import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // Google AdSense wiring, all driven by VITE_ADSENSE_CLIENT. No-op when unset, so
-// ads stay OFF by default. When set, at build time we:
-//   1. inject the canonical AdSense loader into <head> on every page — this is
-//      the "AdSense code snippet" Google looks for to verify site ownership and
-//      is the recommended placement for serving ads.
-//   2. emit /ads.txt (google.com, pub-XXXX, DIRECT, f08c47fec0942fa0) — the
-//      "Ads.txt snippet" verification method + required for ads to serve.
+// ads stay OFF by default. When set we emit /ads.txt (google.com, pub-XXXX,
+// DIRECT, f08c47fec0942fa0) — the "Ads.txt snippet" verification method and
+// required for ads to serve.
+//
+// The heavy adsbygoogle.js loader is NOT injected into <head> here: that would
+// pull the script onto every public/marketing page (landing, blog, legal) and
+// tank their PageSpeed, even though those pages carry no ad units. Instead the
+// loader is fetched lazily by AdSlot -> ensureAdSenseScript() (src/config/ads.ts)
+// only inside /app, where the Screener/Wallet ad units actually live. Public
+// pages stay script-free and fast.
+//
+// Verification note: because the snippet is no longer on the homepage <head>,
+// verify the account via ads.txt (served at /ads.txt) or Google Search Console
+// rather than the "code on your site" head-snippet method.
 function adsense(client: string): Plugin {
   const id = client.trim()
   const pub = id.replace(/^ca-/, '') // ca-pub-XXXX -> pub-XXXX
   return {
     name: 'taureye-adsense',
     apply: 'build',
-    transformIndexHtml() {
-      if (!id) return
-      return [
-        {
-          tag: 'script',
-          attrs: {
-            async: true,
-            src: `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${id}`,
-            crossorigin: 'anonymous',
-            'data-taureye-adsense': '1',
-          },
-          injectTo: 'head',
-        },
-      ]
-    },
     generateBundle() {
       if (!id) return
       this.emitFile({
