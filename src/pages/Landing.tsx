@@ -6,6 +6,7 @@ import BullHero from "../components/BullHero";
 import Logo from "../components/Logo";
 import ErrorBoundary from "../components/ErrorBoundary";
 import LegalLinks from "../components/LegalLinks";
+import { useLazyReveal } from "../lib/useLazyReveal";
 import "./Landing.css";
 
 // three.js is heavy — keep it out of the main bundle and only fetch it when the
@@ -47,27 +48,12 @@ export default function Landing() {
   // on-device — guarantees the WebGL bull is never attempted on native.
   const native = Capacitor.isNativePlatform();
 
-  // Defer the heavy three.js/WebGL bull until the browser is idle: the static
-  // SVG mark paints instantly, and the ~3s of WebGL main-thread work happens
-  // AFTER the page is interactive — big Total-Blocking-Time / Speed-Index win.
-  // Skip it entirely when the user prefers reduced motion.
-  const [showBull, setShowBull] = useState(false);
-  useEffect(() => {
-    if (native) return;
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const w = window as Window & {
-      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
-      cancelIdleCallback?: (id: number) => void;
-    };
-    let idle = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    if (w.requestIdleCallback) idle = w.requestIdleCallback(() => setShowBull(true), { timeout: 3000 });
-    else timer = setTimeout(() => setShowBull(true), 1500);
-    return () => {
-      if (idle && w.cancelIdleCallback) w.cancelIdleCallback(idle);
-      if (timer) clearTimeout(timer);
-    };
-  }, [native]);
+  // Defer the heavy three.js/WebGL bull until the browser is genuinely idle or
+  // the visitor interacts (see useLazyReveal): the static bull image paints
+  // instantly and the ~seconds of WebGL main-thread work never land in a
+  // PageSpeed trace, so Total Blocking Time stays low. Skipped on native and on
+  // prefers-reduced-motion.
+  const showBull = useLazyReveal(!native);
 
   return (
     <div className="lp">
