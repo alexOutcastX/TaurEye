@@ -4,6 +4,7 @@ import AuthPanel from "../components/AuthPanel";
 import BullHero from "../components/BullHero";
 import ErrorBoundary from "../components/ErrorBoundary";
 import Logo from "../components/Logo";
+import Wordmark from "../components/Wordmark";
 import LegalLinks from "../components/LegalLinks";
 import Disclaimer from "../components/Disclaimer";
 import { useLazyReveal } from "../lib/useLazyReveal";
@@ -29,7 +30,7 @@ export default function Login() {
     <div className="login-wrap">
       <div className="login-brand">
         <Logo size={72} withWordmark={false} />
-        <img src="/wordmark.png" alt="TaurEye" className="login-wordmark" />
+        <Wordmark className="login-wordmark" />
       </div>
       <div className="login-mid">
         {!showBull ? (

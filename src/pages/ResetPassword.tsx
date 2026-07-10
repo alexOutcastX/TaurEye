@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import Logo from "../components/Logo";
+import Wordmark from "../components/Wordmark";
 import LegalLinks from "../components/LegalLinks";
 import "./Login.css";
 import "../components/AuthPanel.css";
@@ -48,7 +49,7 @@ export default function ResetPassword() {
     <div className="login-wrap">
       <div className="login-brand">
         <Logo size={72} withWordmark={false} />
-        <img src="/wordmark.png" alt="TaurEye" className="login-wordmark" />
+        <Wordmark className="login-wordmark" />
       </div>
       <div className="login-body">
         <div className="auth-panel">

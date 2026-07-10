@@ -7,6 +7,11 @@
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Preload the hero bull image: it's the landing/login LCP element but is
+         rendered by React (so normally only discovered after the JS bundle runs
+         ~FCP). Preloading lets it download in parallel with the JS, cutting LCP
+         by ~2s on mobile. Harmless on the few pages that don't show it. -->
+    <link rel="preload" as="image" href="/bull-hero.png" fetchpriority="high" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"

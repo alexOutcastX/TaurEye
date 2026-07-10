@@ -13,13 +13,17 @@ export default function Logo({ size = 28, withWordmark = true }: Props) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
       {usePng ? (
-        <img
-          src="/logo.png"
-          alt="TaurEye"
-          height={size}
-          style={{ display: "block" }}
-          onError={() => setUsePng(false)}
-        />
+        <picture>
+          <source srcSet="/logo.webp" type="image/webp" />
+          <img
+            src="/logo.png"
+            alt="TaurEye"
+            width={Math.round((size * 175) / 144)}
+            height={size}
+            style={{ display: "block" }}
+            onError={() => setUsePng(false)}
+          />
+        </picture>
       ) : (
         <BullMark size={size} />
       )}
