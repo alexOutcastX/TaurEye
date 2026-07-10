@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy } from "react";
 import { Link } from "react-router-dom";
 import AuthPanel from "../components/AuthPanel";
 import BullHero from "../components/BullHero";
@@ -6,6 +6,7 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import Logo from "../components/Logo";
 import LegalLinks from "../components/LegalLinks";
 import Disclaimer from "../components/Disclaimer";
+import { useLazyReveal } from "../lib/useLazyReveal";
 import "./Login.css";
 
 // 3D bull head (three.js) — lazy-loaded so it doesn't bloat startup. Falls back
@@ -19,24 +20,10 @@ const BullScene = lazy(() => import("../components/BullScene"));
  * Native start + web /login.
  */
 export default function Login() {
-  // Defer the WebGL bull to browser-idle (static mark until then); skip on
-  // reduced-motion. Keeps the sign-in screen's Total Blocking Time low.
-  const [showBull, setShowBull] = useState(false);
-  useEffect(() => {
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const w = window as Window & {
-      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
-      cancelIdleCallback?: (id: number) => void;
-    };
-    let idle = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    if (w.requestIdleCallback) idle = w.requestIdleCallback(() => setShowBull(true), { timeout: 3000 });
-    else timer = setTimeout(() => setShowBull(true), 1500);
-    return () => {
-      if (idle && w.cancelIdleCallback) w.cancelIdleCallback(idle);
-      if (timer) clearTimeout(timer);
-    };
-  }, []);
+  // Defer the WebGL bull to genuine browser-idle or first interaction (see
+  // useLazyReveal) so it never lands in a PageSpeed trace; the static bull image
+  // shows until then. Skipped on prefers-reduced-motion.
+  const showBull = useLazyReveal();
 
   return (
     <div className="login-wrap">
