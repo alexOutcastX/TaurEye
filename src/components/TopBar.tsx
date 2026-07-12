@@ -5,7 +5,6 @@ import { LEGAL_DOCS } from "../config/legal";
 import Logo from "./Logo";
 import ScripSearch from "./ScripSearch";
 import CreditsBadge from "./CreditsBadge";
-import ThemeToggle from "./ThemeToggle";
 import AlertsBell from "./AlertsBell";
 import "../app/AppShell.css";
 
@@ -137,10 +136,6 @@ export default function TopBar() {
           <Link to="/login" className="signin-btn">
             Sign in
           </Link>
-
-          <div className="topbar-right">
-            <ThemeToggle />
-          </div>
         </header>
 
         {/* Page nav — its own full-width bar below the branding bar (collapses
@@ -246,7 +241,6 @@ export default function TopBar() {
         </button>
 
         <div className="topbar-right">
-          <ThemeToggle />
           <CreditsBadge />
           <span className="user-pill">
             <span className="avatar">{(user?.name ?? "G")[0].toUpperCase()}</span>
