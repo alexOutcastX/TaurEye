@@ -213,8 +213,32 @@
      sticky sort bar (thead) pinned and always visible while paging through the
      scrip list, instead of it scrolling away with the page. */
   max-height: calc(100dvh - 140px);
+  /* Always occupy a substantial slab so the results fill the space under the
+     filters — the table never collapses to a thin strip while a scan runs. */
+  min-height: min(60dvh, 520px);
   -webkit-overflow-scrolling: touch;   /* momentum scroll on iOS */
   background: var(--surface);
+}
+
+/* Loading skeleton — shimmer placeholder rows shown while the universe scan
+   runs, so the table reads as "filling" immediately instead of going blank. */
+.skeleton-row .sk-cell {
+  display: inline-block;
+  width: 70%;
+  height: 11px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 37%, var(--surface-2) 63%);
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.3s ease-in-out infinite;
+}
+.skeleton-row td:first-child .sk-cell { width: 55%; }
+.skeleton-row .row-actions .sk-cell { width: 40px; }
+@keyframes sk-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-row .sk-cell { animation: none; }
 }
 /* a thin, always-visible scrollbar so it's obvious the table slides */
 .table-wrap::-webkit-scrollbar { height: 8px; }

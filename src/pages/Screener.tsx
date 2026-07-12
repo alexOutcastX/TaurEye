@@ -722,8 +722,6 @@ export default function Screener() {
         </div>
       </div>
 
-      <AdSlot label="Screener banner" height={70} name="screener" />
-
       <div className="results-head">
         <span className="results-count">
           <strong>{fmtInt(count)}</strong> matches
@@ -772,6 +770,19 @@ export default function Screener() {
             </tr>
           </thead>
           <tbody>
+            {loading && pageRows.length === 0 &&
+              Array.from({ length: 12 }).map((_, r) => (
+                <tr key={`sk-${r}`} className="skeleton-row" aria-hidden="true">
+                  {cols.visible.map((c) => (
+                    <td key={c.key} className={c.align === "left" ? "left" : ""}>
+                      <span className="sk-cell" />
+                    </td>
+                  ))}
+                  <td className="row-actions">
+                    <span className="sk-cell" />
+                  </td>
+                </tr>
+              ))}
             {pageRows.map((m) => (
               <tr key={`${m.exchange}:${m.symbol}`}>
                 {cols.visible.map((c) => scrCell(c, m))}
@@ -808,6 +819,10 @@ export default function Screener() {
           </tbody>
         </table>
       </div>
+
+      {/* Banner sits BELOW the results so the dense table fills the space right
+          under the filters — an unfilled ad unit never wedges a blank gap. */}
+      <AdSlot label="Screener banner" height={70} name="screener" />
 
       {pageCount > 1 && (
         <div className="pager">
